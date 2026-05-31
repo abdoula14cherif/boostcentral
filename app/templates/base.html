@@ -1,3 +1,67 @@
+<!-- Bannière installation PWA -->
+<div id="pwa-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#0066FF,#0047CC);color:#fff;padding:14px 16px;box-shadow:0 4px 16px rgba(0,102,255,.4);animation:slideDown .5s ease">
+<div style="display:flex;align-items:center;justify-content:space-between;max-width:600px;margin:0 auto;gap:10px">
+<div style="display:flex;align-items:center;gap:10px">
+<div style="width:40px;height:40px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+<span style="font-size:1.4rem">⚡</span>
+</div>
+<div>
+<div style="font-weight:800;font-size:.92rem">Installer Boost Central</div>
+<div style="font-size:.75rem;opacity:.85">Acces rapide depuis votre ecran d accueil</div>
+</div>
+</div>
+<div style="display:flex;gap:8px;flex-shrink:0">
+<button id="pwa-install-btn" style="background:#FF6600;color:#fff;border:none;padding:8px 16px;border-radius:9px;font-weight:700;font-size:.82rem;cursor:pointer">
+Installer
+</button>
+<button id="pwa-close-btn" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:8px 12px;border-radius:9px;font-weight:700;font-size:.82rem;cursor:pointer">
+X
+</button>
+</div>
+</div>
+</div>
+<style>
+@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+<script>
+var deferredPrompt;
+var banner=document.getElementById('pwa-banner');
+var installBtn=document.getElementById('pwa-install-btn');
+var closeBtn=document.getElementById('pwa-close-btn');
+
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();
+  deferredPrompt=e;
+  if(!localStorage.getItem('pwa-dismissed')){
+    setTimeout(function(){banner.style.display='block';},1500);
+  }
+});
+
+installBtn.addEventListener('click',function(){
+  banner.style.display='none';
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(result){
+      if(result.outcome==='accepted'){
+        localStorage.setItem('pwa-installed','true');
+      }
+      deferredPrompt=null;
+    });
+  }
+});
+
+closeBtn.addEventListener('click',function(){
+  banner.style.display='none';
+  localStorage.setItem('pwa-dismissed','true');
+});
+
+window.addEventListener('appinstalled',function(){
+  banner.style.display='none';
+  deferredPrompt=null;
+});
+</script>
+
+e
 <script>
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/static/sw.js')
