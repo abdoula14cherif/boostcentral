@@ -1,6 +1,5 @@
 import os
 import logging
-from logging.handlers import RotatingFileHandler
 from flask import Flask, render_template
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -41,9 +40,5 @@ def create_app(config_name="production"):
     @app.errorhandler(500)
     def internal_error(e):
         return render_template("errors/500.html"), 500
-    if not app.debug:
-        os.makedirs("logs", exist_ok=True)
-        handler = RotatingFileHandler("logs/app.log", maxBytes=5*1024*1024, backupCount=3)
-        handler.setLevel(logging.INFO)
-        app.logger.addHandler(handler)
+    logging.basicConfig(level=logging.INFO)
     return app
