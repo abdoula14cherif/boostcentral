@@ -1,83 +1,13 @@
-<!-- Bannière installation PWA -->
-<div id="pwa-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#0066FF,#0047CC);color:#fff;padding:14px 16px;box-shadow:0 4px 16px rgba(0,102,255,.4);animation:slideDown .5s ease">
-<div style="display:flex;align-items:center;justify-content:space-between;max-width:600px;margin:0 auto;gap:10px">
-<div style="display:flex;align-items:center;gap:10px">
-<div style="width:40px;height:40px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
-<span style="font-size:1.4rem">⚡</span>
-</div>
-<div>
-<div style="font-weight:800;font-size:.92rem">Installer Boost Central</div>
-<div style="font-size:.75rem;opacity:.85">Acces rapide depuis votre ecran d accueil</div>
-</div>
-</div>
-<div style="display:flex;gap:8px;flex-shrink:0">
-<button id="pwa-install-btn" style="background:#FF6600;color:#fff;border:none;padding:8px 16px;border-radius:9px;font-weight:700;font-size:.82rem;cursor:pointer">
-Installer
-</button>
-<button id="pwa-close-btn" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:8px 12px;border-radius:9px;font-weight:700;font-size:.82rem;cursor:pointer">
-X
-</button>
-</div>
-</div>
-</div>
-<style>
-@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
-</style>
-<script>
-var deferredPrompt;
-var banner=document.getElementById('pwa-banner');
-var installBtn=document.getElementById('pwa-install-btn');
-var closeBtn=document.getElementById('pwa-close-btn');
-
-window.addEventListener('beforeinstallprompt',function(e){
-  e.preventDefault();
-  deferredPrompt=e;
-  if(!localStorage.getItem('pwa-dismissed')){
-    setTimeout(function(){banner.style.display='block';},1500);
-  }
-});
-
-installBtn.addEventListener('click',function(){
-  banner.style.display='none';
-  if(deferredPrompt){
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(function(result){
-      if(result.outcome==='accepted'){
-        localStorage.setItem('pwa-installed','true');
-      }
-      deferredPrompt=null;
-    });
-  }
-});
-
-closeBtn.addEventListener('click',function(){
-  banner.style.display='none';
-  localStorage.setItem('pwa-dismissed','true');
-});
-
-window.addEventListener('appinstalled',function(){
-  banner.style.display='none';
-  deferredPrompt=null;
-});
-</script>
-
-e
-<script>
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/static/sw.js')
-    .then(function(reg){ console.log('SW enregistre'); })
-    .catch(function(err){ console.log('SW erreur:', err); });
-}
-</script><link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#0066FF">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Boost Central"><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#0066FF">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Boost Central">
 <title>{% block title %}Boost Central{% endblock %}</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
@@ -96,11 +26,30 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var
 .wa-float{position:fixed;bottom:24px;right:24px;width:52px;height:52px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.4rem;box-shadow:0 5px 18px rgba(37,211,102,.38);z-index:90;text-decoration:none;animation:waF 3.5s ease-in-out infinite}
 .wa-float:hover{animation:none;transform:scale(1.1)}
 @keyframes waF{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
 {% block extra_css %}{% endblock %}
 </style>
 </head>
 <body>
+<!-- Banniere PWA -->
+<div id="pwa-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#0066FF,#0047CC);color:#fff;padding:14px 16px;box-shadow:0 4px 16px rgba(0,102,255,.4);animation:slideDown .5s ease">
+<div style="display:flex;align-items:center;justify-content:space-between;max-width:600px;margin:0 auto;gap:10px">
+<div style="display:flex;align-items:center;gap:10px">
+<div style="width:40px;height:40px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem">⚡</div>
+<div>
+<div style="font-weight:800;font-size:.92rem">Installer Boost Central</div>
+<div style="font-size:.75rem;opacity:.85">Acces rapide depuis votre ecran d accueil</div>
+</div>
+</div>
+<div style="display:flex;gap:8px;flex-shrink:0">
+<button id="pwa-install-btn" style="background:#FF6600;color:#fff;border:none;padding:8px 16px;border-radius:9px;font-weight:700;font-size:.82rem;cursor:pointer">Installer</button>
+<button id="pwa-close-btn" style="background:rgba(255,255,255,.2);color:#fff;border:none;padding:8px 12px;border-radius:9px;font-weight:700;font-size:.82rem;cursor:pointer">X</button>
+</div>
+</div>
+</div>
+
 {% block nav %}{% endblock %}
+
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 <div class="flash-container" id="flashContainer">
@@ -115,10 +64,48 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var
 <script>setTimeout(function(){var c=document.getElementById('flashContainer');if(c){c.style.opacity='0';setTimeout(()=>c.remove(),500)}},5000)</script>
 {% endif %}
 {% endwith %}
+
 {% block content %}{% endblock %}
+
 {% if whatsapp is defined %}
 <a href="https://wa.me/{{ whatsapp }}" class="wa-float" target="_blank"><i class="fab fa-whatsapp"></i></a>
 {% endif %}
+
 {% block extra_js %}{% endblock %}
+
+<script>
+var deferredPrompt;
+var banner=document.getElementById('pwa-banner');
+var installBtn=document.getElementById('pwa-install-btn');
+var closeBtn=document.getElementById('pwa-close-btn');
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();
+  deferredPrompt=e;
+  if(!localStorage.getItem('pwa-dismissed')){
+    setTimeout(function(){banner.style.display='block';},1500);
+  }
+});
+installBtn.addEventListener('click',function(){
+  banner.style.display='none';
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(r){
+      deferredPrompt=null;
+    });
+  }
+});
+closeBtn.addEventListener('click',function(){
+  banner.style.display='none';
+  localStorage.setItem('pwa-dismissed','true');
+});
+window.addEventListener('appinstalled',function(){
+  banner.style.display='none';
+});
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/static/sw.js')
+    .then(function(){console.log('SW ok');})
+    .catch(function(e){console.log('SW err:',e);});
+}
+</script>
 </body>
 </html>
