@@ -15,7 +15,7 @@ def _headers():
     return {"apikey": current_app.config["SUPABASE_ANON_KEY"], "Content-Type": "application/json"}
 
 @auth_bp.route("/login", methods=["GET", "POST"])
-@limiter.limit("10 per minute")
+@limiter.limit("20 per minute")
 def login():
     if "user_id" in session:
         return redirect(url_for("dashboard.index"))
@@ -25,8 +25,10 @@ def login():
         email = form.email.data.strip().lower()
         password = form.password.data
         try:
-            r = requests.post(f"{_auth_url()}/token?grant_type=password", json={"email": email, "password": password}, headers=_headers())
+            r = requests.post(f"{_auth_url()}/token?grant_type=password",
+                json={"email": email, "password": password}, headers=_headers())
             data = r.json()
+            logger.info(f"LOGIN status={r.status_code} data={data}")
             if r.status_code == 200 and "access_token" in data:
                 user = data.get("user", {})
                 meta = user.get("user_metadata", {})
@@ -35,18 +37,15 @@ def login():
                 next_url = session.pop("next_url", None)
                 return redirect(next_url or url_for("dashboard.index"))
             else:
-                msg = data.get("error_description", data.get("msg", ""))
-                if "Invalid" in msg or "invalid" in msg:
-                    flash("Email ou mot de passe incorrect.", "error")
-                else:
-                    flash("Erreur de connexion. Reessayez.", "error")
+                msg = data.get("error_description", data.get("msg", data.get("message", "")))
+                flash(f"Erreur : {msg}", "error")
         except Exception as e:
             logger.error(f"login error: {e}")
-            flash("Erreur serveur. Reessayez.", "error")
+            flash("Erreur serveur.", "error")
     return render_template("auth/login.html", form=form, reg_form=reg_form)
 
 @auth_bp.route("/register", methods=["POST"])
-@limiter.limit("5 per hour")
+@limiter.limit("10 per hour")
 def register():
     if "user_id" in session:
         return redirect(url_for("dashboard.index"))
@@ -58,8 +57,12 @@ def register():
         full_name = reg_form.full_name.data.strip()
         country = reg_form.country.data.strip() if reg_form.country.data else "CM"
         try:
-            r = requests.post(f"{_auth_url()}/signup", json={"email": email, "password": password, "data": {"full_name": full_name, "country": country}}, headers=_headers())
+            r = requests.post(f"{_auth_url()}/signup",
+                json={"email": email, "password": password,
+                      "data": {"full_name": full_name, "country": country}},
+                headers=_headers())
             data = r.json()
+            logger.info(f"REGISTER status={r.status_code} data={data}")
             if r.status_code == 200 and "id" in data:
                 if data.get("access_token"):
                     set_session(data["id"], data["email"], full_name)
@@ -69,14 +72,15 @@ def register():
                     flash("Compte cree ! Verifiez votre email.", "info")
                     return redirect(url_for("auth.login"))
             else:
-                msg = data.get("msg", data.get("error_description", ""))
-                if "already" in msg.lower():
-                    flash("Email deja utilise.", "error")
-                else:
-                    flash("Erreur inscription. Reessayez.", "error")
+                msg = data.get("msg", data.get("error_description", data.get("message", str(data))))
+                flash(f"Erreur inscription : {msg}", "error")
         except Exception as e:
             logger.error(f"register error: {e}")
-            flash("Erreur serveur. Reessayez.", "error")
+            flash(f"Erreur serveur : {e}", "error")
+    else:
+        for field, errors in reg_form.errors.items():
+            for error in errors:
+                flash(f"{field}: {error}", "error")
     return render_template("auth/login.html", form=form, reg_form=reg_form)
 
 @auth_bp.route("/logout", methods=["GET", "POST"])
@@ -94,7 +98,8 @@ def forgot_password():
     if form.validate_on_submit():
         email = form.email.data.strip().lower()
         try:
-            requests.post(f"{_auth_url()}/recover", json={"email": email}, headers=_headers())
+            requests.post(f"{_auth_url()}/recover",
+                json={"email": email}, headers=_headers())
             flash("Lien envoye ! Verifiez vos spams.", "info")
             return redirect(url_for("auth.login"))
         except Exception as e:
