@@ -1,4 +1,15 @@
-<!DOCTYPE html>
+<script>
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/static/sw.js')
+    .then(function(reg){ console.log('SW enregistre'); })
+    .catch(function(err){ console.log('SW erreur:', err); });
+}
+</script><link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#0066FF">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Boost Central"><!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
