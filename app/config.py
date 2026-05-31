@@ -1,4 +1,4 @@
-import os
+SOINA_PAY_URL = os.environ.get("SOINA_PAY_URL", "https://soinapay.com/pay/zmnmqbap")import os
 from datetime import timedelta
 
 class BaseConfig:
