@@ -31,7 +31,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var
 </style>
 </head>
 <body>
-<!-- Banniere PWA -->
 <div id="pwa-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#0066FF,#0047CC);color:#fff;padding:14px 16px;box-shadow:0 4px 16px rgba(0,102,255,.4);animation:slideDown .5s ease">
 <div style="display:flex;align-items:center;justify-content:space-between;max-width:600px;margin:0 auto;gap:10px">
 <div style="display:flex;align-items:center;gap:10px">
@@ -47,9 +46,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var
 </div>
 </div>
 </div>
-
 {% block nav %}{% endblock %}
-
 {% with messages = get_flashed_messages(with_categories=true) %}
 {% if messages %}
 <div class="flash-container" id="flashContainer">
@@ -64,34 +61,36 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var
 <script>setTimeout(function(){var c=document.getElementById('flashContainer');if(c){c.style.opacity='0';setTimeout(()=>c.remove(),500)}},5000)</script>
 {% endif %}
 {% endwith %}
-
 {% block content %}{% endblock %}
-
 {% if whatsapp is defined %}
 <a href="https://wa.me/{{ whatsapp }}" class="wa-float" target="_blank"><i class="fab fa-whatsapp"></i></a>
 {% endif %}
-
 {% block extra_js %}{% endblock %}
-
 <script>
 var deferredPrompt;
 var banner=document.getElementById('pwa-banner');
 var installBtn=document.getElementById('pwa-install-btn');
 var closeBtn=document.getElementById('pwa-close-btn');
+// Afficher apres 2 secondes
+setTimeout(function(){
+  if(!localStorage.getItem('pwa-dismissed')&&!localStorage.getItem('pwa-installed')){
+    banner.style.display='block';
+  }
+},2000);
 window.addEventListener('beforeinstallprompt',function(e){
   e.preventDefault();
   deferredPrompt=e;
-  if(!localStorage.getItem('pwa-dismissed')){
-    setTimeout(function(){banner.style.display='block';},1500);
-  }
 });
 installBtn.addEventListener('click',function(){
   banner.style.display='none';
   if(deferredPrompt){
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then(function(r){
+      if(r.outcome==='accepted'){localStorage.setItem('pwa-installed','true');}
       deferredPrompt=null;
     });
+  } else {
+    alert('Pour installer : Menu Chrome > Ajouter a l ecran d accueil');
   }
 });
 closeBtn.addEventListener('click',function(){
@@ -100,11 +99,10 @@ closeBtn.addEventListener('click',function(){
 });
 window.addEventListener('appinstalled',function(){
   banner.style.display='none';
+  localStorage.setItem('pwa-installed','true');
 });
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/static/sw.js')
-    .then(function(){console.log('SW ok');})
-    .catch(function(e){console.log('SW err:',e);});
+  navigator.serviceWorker.register('/static/sw.js');
 }
 </script>
 </body>
