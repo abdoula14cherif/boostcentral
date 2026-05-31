@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Connexion — Boost Central{% endblock %}
+{% block extra_css %}
+.blob{position:fixed;border-radius:50%;filter:blur(80px);z-index:0;pointer-events:none}
+.b1{width:380px;height:380px;background:rgba(255,102,0,.14);top:-100px;left:-80px}
+.b2{width:320px;height:320px;background:rgba(0,102,255,.12);bottom:-80px;right:-60px}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.card{background:var(--white);border-radius:22px;padding:36px 28px;width:100%;max-width:420px;box-shadow:0 10px 36px rgba(0,0,0,.09);border:1px solid var(--gray);position:relative;z-index:1;animation:slideUp .45s ease both}
+@keyframes slideUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
+.logo-txt{font-size:1.6rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent;text-align:center;display:block;margin-bottom:24px}
+.tabs{display:flex;background:var(--off);border-radius:13px;padding:4px;margin-bottom:24px}
+.tab{flex:1;padding:9px 6px;border:none;background:none;border-radius:10px;font-size:.9rem;font-weight:600;color:var(--mid);cursor:pointer;transition:all .25s;display:flex;align-items:center;justify-content:center;gap:6px}
+.tab.on{background:var(--white);color:var(--blue);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.panel{display:none}.panel.on{display:block}
+.panel-title{font-size:1.2rem;font-weight:700;color:var(--dark);margin-bottom:4px}
+.panel-sub{font-size:.83rem;color:var(--mid);margin-bottom:20px}
+.fg{margin-bottom:15px}
+.fg label{display:block;font-size:.83rem;font-weight:600;color:var(--dark);margin-bottom:5px}
+.iw{position:relative}
+.iw .il{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--blue);font-size:.88rem;pointer-events:none}
+.iw input{width:100%;padding:12px 13px 12px 38px;border:2px solid var(--gray);border-radius:12px;font-size:.95rem;color:var(--dark);background:var(--white);outline:none;transition:border-color .22s}
+.iw input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-l)}
+.eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--mid);font-size:.88rem}
+.btn{width:100%;padding:13px;border:none;border-radius:12px;font-size:.97rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .25s;margin-top:6px}
+.btn-o{background:linear-gradient(90deg,var(--orange),var(--orange-d));color:#fff;box-shadow:0 5px 16px rgba(255,102,0,.28)}
+.btn-o:hover{transform:translateY(-2px)}
+.btn-b{background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;box-shadow:0 5px 16px rgba(0,102,255,.22)}
+.btn-b:hover{transform:translateY(-2px)}
+.wa-help{display:flex;align-items:center;justify-content:center;gap:8px;background:#25D366;color:#fff;padding:12px;border-radius:12px;text-decoration:none;font-size:.9rem;font-weight:700;margin-top:12px}
+.div{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--light);font-size:.78rem}
+.div::before,.div::after{content:'';flex:1;height:1px;background:var(--gray)}
+.foot{text-align:center;font-size:.78rem;color:var(--mid);margin-top:12px}
+.foot a{color:var(--blue);font-weight:600;text-decoration:none}
+.forgot{display:block;text-align:right;font-size:.8rem;font-weight:600;color:var(--blue);text-decoration:none;margin-bottom:16px}
+.rules{background:var(--off);border-radius:10px;padding:9px 13px;margin-top:5px;display:none}
+.rules.on{display:block}
+.rule{display:flex;align-items:center;gap:6px;font-size:.78rem;margin-bottom:2px}
+.rule.ok{color:var(--green)}.rule.bad{color:var(--red)}
+{% endblock %}
+{% block content %}
+<div class="blob b1"></div>
+<div class="blob b2"></div>
+<div class="card">
+<span class="logo-txt">BOOST CENTRAL</span>
+<div class="tabs">
+<button class="tab on" id="t-login" onclick="showPanel('login')"><i class="fas fa-sign-in-alt"></i> Connexion</button>
+<button class="tab" id="t-reg" onclick="showPanel('register')"><i class="fas fa-user-plus"></i> Inscription</button>
+</div>
+<div class="panel on" id="p-login">
+<div class="panel-title">Bon retour ! 👋</div>
+<div class="panel-sub">Connectez-vous a votre compte</div>
+<form method="POST" action="{{ url_for('auth.login') }}">
+{{ form.hidden_tag() }}
+<div class="fg"><label>Email</label><div class="iw"><i class="fas fa-envelope il"></i>{{ form.email(class="inp", placeholder="exemple@email.com") }}</div></div>
+<div class="fg"><label>Mot de passe</label><div class="iw"><i class="fas fa-lock il"></i>{{ form.password(class="inp", placeholder="Votre mot de passe", id="l-pw") }}<button type="button" class="eye" onclick="toggleEye('l-pw',this)"><i class="fas fa-eye"></i></button></div></div>
+<a class="forgot" href="{{ url_for('auth.forgot_password') }}">Mot de passe oublie ?</a>
+<button type="submit" class="btn btn-o"><i class="fas fa-bolt"></i> Se connecter</button>
+</form>
+<div class="div">ou</div>
+<a class="wa-help" href="https://wa.me/237689011185" target="_blank"><i class="fab fa-whatsapp"></i> Aide WhatsApp</a>
+</div>
+<div class="panel" id="p-register">
+<div class="panel-title">Creer un compte 🎉</div>
+<div class="panel-sub">Rejoignez Boost Central gratuitement</div>
+<form method="POST" action="{{ url_for('auth.register') }}">
+{{ reg_form.hidden_tag() }}
+<div class="fg"><label>Prenom et Nom</label><div class="iw"><i class="fas fa-user il"></i>{{ reg_form.full_name(class="inp", placeholder="Jean Dupont") }}</div></div>
+<div class="fg"><label>Email</label><div class="iw"><i class="fas fa-envelope il"></i>{{ reg_form.email(class="inp", placeholder="exemple@email.com") }}</div></div>
+<div class="fg"><label>Pays</label><div class="iw"><i class="fas fa-globe il"></i>{{ reg_form.country(class="inp", placeholder="Cameroun...") }}</div></div>
+<div class="fg"><label>Mot de passe</label><div class="iw"><i class="fas fa-lock il"></i>{{ reg_form.password(class="inp", placeholder="Min 8 caracteres", id="r-pw", oninput="checkRules(this.value)") }}<button type="button" class="eye" onclick="toggleEye('r-pw',this)"><i class="fas fa-eye"></i></button></div>
+<div class="rules" id="rules">
+<div class="rule bad" id="r-len"><i class="fas fa-circle"></i> 8 caracteres minimum</div>
+<div class="rule bad" id="r-up"><i class="fas fa-circle"></i> Une majuscule</div>
+<div class="rule bad" id="r-num"><i class="fas fa-circle"></i> Un chiffre</div>
+</div></div>
+<div class="fg"><label>Confirmer</label><div class="iw"><i class="fas fa-lock il"></i>{{ reg_form.confirm_password(class="inp", placeholder="Repetez le mot de passe") }}<button type="button" class="eye" onclick="toggleEye('r-confirm',this)"><i class="fas fa-eye"></i></button></div></div>
+<button type="submit" class="btn btn-b"><i class="fas fa-user-plus"></i> Creer mon compte</button>
+</form>
+<div class="foot">En creant un compte vous acceptez nos <a href="/conditions">Conditions</a></div>
+</div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function showPanel(name){
+document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+document.getElementById('p-'+name).classList.add('on');
+document.getElementById('t-'+(name=='login'?'login':'reg')).classList.add('on');
+}
+function toggleEye(id,btn){
+var inp=document.getElementById(id);
+var ico=btn.querySelector('i');
+if(!inp)inp=btn.previousElementSibling;
+if(inp.type==='password'){inp.type='text';ico.className='fas fa-eye-slash';}
+else{inp.type='password';ico.className='fas fa-eye';}
+}
+function checkRules(v){
+document.getElementById('rules').classList.add('on');
+setRule('r-len',v.length>=8);
+setRule('r-up',/[A-Z]/.test(v));
+setRule('r-num',/[0-9]/.test(v));
+}
+function setRule(id,ok){
+var el=document.getElementById(id);
+el.className='rule '+(ok?'ok':'bad');
+el.querySelector('i').className=ok?'fas fa-check-circle':'fas fa-circle';
+}
+{% if reg_form.errors %}showPanel('register');{% endif %}
+</script>
+{% endblock %}

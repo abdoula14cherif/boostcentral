@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Boost Central - Boostez votre presence en ligne{% endblock %}
+{% block extra_css %}
+.blobs{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.blob{position:absolute;border-radius:50%;filter:blur(90px);animation:blobMove 12s ease-in-out infinite alternate}
+.b1{width:420px;height:420px;background:rgba(255,102,0,.15);top:-100px;left:-80px}
+.b2{width:380px;height:380px;background:rgba(0,102,255,.12);bottom:-80px;right:-60px;animation-delay:4s}
+@keyframes blobMove{0%{transform:scale(1) translate(0,0)}100%{transform:scale(1.1) translate(18px,12px)}}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,102,255,.1);box-shadow:0 2px 12px rgba(0,0,0,.05)}
+.nav-logo{font-size:1.25rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-link{font-size:.88rem;font-weight:600;color:var(--mid);text-decoration:none;padding:7px 14px;border-radius:9px;transition:all .22s}
+.nav-link:hover{background:var(--blue-l);color:var(--blue)}
+.nav-cta{display:flex;align-items:center;gap:7px;font-size:.88rem;font-weight:700;color:white;background:linear-gradient(90deg,var(--blue),var(--blue-d));padding:9px 18px;border-radius:10px;text-decoration:none;box-shadow:0 4px 12px rgba(0,102,255,.25);transition:all .25s}
+.nav-cta:hover{transform:translateY(-2px)}
+.hero{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:110px 20px 70px}
+.badge{display:inline-flex;align-items:center;gap:8px;background:var(--blue-l);color:var(--blue);font-size:.76rem;font-weight:700;padding:6px 14px;border-radius:30px;border:1px solid rgba(0,102,255,.18);margin-bottom:22px;letter-spacing:.8px;text-transform:uppercase}
+.badge-dot{width:7px;height:7px;background:var(--orange);border-radius:50%;animation:blink 1.3s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.hero-title{font-size:2.2rem;font-weight:900;line-height:1.2;color:var(--dark);max-width:700px;margin-bottom:18px}
+.hero-title .g{background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+@media(min-width:600px){.hero-title{font-size:3rem}}
+@media(min-width:900px){.hero-title{font-size:3.8rem}}
+.hero-sub{font-size:1rem;color:var(--mid);max-width:500px;line-height:1.7;margin-bottom:36px}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.btn-primary{display:inline-flex;align-items:center;gap:9px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:white;font-size:.97rem;font-weight:700;padding:14px 30px;border-radius:13px;text-decoration:none;box-shadow:0 7px 20px rgba(255,102,0,.3);transition:all .28s}
+.btn-primary:hover{transform:translateY(-3px)}
+.btn-secondary{display:inline-flex;align-items:center;gap:9px;background:white;color:var(--blue);font-size:.97rem;font-weight:700;padding:14px 28px;border-radius:13px;text-decoration:none;border:2px solid rgba(0,102,255,.2);transition:all .28s}
+.btn-secondary:hover{background:var(--blue-l);transform:translateY(-3px)}
+.stats{position:relative;z-index:1;display:flex;flex-wrap:wrap;justify-content:center;gap:14px;padding:0 20px 70px}
+.stat{background:white;border:1px solid var(--gray);border-radius:16px;padding:22px 28px;text-align:center;min-width:130px;box-shadow:0 3px 14px rgba(0,0,0,.05);transition:all .28s}
+.stat:hover{transform:translateY(-5px);border-color:var(--blue)}
+.stat-n{font-size:1.7rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat-l{font-size:.8rem;color:var(--mid);margin-top:3px}
+.sec{position:relative;z-index:1;padding:64px 20px}
+.sec-label{display:inline-block;font-size:.74rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:var(--orange);margin-bottom:10px}
+.sec-title{font-size:1.6rem;font-weight:900;color:var(--dark);line-height:1.25;margin-bottom:12px}
+.sec-sub{font-size:.95rem;color:var(--mid);max-width:500px;line-height:1.7;margin-bottom:40px}
+.tc{text-align:center}.tc .sec-sub{margin:0 auto 40px}
+.nets{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;max-width:680px;margin:0 auto}
+.net{display:flex;align-items:center;gap:8px;padding:11px 20px;background:white;border:2px solid var(--gray);border-radius:50px;font-size:.88rem;font-weight:600;color:var(--dark);transition:all .25s}
+.net:hover{transform:translateY(-3px);box-shadow:0 7px 18px rgba(0,0,0,.08)}
+.feat-bg{background:var(--off);border-top:1px solid var(--gray);border-bottom:1px solid var(--gray)}
+.feat-grid{display:grid;grid-template-columns:1fr;gap:16px;max-width:960px;margin:0 auto}
+@media(min-width:560px){.feat-grid{grid-template-columns:1fr 1fr}}
+@media(min-width:860px){.feat-grid{grid-template-columns:1fr 1fr 1fr}}
+.feat{background:white;border-radius:18px;padding:26px 22px;border:1px solid var(--gray);transition:all .28s}
+.feat:hover{transform:translateY(-5px);border-color:var(--blue)}
+.feat-ico{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:14px}
+.ico-o{background:#FFF0E6;color:var(--orange)}.ico-b{background:var(--blue-l);color:var(--blue)}.ico-g{background:#EDFFF5;color:#059669}
+.feat-t{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:7px}
+.feat-d{font-size:.86rem;color:var(--mid);line-height:1.6}
+.steps{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:860px;margin:0 auto}
+@media(min-width:700px){.steps{grid-template-columns:repeat(4,1fr)}}
+.step{background:white;border-radius:18px;padding:26px 18px;text-align:center;border:1px solid var(--gray);transition:all .28s}
+.step:hover{transform:translateY(-5px)}
+.step-n{width:44px;height:44px;border-radius:50%;font-size:1.1rem;font-weight:900;display:flex;align-items:center;justify-content:center;margin:0 auto 14px}
+.cta-sec{position:relative;z-index:1;padding:64px 20px 90px}
+.cta-box{background:linear-gradient(135deg,#0047CC,#0066FF);border-radius:24px;padding:50px 28px;max-width:660px;margin:0 auto;text-align:center;box-shadow:0 16px 50px rgba(0,102,255,.28)}
+.cta-t{font-size:1.6rem;font-weight:900;color:white;margin-bottom:12px}
+.cta-d{font-size:.95rem;color:rgba(255,255,255,.8);margin-bottom:30px;line-height:1.65}
+.btn-cta{display:inline-flex;align-items:center;gap:9px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:white;font-size:1rem;font-weight:700;padding:15px 36px;border-radius:13px;text-decoration:none;box-shadow:0 7px 22px rgba(255,102,0,.38);transition:all .28s}
+.btn-cta:hover{transform:translateY(-3px) scale(1.03)}
+footer{position:relative;z-index:1;background:var(--dark);color:rgba(255,255,255,.45);text-align:center;padding:26px 20px;font-size:.82rem}
+.f-logo{font-size:1.15rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent;display:block;margin-bottom:8px}
+footer a{color:rgba(255,255,255,.55);text-decoration:none;margin:0 8px}
+footer a:hover{color:white}
+{% endblock %}
+{% block nav %}
+<nav>
+<div class="nav-logo">BOOST CENTRAL</div>
+<div class="nav-right">
+<a href="#reseaux" class="nav-link">Reseaux</a>
+<a href="#etapes" class="nav-link">Comment ca marche</a>
+<a href="{{ url_for('auth.login') }}" class="nav-cta"><i class="fas fa-bolt"></i> Commencer</a>
+</div>
+</nav>
+{% endblock %}
+{% block content %}
+<div class="blobs"><div class="blob b1"></div><div class="blob b2"></div></div>
+<section class="hero">
+<div class="badge"><span class="badge-dot"></span> Plateforme N1 de boost en Afrique</div>
+<h1 class="hero-title">Boostez votre<br><span class="g">presence en ligne</span><br>en quelques clics</h1>
+<p class="hero-sub">Abonnes, vues, likes — obtenez rapidement la visibilite dont vous avez besoin sur tous vos reseaux sociaux.</p>
+<div class="hero-btns">
+<a href="{{ url_for('auth.login') }}" class="btn-primary"><i class="fas fa-rocket"></i> Commencer gratuitement</a>
+<a href="#etapes" class="btn-secondary"><i class="fas fa-play-circle"></i> Comment ca marche</a>
+</div>
+</section>
+<div class="stats">
+<div class="stat"><div class="stat-n">8+</div><div class="stat-l">Reseaux supportes</div></div>
+<div class="stat"><div class="stat-n">1000+</div><div class="stat-l">Clients satisfaits</div></div>
+<div class="stat"><div class="stat-n">1 FCFA</div><div class="stat-l">A partir de</div></div>
+<div class="stat"><div class="stat-n">24/7</div><div class="stat-l">Support WhatsApp</div></div>
+</div>
+<section class="sec tc" id="reseaux">
+<span class="sec-label">Plateformes</span>
+<h2 class="sec-title">Tous vos reseaux en un seul endroit</h2>
+<p class="sec-sub">Facebook, TikTok, Instagram, YouTube et bien d autres.</p>
+<div class="nets">
+<div class="net"><i class="fab fa-facebook" style="color:#1877F2"></i> Facebook</div>
+<div class="net"><i class="fab fa-tiktok"></i> TikTok</div>
+<div class="net"><i class="fab fa-instagram" style="color:#E4405F"></i> Instagram</div>
+<div class="net"><i class="fab fa-youtube" style="color:#FF0000"></i> YouTube</div>
+<div class="net"><i class="fab fa-twitter" style="color:#1DA1F2"></i> Twitter</div>
+<div class="net"><i class="fab fa-telegram" style="color:#26A5E4"></i> Telegram</div>
+<div class="net"><i class="fab fa-spotify" style="color:#1DB954"></i> Spotify</div>
+<div class="net"><i class="fab fa-whatsapp" style="color:#25D366"></i> WhatsApp</div>
+</div>
+</section>
+<section class="sec feat-bg">
+<div style="max-width:960px;margin:0 auto">
+<div class="tc" style="margin-bottom:36px"><span class="sec-label">Pourquoi nous choisir</span><h2 class="sec-title">Simple, rapide et fiable</h2></div>
+<div class="feat-grid">
+<div class="feat"><div class="feat-ico ico-o"><i class="fas fa-bolt"></i></div><div class="feat-t">Livraison rapide</div><div class="feat-d">Resultats visibles en quelques heures.</div></div>
+<div class="feat"><div class="feat-ico ico-b"><i class="fas fa-shield-alt"></i></div><div class="feat-t">100% securise</div><div class="feat-d">Aucun mot de passe demande.</div></div>
+<div class="feat"><div class="feat-ico ico-g"><i class="fas fa-tags"></i></div><div class="feat-t">Prix imbattables</div><div class="feat-d">A partir de 1 FCFA avec 1% de reduction.</div></div>
+<div class="feat"><div class="feat-ico ico-o"><i class="fab fa-whatsapp"></i></div><div class="feat-t">Support WhatsApp</div><div class="feat-d">Disponible 24h/7j.</div></div>
+<div class="feat"><div class="feat-ico ico-b"><i class="fas fa-globe-africa"></i></div><div class="feat-t">Concu pour l Afrique</div><div class="feat-d">Paiements en FCFA ou USD.</div></div>
+<div class="feat"><div class="feat-ico ico-g"><i class="fas fa-chart-line"></i></div><div class="feat-t">Resultats garantis</div><div class="feat-d">Livraison des unites commandees garantie.</div></div>
+</div>
+</div>
+</section>
+<section class="sec tc" id="etapes">
+<span class="sec-label">Processus</span>
+<h2 class="sec-title">Comment ca marche ?</h2>
+<p class="sec-sub">4 etapes simples pour booster votre audience.</p>
+<div class="steps">
+<div class="step"><div class="step-n" style="background:#FFF0E6;color:var(--orange)">1</div><div class="feat-t">Creez un compte</div><div class="feat-d">Inscription gratuite en 30 secondes.</div></div>
+<div class="step"><div class="step-n" style="background:var(--blue-l);color:var(--blue)">2</div><div class="feat-t">Rechargez</div><div class="feat-d">Ajoutez du credit via Mobile Money ou crypto.</div></div>
+<div class="step"><div class="step-n" style="background:#EDFFF5;color:#059669">3</div><div class="feat-t">Choisissez</div><div class="feat-d">Selectionnez le reseau et le service.</div></div>
+<div class="step"><div class="step-n" style="background:#FFF8E6;color:#D97706">4</div><div class="feat-t">Regardez croitre</div><div class="feat-d">Votre audience augmente rapidement.</div></div>
+</div>
+</section>
+<section class="cta-sec">
+<div class="cta-box">
+<h2 class="cta-t">Pret a booster votre presence ?</h2>
+<p class="cta-d">Rejoignez des milliers d utilisateurs qui font confiance a Boost Central.</p>
+<a href="{{ url_for('auth.login') }}" class="btn-cta"><i class="fas fa-rocket"></i> Creer mon compte gratuitement</a>
+<p style="margin-top:16px;font-size:.85rem;color:rgba(255,255,255,.6)">Deja un compte ? <a href="{{ url_for('auth.login') }}" style="color:white;font-weight:700">Se connecter</a></p>
+</div>
+</section>
+<footer>
+<span class="f-logo">BOOST CENTRAL</span>
+<div style="margin-bottom:8px">
+<a href="{{ url_for('conditions') }}">Conditions</a>
+<a href="{{ url_for('auth.login') }}">Connexion</a>
+<a href="https://wa.me/237689011185" target="_blank">WhatsApp</a>
+</div>
+<div>2025 Boost Central. Tous droits reserves.</div>
+</footer>
+{% endblock %}

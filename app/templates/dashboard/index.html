@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Boost Central{% endblock %}
+{% block extra_css %}
+.glow{position:fixed;border-radius:50%;filter:blur(70px);z-index:0;pointer-events:none;animation:pulse 9s ease-in-out infinite alternate}
+.g1{width:320px;height:320px;background:rgba(255,102,0,.12);top:-80px;left:-60px}
+.g2{width:280px;height:280px;background:rgba(0,102,255,.1);bottom:-60px;right:-50px}
+@keyframes pulse{0%{opacity:.3;transform:scale(1)}100%{opacity:.6;transform:scale(1.1)}}
+header{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 3px 10px rgba(0,0,0,.05)}
+.burger-menu{position:relative}
+.burger-btn{background:var(--blue-l);border:none;color:var(--blue);font-size:1.5rem;cursor:pointer;padding:9px 11px;border-radius:10px}
+.logo{font-size:1.4rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+.user-badge{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--mid);background:var(--blue-l);padding:5px 12px;border-radius:20px;max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.dropdown{position:absolute;top:52px;left:0;background:var(--white);border-radius:14px;padding:12px;min-width:220px;box-shadow:0 10px 28px rgba(0,0,0,.1);border:2px solid var(--gray);display:none;z-index:1000}
+.dropdown.open{display:block}
+.dd-item{display:flex;align-items:center;gap:10px;padding:10px 13px;color:var(--mid);text-decoration:none;border-radius:9px;margin-bottom:4px;font-size:.9rem;transition:all .22s}
+.dd-item:hover{background:var(--blue-l);color:var(--blue)}
+.dd-item i{color:var(--blue);width:18px;text-align:center}
+.dd-item.logout i{color:var(--red)}.dd-item.logout:hover{background:#fee2e2;color:var(--red)}
+.dd-div{height:1px;background:var(--gray);margin:6px 0}
+main{padding:20px;max-width:1100px;margin:0 auto;position:relative;z-index:1}
+.card{background:var(--white);border-radius:18px;padding:22px;border:1px solid var(--gray);box-shadow:0 5px 18px rgba(0,0,0,.05);margin-bottom:20px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+@media(max-width:600px){.grid2{grid-template-columns:1fr}}
+.hi-name{color:var(--blue);font-weight:700}
+.balance-val{font-size:2.2rem;font-weight:900;color:var(--orange);margin-bottom:3px}
+.btn-recharge{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;border:none;padding:9px 18px;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;text-decoration:none}
+.sec-title{font-size:1.1rem;font-weight:700;color:var(--dark);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sec-title i{color:var(--blue)}
+.nets-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:480px){.nets-grid{grid-template-columns:repeat(3,1fr)}}
+.net-card{background:var(--white);border-radius:13px;padding:16px 10px;text-align:center;border:2px solid var(--gray);cursor:pointer;transition:all .25s}
+.net-card:hover,.net-card.sel{border-color:var(--blue);background:var(--blue-l);transform:translateY(-3px)}
+.net-card i{font-size:1.6rem;margin-bottom:6px;display:block}
+.net-card span{font-size:.75rem;font-weight:600;color:var(--dark)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:560px){.form-row{grid-template-columns:1fr}}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.82rem;font-weight:600;color:var(--dark);margin-bottom:5px}
+.sw{position:relative}
+.sw select,.inp{width:100%;padding:13px 14px;background:var(--white);border:2px solid var(--gray);border-radius:12px;font-size:.92rem;color:var(--dark);appearance:none;outline:none;transition:border-color .22s}
+.sw select:focus,.inp:focus{border-color:var(--blue)}
+.sw::after{content:'\f078';font-family:'Font Awesome 6 Free';font-weight:900;position:absolute;right:13px;top:50%;transform:translateY(-50%);color:var(--blue);pointer-events:none;font-size:.78rem}
+.desc-box{background:var(--light-g);border-radius:12px;padding:14px;margin:12px 0;border-left:4px solid var(--blue);font-size:.88rem;color:var(--mid);line-height:1.6}
+.price-row{display:flex;justify-content:space-around;background:var(--light-g);padding:14px;border-radius:12px;margin-bottom:4px}
+.price-col{text-align:center}
+.price-lbl{font-size:.78rem;color:var(--mid);margin-bottom:3px}
+.price-val{font-size:1.3rem;font-weight:900;color:var(--orange)}
+.btn-boost{width:100%;padding:16px;margin-top:14px;border:none;border-radius:13px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:#fff;font-size:1.05rem;font-weight:900;cursor:pointer;text-transform:uppercase;letter-spacing:.8px;box-shadow:0 7px 20px rgba(255,102,0,.28);transition:all .28s}
+.btn-boost:hover{transform:translateY(-3px)}
+.order-card{background:var(--white);border:1px solid var(--gray);border-radius:14px;padding:18px;margin-bottom:12px}
+.order-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.order-name{font-size:.92rem;font-weight:700;color:var(--dark)}
+.order-date{font-size:.75rem;color:var(--light)}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:700}
+.s-wait{background:#FFF8E6;color:#D97706}.s-run{background:var(--blue-l);color:var(--blue)}.s-done{background:#EDFFF5;color:var(--green)}.s-ref{background:#fee2e2;color:var(--red)}
+.order-meta{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px}
+.meta-item{font-size:.78rem;color:var(--mid)}
+.meta-item strong{color:var(--dark)}
+.prog-wrap{margin-top:8px}
+.prog-lbl{display:flex;justify-content:space-between;font-size:.75rem;color:var(--mid);margin-bottom:4px}
+.prog-bar{height:7px;background:var(--gray);border-radius:6px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--orange));border-radius:6px}
+.no-orders{text-align:center;padding:40px 20px;color:var(--light)}
+.no-orders i{font-size:2.5rem;display:block;margin-bottom:12px;color:var(--gray)}
+{% endblock %}
+{% block nav %}
+<header>
+<div class="burger-menu">
+<button class="burger-btn" id="burgerBtn"><i class="fas fa-bars"></i></button>
+<div class="dropdown" id="dropdown">
+<a href="{{ url_for('recharge.index') }}" class="dd-item"><i class="fas fa-wallet"></i> Recharger mon solde</a>
+<a href="#orders" class="dd-item" onclick="closeMenu()"><i class="fas fa-shopping-cart"></i> Mes commandes</a>
+<div class="dd-div"></div>
+<a href="{{ url_for('auth.logout') }}" class="dd-item logout"><i class="fas fa-sign-out-alt"></i> Deconnexion</a>
+</div>
+</div>
+<div class="logo">BOOST CENTRAL</div>
+<div class="user-badge"><i class="fas fa-user-circle" style="color:var(--blue)"></i><span>{{ user.email }}</span></div>
+</header>
+{% endblock %}
+{% block content %}
+<div class="glow g1"></div><div class="glow g2"></div>
+<main>
+<div class="grid2">
+<div class="card">
+<h2 style="font-size:1.4rem;font-weight:700;color:var(--dark);margin-bottom:6px">Bienvenue, <span class="hi-name">{{ user.name.split(' ')[0] if user.name else user.email.split('@')[0] }}</span> !</h2>
+<p style="font-size:.9rem;color:var(--mid)">Que souhaitez-vous booster aujourd hui ?</p>
+</div>
+<div class="card">
+<div style="font-size:.85rem;color:var(--mid);margin-bottom:6px">Votre solde</div>
+<div class="balance-val">{{ "{:,.0f}".format(profile.balance or 0) if profile else '0' }}</div>
+<div style="font-size:.85rem;color:var(--mid);margin-bottom:14px">FCFA</div>
+<a href="{{ url_for('recharge.index') }}" class="btn-recharge"><i class="fas fa-plus-circle"></i> Recharger</a>
+</div>
+</div>
+<div class="card">
+<div class="sec-title"><i class="fas fa-share-alt"></i> Reseaux supportes</div>
+<div class="nets-grid">
+{% for net_id,icon,label in [('facebook','fab fa-facebook','Facebook'),('tiktok','fab fa-tiktok','TikTok'),('instagram','fab fa-instagram','Instagram'),('youtube','fab fa-youtube','YouTube'),('twitter','fab fa-twitter','Twitter'),('telegram','fab fa-telegram','Telegram'),('spotify','fab fa-spotify','Spotify'),('whatsapp','fab fa-whatsapp','WhatsApp')] %}
+<div class="net-card" data-net="{{ net_id }}" onclick="selectNet(this)"><i class="{{ icon }}"></i><span>{{ label }}</span></div>
+{% endfor %}
+</div>
+</div>
+<div class="card">
+<div class="sec-title"><i class="fas fa-rocket"></i> Nouvelle commande</div>
+<form method="POST" action="{{ url_for('dashboard.place_order') }}">
+{{ form.hidden_tag() }}
+<div class="form-row">
+<div class="fg"><label>Reseau social</label><div class="sw"><select id="selNet" name="network" onchange="onNetChange()"><option value="">Selectionnez</option>{% for net_id,icon,label in [('facebook','','Facebook'),('tiktok','','TikTok'),('instagram','','Instagram'),('youtube','','YouTube'),('twitter','','Twitter'),('telegram','','Telegram'),('spotify','','Spotify'),('whatsapp','','WhatsApp')] %}<option value="{{ net_id }}">{{ label }}</option>{% endfor %}</select></div></div>
+<div class="fg"><label>Service</label><div class="sw"><select id="selSvc" name="service_id" onchange="onSvcChange()" disabled><option value="">Choisissez un reseau</option></select></div></div>
+</div>
+<div class="fg"><label>Lien du compte / video</label><input type="text" class="inp" name="link" id="inpLink" placeholder="https://..."></div>
+<div class="fg"><label>Quantite (minimum : <span id="minQty">100</span>)</label><input type="number" class="inp" name="quantity" id="inpQty" value="1000" min="1"></div>
+<div class="desc-box" id="descBox">Selectionnez un reseau et un service.</div>
+<div class="price-row">
+<div class="price-col"><div class="price-lbl">Prix unitaire</div><div class="price-val" id="pUnit">0 FCFA</div></div>
+<div class="price-col"><div class="price-lbl">Total (-1%)</div><div class="price-val" id="pTotal">0 FCFA</div></div>
+</div>
+<button type="submit" class="btn-boost"><i class="fas fa-bolt"></i> BOOSTER MAINTENANT</button>
+</form>
+</div>
+<div class="card" id="orders">
+<div class="sec-title"><i class="fas fa-list-check"></i> Mes commandes</div>
+{% if orders %}
+{% for o in orders %}
+{% set bmap={'en_attente':('s-wait','En attente'),'en_cours':('s-run','En cours'),'termine':('s-done','Termine'),'refuse':('s-ref','Refuse')} %}
+{% set bc,bt=bmap.get(o.statut,('s-wait','En attente')) %}
+<div class="order-card">
+<div class="order-head">
+<div><div class="order-name">{{ o.service }}</div><div class="order-date">{{ o.created_at[:10] if o.created_at else '' }}</div></div>
+<span class="badge {{ bc }}">{{ bt }}</span>
+</div>
+<div class="order-meta">
+<span class="meta-item"><strong>{{ o.reseau|capitalize }}</strong></span>
+<span class="meta-item">Qte : <strong>{{ "{:,}".format(o.quantite) }}</strong></span>
+<span class="meta-item">Total : <strong>{{ "{:,.0f}".format(o.prix_total) }} FCFA</strong></span>
+</div>
+<div style="font-size:.76rem;color:var(--light);margin-bottom:6px;word-break:break-all">{{ o.lien }}</div>
+{% if o.statut != 'refuse' %}
+<div class="prog-wrap"><div class="prog-lbl"><span>Progression</span><span>{{ o.progression or 0 }}%</span></div><div class="prog-bar"><div class="prog-fill" style="width:{{ o.progression or 0 }}%"></div></div></div>
+{% endif %}
+{% if o.note_admin %}<div style="margin-top:8px;font-size:.78rem;color:var(--mid);background:var(--light-g);padding:8px 10px;border-radius:8px">Admin : {{ o.note_admin }}</div>{% endif %}
+</div>
+{% endfor %}
+{% else %}
+<div class="no-orders"><i class="fas fa-inbox"></i><p>Aucune commande pour l instant.</p></div>
+{% endif %}
+</div>
+</main>
+{% endblock %}
+{% block extra_js %}
+<script>
+const svcData={{ services_by_network|tojson }};
+document.getElementById('burgerBtn').addEventListener('click',function(e){e.stopPropagation();document.getElementById('dropdown').classList.toggle('open')});
+document.addEventListener('click',function(e){var dd=document.getElementById('dropdown');if(!dd.contains(e.target)&&!document.getElementById('burgerBtn').contains(e.target))dd.classList.remove('open')});
+function closeMenu(){document.getElementById('dropdown').classList.remove('open')}
+function selectNet(card){
+document.querySelectorAll('.net-card').forEach(c=>c.classList.remove('sel'));
+card.classList.add('sel');
+document.getElementById('selNet').value=card.dataset.net;
+onNetChange();
+}
+function onNetChange(){
+var net=document.getElementById('selNet').value;
+var sel=document.getElementById('selSvc');
+sel.innerHTML='<option value="">Selectionnez un service</option>';
+sel.disabled=!net;
+document.getElementById('descBox').textContent='Selectionnez un service.';
+calcPrice();
+if(!net||!svcData[net])return;
+svcData[net].forEach(function(s){
+var opt=document.createElement('option');
+opt.value=s.id;opt.textContent=s.categorie;
+opt.dataset.prix=s.prix_fcfa;opt.dataset.min=s.min_qte;opt.dataset.max=s.max_qte;opt.dataset.desc=s.description||'';
+sel.appendChild(opt);
+});
+sel.disabled=false;
+document.querySelectorAll('.net-card').forEach(c=>c.classList.toggle('sel',c.dataset.net===net));
+}
+function onSvcChange(){
+var opt=document.getElementById('selSvc').selectedOptions[0];
+if(!opt||!opt.value){calcPrice();return;}
+document.getElementById('minQty').textContent=Number(opt.dataset.min).toLocaleString();
+document.getElementById('inpQty').min=opt.dataset.min;
+if(parseInt(document.getElementById('inpQty').value)<parseInt(opt.dataset.min))document.getElementById('inpQty').value=opt.dataset.min;
+document.getElementById('descBox').textContent=opt.dataset.desc||opt.textContent;
+calcPrice();
+}
+document.getElementById('inpQty').addEventListener('input',calcPrice);
+function calcPrice(){
+var opt=document.getElementById('selSvc').selectedOptions[0];
+var qty=parseInt(document.getElementById('inpQty').value)||0;
+if(!opt||!opt.value){document.getElementById('pUnit').textContent='0 FCFA';document.getElementById('pTotal').textContent='0 FCFA';return;}
+var prix=parseFloat(opt.dataset.prix);
+var total=prix*qty*0.99;
+document.getElementById('pUnit').textContent=prix%1===0?prix+' FCFA':prix.toFixed(1)+' FCFA';
+document.getElementById('pTotal').textContent=Math.round(total).toLocaleString()+' FCFA';
+}
+</script>
+{% endblock %}

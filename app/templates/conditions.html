@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Conditions — Boost Central{% endblock %}
+{% block extra_css %}
+.header{display:flex;justify-content:space-between;align-items:center;padding:20px 30px;background:var(--white);border-bottom:1px solid var(--gray);position:sticky;top:0;z-index:100}
+.site-name{font-size:1.5rem;font-weight:800;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+.main{padding:40px 20px;max-width:900px;margin:0 auto}
+.section{background:#fff;border-radius:16px;padding:24px;margin-bottom:20px;border:1px solid var(--gray);box-shadow:0 3px 10px rgba(0,0,0,.04)}
+.section h2{font-size:1.2rem;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section p,.section li{font-size:.9rem;color:#444;line-height:1.7;margin-bottom:8px}
+.section ul{margin-left:20px}
+.warn{background:var(--orange-l);border-left:4px solid var(--orange);border-radius:10px;padding:14px;margin-bottom:20px;font-size:.9rem;color:#d35400;font-weight:600}
+.btn-group{display:flex;gap:16px;justify-content:center;margin-top:30px;flex-wrap:wrap}
+.btn{padding:13px 28px;border-radius:12px;font-weight:700;cursor:pointer;font-size:1rem;transition:all .3s;text-decoration:none;display:flex;align-items:center;gap:8px;border:none}
+.btn-p{background:linear-gradient(90deg,var(--orange),var(--orange-d));color:white}
+.btn-s{background:var(--white);color:var(--blue);border:2px solid var(--blue-l)}
+{% endblock %}
+{% block nav %}
+<div class="header"><div class="site-name">BOOST CENTRAL</div></div>
+{% endblock %}
+{% block content %}
+<div class="main">
+<div style="text-align:center;margin-bottom:30px">
+<h1 style="font-size:2rem;color:var(--dark)"><i class="fas fa-file-contract" style="color:var(--blue)"></i> Conditions d Utilisation</h1>
+</div>
+<div class="warn"><i class="fas fa-exclamation-triangle"></i> En passant une commande, vous acceptez automatiquement ces conditions.</div>
+<div class="section"><h2><i class="fas fa-gavel"></i> Conditions Generales</h2><p>Nous nous reservons le droit de modifier ces conditions sans preavis. Les prix peuvent etre modifies a tout moment.</p></div>
+<div class="section"><h2><i class="fas fa-ban"></i> Non-responsabilite</h2><p>Boost Central n est pas responsable des suspensions de comptes decidees par les reseaux sociaux.</p></div>
+<div class="section"><h2><i class="fas fa-concierge-bell"></i> Prestations</h2><ul><li>Aucune garantie sur les delais de livraison.</li><li>Les comptes prives ne donnent pas droit a un remboursement.</li><li>Nous ne garantissons pas que les abonnes resteront definitiement.</li></ul></div>
+<div class="section"><h2><i class="fas fa-money-bill-wave"></i> Remboursements</h2><p>Aucun remboursement vers le mode de paiement initial. Tout depot est definitif.</p><ul><li>Les commandes passees ne peuvent etre annulees.</li><li>Toute fraude entraine la cloture immediate du compte.</li></ul></div>
+<div class="section"><h2><i class="fas fa-shield-alt"></i> Confidentialite</h2><p>Vos donnees sont utilisees uniquement pour traiter vos commandes. Elles ne seront ni revendues ni partagees.</p></div>
+<div class="btn-group">
+<a href="{{ url_for('index') }}" class="btn btn-p"><i class="fas fa-arrow-left"></i> Retour</a>
+<button onclick="window.print()" class="btn btn-s"><i class="fas fa-print"></i> Imprimer</button>
+</div>
+</div>
+<footer style="background:var(--dark);color:rgba(255,255,255,.45);text-align:center;padding:20px;font-size:.82rem;margin-top:40px">
+<div style="font-weight:900;background:linear-gradient(90deg,#0066FF,#FF6600);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:6px">BOOST CENTRAL</div>
+2025 Boost Central. Tous droits reserves.
+</footer>
+{% endblock %}
