@@ -37,7 +37,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var
 <div style="width:40px;height:40px;background:#fff;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:1.4rem">⚡</div>
 <div>
 <div style="font-weight:800;font-size:.92rem">Installer Boost Central</div>
-<div style="font-size:.75rem;opacity:.85" id="pwa-sub">Acces rapide depuis votre ecran d accueil</div>
+<div style="font-size:.75rem;opacity:.85">Acces rapide depuis votre ecran d accueil</div>
 </div>
 </div>
 <div style="display:flex;gap:8px;flex-shrink:0">
@@ -71,42 +71,23 @@ var deferredPrompt=null;
 var banner=document.getElementById('pwa-banner');
 var installBtn=document.getElementById('pwa-install-btn');
 var closeBtn=document.getElementById('pwa-close-btn');
-var isInstalled=localStorage.getItem('pwa-installed');
-var isDismissed=localStorage.getItem('pwa-dismissed');
-
-function showBanner(){
-  if(!isInstalled&&!isDismissed){
-    banner.style.display='block';
-  }
-}
 
 window.addEventListener('beforeinstallprompt',function(e){
   e.preventDefault();
   deferredPrompt=e;
-  showBanner();
+  if(!localStorage.getItem('pwa-installed')&&!localStorage.getItem('pwa-dismissed')){
+    setTimeout(function(){banner.style.display='block';},2000);
+  }
 });
 
-// Afficher sur tous les navigateurs apres 2s
-setTimeout(function(){
-  showBanner();
-},2000);
-
 installBtn.addEventListener('click',function(){
+  banner.style.display='none';
   if(deferredPrompt){
-    banner.style.display='none';
     deferredPrompt.prompt();
     deferredPrompt.userChoice.then(function(r){
       if(r.outcome==='accepted'){localStorage.setItem('pwa-installed','true');}
       deferredPrompt=null;
     });
-  } else {
-    // Firefox ou navigateur sans support natif
-    banner.style.display='none';
-    var msg=document.createElement('div');
-    msg.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#1E293B;color:#fff;padding:20px;text-align:center;animation:slideDown .5s ease';
-    msg.innerHTML='<div style="font-weight:800;font-size:1rem;margin-bottom:8px">Pour installer Boost Central</div><div style="font-size:.85rem;opacity:.8;line-height:1.6">1. Appuyez sur le menu de votre navigateur<br>2. Selectionnez "Ajouter a l ecran d accueil"<br>3. Appuyez sur "Ajouter"</div><button onclick="this.parentElement.remove()" style="margin-top:12px;background:#FF6600;color:#fff;border:none;padding:8px 20px;border-radius:9px;font-weight:700;cursor:pointer">OK compris</button>';
-    document.body.appendChild(msg);
-    localStorage.setItem('pwa-dismissed','true');
   }
 });
 
