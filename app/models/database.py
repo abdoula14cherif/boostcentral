@@ -22,7 +22,9 @@ def get_profile(user_id):
     try:
         r = requests.get(_url(f"profiles?id=eq.{user_id}&limit=1"), headers=_headers(True))
         data = r.json()
-        return data[0] if data else None
+        if isinstance(data, list) and len(data) > 0:
+            return data[0]
+        return None
     except Exception as e:
         logger.error(f"get_profile: {e}")
         return None
@@ -66,11 +68,15 @@ def debit_balance(user_id, amount):
 
 def get_active_services(network=None):
     try:
-        url = _url("services?actif=eq.true&order=reseau,categorie")
         if network:
             url = _url(f"services?actif=eq.true&reseau=eq.{network}&order=categorie")
+        else:
+            url = _url("services?actif=eq.true&order=reseau,categorie")
         r = requests.get(url, headers=_headers(True))
-        return r.json() or []
+        data = r.json()
+        if isinstance(data, list):
+            return data
+        return []
     except Exception as e:
         logger.error(f"get_active_services: {e}")
         return []
@@ -79,7 +85,9 @@ def get_service_by_id(service_id):
     try:
         r = requests.get(_url(f"services?id=eq.{service_id}&limit=1"), headers=_headers(True))
         data = r.json()
-        return data[0] if data else None
+        if isinstance(data, list) and len(data) > 0:
+            return data[0]
+        return None
     except Exception as e:
         logger.error(f"get_service_by_id: {e}")
         return None
@@ -88,7 +96,9 @@ def create_order(data):
     try:
         r = requests.post(_url("commandes"), json=data, headers=_headers(True))
         result = r.json()
-        return result[0] if isinstance(result, list) and result else None
+        if isinstance(result, list) and result:
+            return result[0]
+        return None
     except Exception as e:
         logger.error(f"create_order: {e}")
         return None
@@ -96,7 +106,10 @@ def create_order(data):
 def get_user_orders(user_id, limit=20):
     try:
         r = requests.get(_url(f"commandes?user_id=eq.{user_id}&order=created_at.desc&limit={limit}"), headers=_headers(True))
-        return r.json() or []
+        data = r.json()
+        if isinstance(data, list):
+            return data
+        return []
     except Exception as e:
         logger.error(f"get_user_orders: {e}")
         return []
@@ -104,7 +117,10 @@ def get_user_orders(user_id, limit=20):
 def get_all_orders(limit=100):
     try:
         r = requests.get(_url(f"commandes?order=created_at.desc&limit={limit}"), headers=_headers(True))
-        return r.json() or []
+        data = r.json()
+        if isinstance(data, list):
+            return data
+        return []
     except Exception as e:
         logger.error(f"get_all_orders: {e}")
         return []
@@ -121,7 +137,9 @@ def create_recharge(data):
     try:
         r = requests.post(_url("recharges"), json=data, headers=_headers(True))
         result = r.json()
-        return result[0] if isinstance(result, list) and result else None
+        if isinstance(result, list) and result:
+            return result[0]
+        return None
     except Exception as e:
         logger.error(f"create_recharge: {e}")
         return None
@@ -129,7 +147,10 @@ def create_recharge(data):
 def get_user_recharges(user_id, limit=10):
     try:
         r = requests.get(_url(f"recharges?user_id=eq.{user_id}&order=created_at.desc&limit={limit}"), headers=_headers(True))
-        return r.json() or []
+        data = r.json()
+        if isinstance(data, list):
+            return data
+        return []
     except Exception as e:
         logger.error(f"get_user_recharges: {e}")
         return []
@@ -137,7 +158,10 @@ def get_user_recharges(user_id, limit=10):
 def get_all_recharges(limit=50):
     try:
         r = requests.get(_url(f"recharges?order=created_at.desc&limit={limit}"), headers=_headers(True))
-        return r.json() or []
+        data = r.json()
+        if isinstance(data, list):
+            return data
+        return []
     except Exception as e:
         logger.error(f"get_all_recharges: {e}")
         return []
@@ -153,7 +177,10 @@ def update_recharge(recharge_id, data):
 def get_all_users():
     try:
         r = requests.get(_url("profiles?order=created_at.desc"), headers=_headers(True))
-        return r.json() or []
+        data = r.json()
+        if isinstance(data, list):
+            return data
+        return []
     except Exception as e:
         logger.error(f"get_all_users: {e}")
         return []
