@@ -1,4 +1,4 @@
-SOINA_PAY_URL = os.environ.get("SOINA_PAY_URL", "https://soinapay.com/pay/zmnmqbap")import os
+import os
 from datetime import timedelta
 
 class BaseConfig:
@@ -13,6 +13,7 @@ class BaseConfig:
     SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
     ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "abdoula13cherif@gmail.com")
     WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "237689011185")
+    SOINA_PAY_URL = os.environ.get("SOINA_PAY_URL", "https://soinapay.com/pay/zmnmqbap")
     ORDERS_PER_PAGE = 20
     RECHARGES_PER_PAGE = 10
     USD_RATE = 600.0
