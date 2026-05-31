@@ -7,26 +7,12 @@ header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var
 main{padding:20px;max-width:680px;margin:0 auto}
 .bal-box{background:var(--white);border-radius:16px;padding:20px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
 .bal-val{font-size:2rem;font-weight:900;color:var(--orange)}
-.meth-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
-@media(max-width:440px){.meth-grid{grid-template-columns:1fr}}
-.meth-card{border:2px solid var(--gray);border-radius:14px;padding:16px 14px;cursor:pointer;transition:all .25s;background:var(--white);text-align:center}
-.meth-card:hover,.meth-card.sel{border-color:var(--blue);background:var(--blue-l)}
-.meth-card i{font-size:1.8rem;display:block;margin-bottom:8px}
-.meth-name{font-size:.88rem;font-weight:700;color:var(--dark)}
-.meth-sub{font-size:.74rem;color:var(--mid);margin-top:2px}
-.form-card{background:var(--white);border-radius:16px;padding:22px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);display:none;margin-bottom:20px}
-.form-card.on{display:block}
-.form-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.fg{margin-bottom:14px}
-.fg label{display:block;font-size:.82rem;font-weight:600;color:var(--dark);margin-bottom:5px}
-.inp{width:100%;padding:12px 14px;border:2px solid var(--gray);border-radius:12px;font-size:.92rem;color:var(--dark);outline:none;transition:border-color .22s;background:var(--white)}
-.inp:focus{border-color:var(--blue)}
-.crypto-addr{background:var(--light-g);border-radius:12px;padding:14px;margin-bottom:14px;word-break:break-all;border:1px solid var(--gray)}
-.addr-label{font-size:.72rem;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
-.addr-val{font-size:.8rem;font-family:monospace;color:var(--blue-d);line-height:1.5;margin-bottom:8px}
-.copy-btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer}
-.wa-info{background:#E8FFF1;border:1px solid #6ee7b7;border-radius:12px;padding:14px;margin-bottom:14px;font-size:.84rem;color:#065f46;line-height:1.6}
-.btn-sub{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;font-size:.97rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px}
+.pay-card{background:var(--white);border-radius:16px;padding:24px;border:2px solid var(--blue-l);box-shadow:0 4px 14px rgba(0,102,255,.08);margin-bottom:20px;text-align:center}
+.pay-title{font-size:1.1rem;font-weight:800;color:var(--dark);margin-bottom:8px}
+.pay-sub{font-size:.88rem;color:var(--mid);margin-bottom:20px;line-height:1.6}
+.btn-pay{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;padding:16px 40px;border-radius:14px;font-size:1.1rem;font-weight:800;text-decoration:none;box-shadow:0 7px 20px rgba(0,102,255,.28);transition:all .28s;width:100%}
+.btn-pay:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(0,102,255,.4)}
+.info-box{background:var(--blue-l);border-radius:12px;padding:14px;margin-top:16px;font-size:.84rem;color:var(--blue-d);line-height:1.6;border:1px solid rgba(0,102,255,.2)}
 .hist-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:12px;margin-top:24px}
 .hist-item{background:var(--white);border:1px solid var(--gray);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .hn{font-size:.88rem;font-weight:700;color:var(--dark)}
@@ -43,61 +29,36 @@ main{padding:20px;max-width:680px;margin:0 auto}
 {% block content %}
 <main>
 <div class="bal-box">
-<div><div style="font-size:.82rem;color:var(--mid);margin-bottom:4px">Solde actuel</div><div class="bal-val">{{ "{:,.0f}".format(profile.balance or 0) if profile else '0' }}</div><div style="font-size:.82rem;color:var(--mid)">FCFA</div></div>
+<div>
+<div style="font-size:.82rem;color:var(--mid);margin-bottom:4px">Solde actuel</div>
+<div class="bal-val">{{ "{:,.0f}".format(profile.balance or 0) if profile else '0' }}</div>
+<div style="font-size:.82rem;color:var(--mid)">FCFA</div>
+</div>
 <i class="fas fa-wallet" style="font-size:2rem;color:var(--blue-l)"></i>
 </div>
-<div style="font-size:1.2rem;font-weight:800;color:var(--dark);margin-bottom:6px">Recharger mon solde</div>
-<div style="font-size:.85rem;color:var(--mid);margin-bottom:20px;line-height:1.6">Choisissez votre methode de paiement. L admin validera votre recharge sous peu.</div>
-<div class="meth-grid">
-<div class="meth-card" data-form="mtn" onclick="selectMeth(this)"><i class="fas fa-mobile-alt" style="color:#FFCC00"></i><div class="meth-name">MTN Mobile Money</div><div class="meth-sub">Cameroun</div></div>
-<div class="meth-card" data-form="orange" onclick="selectMeth(this)"><i class="fas fa-mobile-alt" style="color:#FF6600"></i><div class="meth-name">Orange Money</div><div class="meth-sub">Cameroun</div></div>
-<div class="meth-card" data-form="btc" onclick="selectMeth(this)"><i class="fab fa-bitcoin" style="color:#F7931A"></i><div class="meth-name">Bitcoin (BTC)</div><div class="meth-sub">Tous pays</div></div>
-<div class="meth-card" data-form="bnb" onclick="selectMeth(this)"><i class="fas fa-coins" style="color:#F3BA2F"></i><div class="meth-name">BNB BSC</div><div class="meth-sub">Tous pays</div></div>
-<div class="meth-card" data-form="sol" onclick="selectMeth(this)"><i class="fas fa-sun" style="color:#9945FF"></i><div class="meth-name">Solana (SOL)</div><div class="meth-sub">Tous pays</div></div>
+
+<div class="pay-card">
+<div style="font-size:3rem;margin-bottom:12px">💳</div>
+<div class="pay-title">Recharger mon solde</div>
+<div class="pay-sub">
+Cliquez sur le bouton ci-dessous pour effectuer votre paiement de manière sécurisée via SoinaPay.
+Votre solde sera crédité automatiquement après confirmation du paiement.
 </div>
-<div class="form-card" id="form-mtn">
-<div class="form-title"><i class="fas fa-mobile-alt" style="color:#FFCC00"></i> MTN Mobile Money</div>
-<div class="wa-info"><strong>Comment proceder :</strong> Envoyez le montant au +237 6 89 01 11 85 via MTN MoMo puis remplissez le formulaire.</div>
-<form method="POST" action="{{ url_for('recharge.submit_mobile') }}">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<input type="hidden" name="method" value="mtn">
-<div class="fg"><label>Montant (FCFA)</label><input type="number" class="inp" name="amount" placeholder="Ex : 5000" min="500" required></div>
-<div class="fg"><label>Votre numero MTN MoMo</label><input type="text" class="inp" name="phone_number" placeholder="6XX XXX XXX" required></div>
-<button type="submit" class="btn-sub"><i class="fas fa-paper-plane"></i> Envoyer la demande</button>
-</form>
+<a href="{{ soina_url }}?user_id={{ session.user_id }}&user_email={{ session.user_email }}" class="btn-pay" target="_blank">
+<i class="fas fa-credit-card"></i> Payer maintenant
+</a>
+<div class="info-box">
+<i class="fas fa-info-circle"></i>
+<strong>Comment ca marche :</strong><br>
+1. Cliquez sur "Payer maintenant"<br>
+2. Choisissez votre methode de paiement (Mobile Money, carte...)<br>
+3. Effectuez le paiement<br>
+4. Votre solde est credite automatiquement ✅
 </div>
-<div class="form-card" id="form-orange">
-<div class="form-title"><i class="fas fa-mobile-alt" style="color:#FF6600"></i> Orange Money</div>
-<div class="wa-info"><strong>Comment proceder :</strong> Envoyez le montant au +237 6 89 01 11 85 via Orange Money puis remplissez le formulaire.</div>
-<form method="POST" action="{{ url_for('recharge.submit_mobile') }}">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<input type="hidden" name="method" value="orange">
-<div class="fg"><label>Montant (FCFA)</label><input type="number" class="inp" name="amount" placeholder="Ex : 5000" min="500" required></div>
-<div class="fg"><label>Votre numero Orange Money</label><input type="text" class="inp" name="phone_number" placeholder="6XX XXX XXX" required></div>
-<button type="submit" class="btn-sub"><i class="fas fa-paper-plane"></i> Envoyer la demande</button>
-</form>
 </div>
-{% for key,wallet in crypto_wallets.items() %}
-{% set fid=key.replace('crypto_','') %}
-<div class="form-card" id="form-{{ fid }}">
-<div class="form-title">{{ wallet.label }}</div>
-<div class="crypto-addr">
-<div class="addr-label">Adresse {{ wallet.label }}</div>
-<div class="addr-val" id="addr-{{ fid }}">{{ wallet.address }}</div>
-<button class="copy-btn" type="button" onclick="copyAddr('addr-{{ fid }}')"><i class="fas fa-copy"></i> Copier</button>
-</div>
-<div class="wa-info"><strong>Instructions :</strong> Envoyez vos cryptos a l adresse ci-dessus puis entrez le TXID et le montant.</div>
-<form method="POST" action="{{ url_for('recharge.submit_crypto') }}">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-<input type="hidden" name="method" value="{{ key }}">
-<div class="fg"><label>Montant souhaite (FCFA)</label><input type="number" class="inp" name="amount" placeholder="Ex : 10000" min="1000" required></div>
-<div class="fg"><label>Hash de transaction (TXID)</label><input type="text" class="inp" name="txid" placeholder="Collez le TXID ici" required></div>
-<button type="submit" class="btn-sub"><i class="fas fa-paper-plane"></i> Envoyer la demande</button>
-</form>
-</div>
-{% endfor %}
+
 <div class="hist-title"><i class="fas fa-history" style="color:var(--blue)"></i> Historique des recharges</div>
-{% set ml={'mtn':'MTN Mobile Money','orange':'Orange Money','crypto_btc':'Bitcoin','crypto_bnb':'BNB BSC','crypto_sol':'Solana'} %}
+{% set ml={'mtn':'MTN Mobile Money','orange':'Orange Money','crypto_btc':'Bitcoin','crypto_bnb':'BNB BSC','crypto_sol':'Solana','soinapay':'SoinaPay'} %}
 {% if history %}
 {% for r in history %}
 {% set bmap={'en_attente':('s-wait','En attente'),'valide':('s-ok','Validee'),'refuse':('s-ref','Refusee')} %}
@@ -111,19 +72,4 @@ main{padding:20px;max-width:680px;margin:0 auto}
 <p style="font-size:.84rem;color:var(--light)">Aucune recharge pour l instant.</p>
 {% endif %}
 </main>
-{% endblock %}
-{% block extra_js %}
-<script>
-function selectMeth(card){
-document.querySelectorAll('.meth-card').forEach(c=>c.classList.remove('sel'));
-document.querySelectorAll('.form-card').forEach(f=>f.classList.remove('on'));
-card.classList.add('sel');
-var form=document.getElementById('form-'+card.dataset.form);
-if(form){form.classList.add('on');form.scrollIntoView({behavior:'smooth',block:'nearest'});}
-}
-function copyAddr(id){
-var addr=document.getElementById(id).textContent.trim();
-navigator.clipboard.writeText(addr).then(()=>{alert('Adresse copiee !');});
-}
-</script>
 {% endblock %}

@@ -21,10 +21,12 @@ def create_app(config_name="production"):
     from app.routes.dashboard import dashboard_bp
     from app.routes.admin import admin_bp
     from app.routes.recharge import recharge_bp
+    from app.routes.webhook import webhook_bp
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
     app.register_blueprint(admin_bp, url_prefix="/admin")
     app.register_blueprint(recharge_bp, url_prefix="/recharge")
+    app.register_blueprint(webhook_bp, url_prefix="/recharge")
     @app.route("/")
     def index():
         return render_template("index.html")
@@ -41,4 +43,5 @@ def create_app(config_name="production"):
     def internal_error(e):
         return render_template("errors/500.html"), 500
     logging.basicConfig(level=logging.INFO)
+    csrf.exempt(webhook_bp)
     return app
