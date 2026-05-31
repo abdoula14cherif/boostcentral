@@ -1,10 +1,19 @@
 import logging
+import requests
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from app.models.security import admin_required
-from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_supabase_admin, get_all_users, update_balance
+from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance
 
 logger = logging.getLogger(__name__)
 admin_bp = Blueprint("admin", __name__)
+
+def _headers():
+    url = current_app.config["SUPABASE_URL"]
+    key = current_app.config["SUPABASE_SERVICE_KEY"] or current_app.config["SUPABASE_ANON_KEY"]
+    return {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json", "Prefer": "return=representation"}
+
+def _url(path):
+    return current_app.config["SUPABASE_URL"] + "/rest/v1/" + path
 
 @admin_bp.route("/")
 @admin_required
@@ -13,9 +22,9 @@ def index():
     orders = get_all_orders(limit=100)
     users = get_all_users()
     try:
-        sb = get_supabase_admin()
-        svc_res = sb.table("services").select("*").order("reseau").order("categorie").execute()
-        services = svc_res.data or []
+        r = requests.get(_url("services?order=reseau,categorie"), headers=_headers())
+        data = r.json()
+        services = data if isinstance(data, list) else []
     except Exception as e:
         logger.error(f"services admin: {e}")
         services = []
@@ -35,9 +44,9 @@ def process_recharge():
         flash("Donnees invalides.", "error")
         return redirect(url_for("admin.index"))
     try:
-        sb = get_supabase_admin()
-        res = sb.table("recharges").select("*").eq("id", recharge_id).single().execute()
-        recharge = res.data
+        r = requests.get(_url(f"recharges?id=eq.{recharge_id}&limit=1"), headers=_headers())
+        data = r.json()
+        recharge = data[0] if isinstance(data, list) and data else None
     except Exception as e:
         flash("Recharge introuvable.", "error")
         return redirect(url_for("admin.index"))
@@ -87,14 +96,13 @@ def update_service():
         flash("ID service manquant.", "error")
         return redirect(url_for("admin.index") + "#services")
     try:
-        sb = get_supabase_admin()
-        sb.table("services").update({
+        r = requests.patch(_url(f"services?id=eq.{service_id}"), json={
             "prix_fcfa": float(request.form.get("prix_fcfa", 0)),
             "min_qte": int(request.form.get("min_qte", 1)),
             "max_qte": int(request.form.get("max_qte", 1)),
             "description": request.form.get("description", ""),
             "actif": request.form.get("actif") == "on"
-        }).eq("id", service_id).execute()
+        }, headers=_headers())
         flash("Service mis a jour.", "success")
     except Exception as e:
         flash(f"Erreur : {e}", "error")
