@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="/static/manifest.json">
+<link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0066FF">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -67,19 +67,16 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var
 {% endif %}
 {% block extra_js %}{% endblock %}
 <script>
-var deferredPrompt;
+var deferredPrompt=null;
 var banner=document.getElementById('pwa-banner');
 var installBtn=document.getElementById('pwa-install-btn');
 var closeBtn=document.getElementById('pwa-close-btn');
-// Afficher apres 2 secondes
-setTimeout(function(){
-  if(!localStorage.getItem('pwa-dismissed')&&!localStorage.getItem('pwa-installed')){
-    banner.style.display='block';
-  }
-},2000);
 window.addEventListener('beforeinstallprompt',function(e){
   e.preventDefault();
   deferredPrompt=e;
+  if(!localStorage.getItem('pwa-dismissed')&&!localStorage.getItem('pwa-installed')){
+    banner.style.display='block';
+  }
 });
 installBtn.addEventListener('click',function(){
   banner.style.display='none';
@@ -89,8 +86,6 @@ installBtn.addEventListener('click',function(){
       if(r.outcome==='accepted'){localStorage.setItem('pwa-installed','true');}
       deferredPrompt=null;
     });
-  } else {
-    alert('Pour installer : Menu Chrome > Ajouter a l ecran d accueil');
   }
 });
 closeBtn.addEventListener('click',function(){
@@ -102,7 +97,7 @@ window.addEventListener('appinstalled',function(){
   localStorage.setItem('pwa-installed','true');
 });
 if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('/static/sw.js');
+  navigator.serviceWorker.register('/sw.js');
 }
 </script>
 </body>

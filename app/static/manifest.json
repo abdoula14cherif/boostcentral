@@ -9,14 +9,16 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/static/icon-192.png",
+      "src": "https://via.placeholder.com/192x192/0066FF/FFFFFF?text=BC",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "/static/icon-512.png",
+      "src": "https://via.placeholder.com/512x512/0066FF/FFFFFF?text=BC",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
