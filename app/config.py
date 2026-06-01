@@ -3,7 +3,7 @@ from datetime import timedelta
 
 class BaseConfig:
     SECRET_KEY = os.environ.get("SECRET_KEY", "changez-moi")
-    WTF_CSRF_ENABLED = True
+    WTF_CSRF_ENABLED = False
     SESSION_COOKIE_SECURE = False
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
