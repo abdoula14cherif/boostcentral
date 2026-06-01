@@ -31,6 +31,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var
 </style>
 </head>
 <body>
+<!-- BOUTON INSTALL FLOTTANT -->
+<button id="installBtn" style="display:none;position:fixed;bottom:90px;right:20px;z-index:9998;align-items:center;gap:8px;padding:12px 18px;background:linear-gradient(90deg,#0066FF,#0047CC);color:#fff;border:none;border-radius:14px;font-size:.88rem;font-weight:700;cursor:pointer;box-shadow:0 5px 18px rgba(0,102,255,.35);animation:pulse2 2s infinite;" onclick="installApp()">
+📲 Installer l app
+</button>
+<style>@keyframes pulse2{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}</style>
+
 <div id="pwa-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#0066FF,#0047CC);color:#fff;padding:14px 16px;box-shadow:0 4px 16px rgba(0,102,255,.4);animation:slideDown .5s ease">
 <div style="display:flex;align-items:center;justify-content:space-between;max-width:600px;margin:0 auto;gap:10px">
 <div style="display:flex;align-items:center;gap:10px">
@@ -68,6 +74,33 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var
 {% block extra_js %}{% endblock %}
 <script>
 var deferredPrompt=null;
+var installBtn=document.getElementById("installBtn");
+
+window.addEventListener("beforeinstallprompt",function(e){
+  e.preventDefault();
+  deferredPrompt=e;
+  if(installBtn&&!localStorage.getItem("pwa-installed")){
+    installBtn.style.display="flex";
+  }
+});
+
+function installApp(){
+  if(deferredPrompt){
+    installBtn.style.display="none";
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(r){
+      if(r.outcome==="accepted"){
+        localStorage.setItem("pwa-installed","true");
+      }
+      deferredPrompt=null;
+    });
+  }
+}
+
+window.addEventListener("appinstalled",function(){
+  if(installBtn) installBtn.style.display="none";
+  localStorage.setItem("pwa-installed","true");
+});
 var banner=document.getElementById('pwa-banner');
 var installBtn=document.getElementById('pwa-install-btn');
 var closeBtn=document.getElementById('pwa-close-btn');
