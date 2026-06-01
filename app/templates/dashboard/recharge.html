@@ -7,11 +7,18 @@ header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var
 main{padding:20px;max-width:680px;margin:0 auto}
 .bal-box{background:var(--white);border-radius:16px;padding:20px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
 .bal-val{font-size:2rem;font-weight:900;color:var(--orange)}
-.pay-card{background:var(--white);border-radius:16px;padding:24px;border:2px solid var(--blue-l);box-shadow:0 4px 14px rgba(0,102,255,.08);margin-bottom:20px;text-align:center}
-.pay-title{font-size:1.1rem;font-weight:800;color:var(--dark);margin-bottom:8px}
-.pay-sub{font-size:.88rem;color:var(--mid);margin-bottom:20px;line-height:1.6}
-.btn-pay{display:inline-flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;padding:16px 40px;border-radius:14px;font-size:1.1rem;font-weight:800;text-decoration:none;box-shadow:0 7px 20px rgba(0,102,255,.28);transition:all .28s;width:100%}
-.btn-pay:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(0,102,255,.4)}
+.pay-card{background:var(--white);border-radius:16px;padding:24px;border:2px solid var(--blue-l);box-shadow:0 4px 14px rgba(0,102,255,.08);margin-bottom:20px}
+.pay-title{font-size:1.1rem;font-weight:800;color:var(--dark);margin-bottom:8px;text-align:center}
+.pay-sub{font-size:.88rem;color:var(--mid);margin-bottom:20px;line-height:1.6;text-align:center}
+.montant-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.montant-btn{padding:12px;border:2px solid var(--gray);border-radius:12px;background:var(--white);font-size:.92rem;font-weight:700;color:var(--dark);cursor:pointer;transition:all .22s;text-align:center}
+.montant-btn:hover,.montant-btn.sel{border-color:var(--blue);background:var(--blue-l);color:var(--blue)}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.82rem;font-weight:600;color:var(--dark);margin-bottom:5px}
+.inp{width:100%;padding:12px 14px;border:2px solid var(--gray);border-radius:12px;font-size:.92rem;color:var(--dark);outline:none;transition:border-color .22s;background:var(--white)}
+.inp:focus{border-color:var(--blue)}
+.btn-pay{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:#fff;padding:16px;border:none;border-radius:14px;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 7px 20px rgba(255,102,0,.28);transition:all .28s}
+.btn-pay:hover{transform:translateY(-3px)}
 .info-box{background:var(--blue-l);border-radius:12px;padding:14px;margin-top:16px;font-size:.84rem;color:var(--blue-d);line-height:1.6;border:1px solid rgba(0,102,255,.2)}
 .hist-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:12px;margin-top:24px}
 .hist-item{background:var(--white);border:1px solid var(--gray);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -38,22 +45,35 @@ main{padding:20px;max-width:680px;margin:0 auto}
 </div>
 
 <div class="pay-card">
-<div style="font-size:3rem;margin-bottom:12px">💳</div>
+<div style="font-size:2rem;text-align:center;margin-bottom:12px">💳</div>
 <div class="pay-title">Recharger mon solde</div>
-<div class="pay-sub">
-Cliquez sur le bouton ci-dessous pour effectuer votre paiement de manière sécurisée via SoinaPay.
-Votre solde sera crédité automatiquement après confirmation du paiement.
+<div class="pay-sub">Choisissez un montant puis cliquez sur Payer pour effectuer votre paiement via SoinaPay.</div>
+
+<form method="POST" action="{{ url_for('recharge.initier') }}">
+<div class="montant-grid">
+<button type="button" class="montant-btn" onclick="setMontant(1000)">1 000 F</button>
+<button type="button" class="montant-btn" onclick="setMontant(2000)">2 000 F</button>
+<button type="button" class="montant-btn" onclick="setMontant(5000)">5 000 F</button>
+<button type="button" class="montant-btn" onclick="setMontant(10000)">10 000 F</button>
+<button type="button" class="montant-btn" onclick="setMontant(20000)">20 000 F</button>
+<button type="button" class="montant-btn" onclick="setMontant(50000)">50 000 F</button>
 </div>
-<a href="{{ soina_url }}?user_id={{ session.user_id }}&user_email={{ session.user_email }}" class="btn-pay" target="_blank">
+<div class="fg">
+<label>Montant personnalise (FCFA)</label>
+<input type="number" class="inp" name="montant" id="montantInp" placeholder="Ex : 3000" min="500" required>
+</div>
+<button type="submit" class="btn-pay">
 <i class="fas fa-credit-card"></i> Payer maintenant
-</a>
+</button>
+</form>
+
 <div class="info-box">
 <i class="fas fa-info-circle"></i>
 <strong>Comment ca marche :</strong><br>
-1. Cliquez sur "Payer maintenant"<br>
-2. Choisissez votre methode de paiement (Mobile Money, carte...)<br>
-3. Effectuez le paiement<br>
-4. Votre solde est credite automatiquement ✅
+1. Entrez le montant souhaite<br>
+2. Cliquez sur "Payer maintenant"<br>
+3. Completez le paiement sur SoinaPay<br>
+4. Votre solde sera credite automatiquement apres validation ✅
 </div>
 </div>
 
@@ -61,10 +81,13 @@ Votre solde sera crédité automatiquement après confirmation du paiement.
 {% set ml={'mtn':'MTN Mobile Money','orange':'Orange Money','crypto_btc':'Bitcoin','crypto_bnb':'BNB BSC','crypto_sol':'Solana','soinapay':'SoinaPay'} %}
 {% if history %}
 {% for r in history %}
-{% set bmap={'en_attente':('s-wait','En attente'),'valide':('s-ok','Validee'),'refuse':('s-ref','Refusee')} %}
+{% set bmap={'en_attente':('s-wait','⏳ En attente'),'valide':('s-ok','✅ Validee'),'refuse':('s-ref','❌ Refusee')} %}
 {% set bc,bt=bmap.get(r.statut,('s-wait','En attente')) %}
 <div class="hist-item">
-<div><div class="hn">{{ ml.get(r.methode,r.methode) }} — {{ "{:,.0f}".format(r.montant_fcfa) }} FCFA</div><div class="hd">{{ r.created_at[:10] if r.created_at else '' }}</div></div>
+<div>
+<div class="hn">{{ ml.get(r.methode,r.methode) }} — {{ "{:,.0f}".format(r.montant_fcfa) }} FCFA</div>
+<div class="hd">{{ r.created_at[:10] if r.created_at else '' }}</div>
+</div>
 <span class="badge {{ bc }}">{{ bt }}</span>
 </div>
 {% endfor %}
@@ -72,4 +95,13 @@ Votre solde sera crédité automatiquement après confirmation du paiement.
 <p style="font-size:.84rem;color:var(--light)">Aucune recharge pour l instant.</p>
 {% endif %}
 </main>
+{% endblock %}
+{% block extra_js %}
+<script>
+function setMontant(val){
+  document.getElementById('montantInp').value=val;
+  document.querySelectorAll('.montant-btn').forEach(function(b){b.classList.remove('sel')});
+  event.target.classList.add('sel');
+}
+</script>
 {% endblock %}
