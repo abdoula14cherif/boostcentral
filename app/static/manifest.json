@@ -3,22 +3,31 @@
   "short_name": "BoostCentral",
   "description": "Boostez votre presence en ligne",
   "start_url": "/",
+  "id": "/",
   "display": "standalone",
   "background_color": "#F8FAFC",
   "theme_color": "#0066FF",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://via.placeholder.com/192x192/0066FF/FFFFFF?text=BC",
+      "src": "/static/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://via.placeholder.com/512x512/0066FF/FFFFFF?text=BC",
+      "src": "/static/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow"
     }
   ]
 }
