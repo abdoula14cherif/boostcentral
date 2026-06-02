@@ -28,7 +28,6 @@ def login():
             r = requests.post(f"{_auth_url()}/token?grant_type=password",
                 json={"email": email, "password": password}, headers=_headers())
             data = r.json()
-            logger.info(f"LOGIN status={r.status_code} data={data}")
             if r.status_code == 200 and "access_token" in data:
                 user = data.get("user", {})
                 meta = user.get("user_metadata", {})
@@ -37,11 +36,11 @@ def login():
                 next_url = session.pop("next_url", None)
                 return redirect(next_url or url_for("dashboard.index"))
             else:
-                msg = data.get("error_description", data.get("msg", data.get("message", "")))
+                msg = data.get("error_description", data.get("msg", "Email ou mot de passe incorrect."))
                 flash(f"Erreur : {msg}", "error")
         except Exception as e:
             logger.error(f"login error: {e}")
-            flash("Erreur serveur.", "error")
+            flash("Erreur serveur. Reessayez.", "error")
     return render_template("auth/login.html", form=form, reg_form=reg_form)
 
 @auth_bp.route("/register", methods=["POST"])
@@ -62,25 +61,40 @@ def register():
                       "data": {"full_name": full_name, "country": country}},
                 headers=_headers())
             data = r.json()
-            logger.info(f"REGISTER status={r.status_code} data={data}")
-            if r.status_code == 200 and "id" in data:
-                if data.get("access_token"):
-                    set_session(data["id"], data["email"], full_name)
+            logger.info(f"REGISTER status={r.status_code}")
+
+            if r.status_code in (200, 201):
+                # Recuperer l'utilisateur - plusieurs formats possibles
+                user_id = None
+                user_email = email
+
+                if "access_token" in data:
+                    # Connecte directement
+                    user = data.get("user", {})
+                    user_id = user.get("id") or data.get("id")
+                    set_session(user_id, user_email, full_name)
                     flash(f"Bienvenue {full_name.split()[0]} !", "success")
                     return redirect(url_for("dashboard.index"))
+                elif "id" in data:
+                    # Email de confirmation requis
+                    flash("Compte cree ! Verifiez votre email pour confirmer.", "info")
+                    return redirect(url_for("auth.login"))
                 else:
-                    flash("Compte cree ! Verifiez votre email.", "info")
+                    flash("Compte cree ! Connectez-vous.", "info")
                     return redirect(url_for("auth.login"))
             else:
-                msg = data.get("msg", data.get("error_description", data.get("message", str(data))))
-                flash(f"Erreur inscription : {msg}", "error")
+                msg = data.get("msg", data.get("error_description", data.get("message", "Erreur inscription.")))
+                if "already" in str(msg).lower():
+                    flash("Email deja utilise. Connectez-vous.", "error")
+                else:
+                    flash(f"Erreur : {msg}", "error")
         except Exception as e:
             logger.error(f"register error: {e}")
-            flash(f"Erreur serveur : {e}", "error")
+            flash("Erreur serveur. Reessayez.", "error")
     else:
         for field, errors in reg_form.errors.items():
             for error in errors:
-                flash(f"{field}: {error}", "error")
+                flash(f"{error}", "error")
     return render_template("auth/login.html", form=form, reg_form=reg_form)
 
 @auth_bp.route("/logout", methods=["GET", "POST"])
