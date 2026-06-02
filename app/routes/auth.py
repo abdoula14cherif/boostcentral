@@ -14,6 +14,24 @@ def _auth_url():
 def _headers():
     return {"apikey": current_app.config["SUPABASE_ANON_KEY"], "Content-Type": "application/json"}
 
+def _admin_headers():
+    key = current_app.config.get("SUPABASE_SERVICE_KEY") or current_app.config["SUPABASE_ANON_KEY"]
+    return {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json", "Prefer": "return=representation"}
+
+def _ensure_profile(user_id, email, full_name, country):
+    """Cree le profil si il n'existe pas encore."""
+    try:
+        url = current_app.config["SUPABASE_URL"] + "/rest/v1/"
+        r = requests.get(f"{url}profiles?id=eq.{user_id}&limit=1", headers=_admin_headers())
+        data = r.json()
+        if not data:
+            requests.post(f"{url}profiles",
+                json={"id": user_id, "email": email, "full_name": full_name, "country": country, "balance": 0},
+                headers=_admin_headers())
+            logger.info(f"Profil cree pour {email}")
+    except Exception as e:
+        logger.error(f"ensure_profile error: {e}")
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("20 per minute")
 def login():
@@ -64,19 +82,16 @@ def register():
             logger.info(f"REGISTER status={r.status_code}")
 
             if r.status_code in (200, 201):
-                # Recuperer l'utilisateur - plusieurs formats possibles
-                user_id = None
-                user_email = email
-
                 if "access_token" in data:
-                    # Connecte directement
                     user = data.get("user", {})
                     user_id = user.get("id") or data.get("id")
-                    set_session(user_id, user_email, full_name)
+                    # Creer le profil manuellement
+                    _ensure_profile(user_id, email, full_name, country)
+                    set_session(user_id, email, full_name)
                     flash(f"Bienvenue {full_name.split()[0]} !", "success")
                     return redirect(url_for("dashboard.index"))
                 elif "id" in data:
-                    # Email de confirmation requis
+                    _ensure_profile(data["id"], email, full_name, country)
                     flash("Compte cree ! Verifiez votre email pour confirmer.", "info")
                     return redirect(url_for("auth.login"))
                 else:
