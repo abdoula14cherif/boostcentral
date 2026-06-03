@@ -36,13 +36,11 @@ main{padding:20px;max-width:680px;margin:0 auto}
 {% endblock %}
 
 {% block content %}
-<!-- Script LeekPay -->
 <script src="https://leekpay.fr/js/leekpay.js"></script>
 
-<!-- Formulaire cache pour enregistrer apres paiement -->
-<form id="enregistrerForm" method="POST" action="{{ url_for('recharge.enregistrer') }}" style="display:none">
-<input type="hidden" name="montant" id="hiddenMontant">
+<form id="successForm" method="POST" action="{{ url_for('recharge.success') }}" style="display:none">
 <input type="hidden" name="payment_id" id="hiddenPaymentId">
+<input type="hidden" name="montant" id="hiddenMontant">
 </form>
 
 <main>
@@ -58,8 +56,10 @@ main{padding:20px;max-width:680px;margin:0 auto}
 <div class="pay-card">
 <div style="font-size:2rem;text-align:center;margin-bottom:12px">💳</div>
 <div class="pay-title">Recharger mon solde</div>
-<div class="pay-sub">Choisissez un montant puis cliquez sur Payer. Paiement 100% securise via LeekPay.</div>
+<div class="pay-sub">Choisissez un montant. Votre demande sera enregistree avant le paiement.</div>
 
+<form id="initierForm" method="POST" action="{{ url_for('recharge.initier') }}">
+<input type="hidden" name="montant" id="montantHidden" value="0">
 <div class="montant-grid">
 <button type="button" class="montant-btn" onclick="setMontant(1000,this)">1 000 F</button>
 <button type="button" class="montant-btn" onclick="setMontant(2000,this)">2 000 F</button>
@@ -68,24 +68,23 @@ main{padding:20px;max-width:680px;margin:0 auto}
 <button type="button" class="montant-btn" onclick="setMontant(20000,this)">20 000 F</button>
 <button type="button" class="montant-btn" onclick="setMontant(50000,this)">50 000 F</button>
 </div>
-
 <div class="fg">
 <label>Montant personnalise (FCFA)</label>
-<input type="number" class="inp" id="montantInp" placeholder="Ex : 3000" min="100" oninput="montantSelectionne=this.value">
+<input type="number" class="inp" id="montantInp" placeholder="Ex : 3000" min="100" oninput="montantSelectionne=parseInt(this.value)||0">
 </div>
-
 <button type="button" class="btn-pay" onclick="lancerPaiement()">
 <i class="fas fa-credit-card"></i> Payer maintenant
 </button>
+</form>
 
 <div class="info-box">
 <i class="fas fa-info-circle"></i>
-<strong>Methodes acceptees :</strong> Orange Money, MTN Mobile Money, Wave, Moov Money, cartes Visa/Mastercard
+<strong>Methodes :</strong> Orange Money, MTN MoMo, Wave, Carte Visa/Mastercard
 </div>
 </div>
 
-<div class="hist-title"><i class="fas fa-history" style="color:var(--blue)"></i> Historique des recharges</div>
-{% set ml={'mtn':'MTN Mobile Money','orange':'Orange Money','crypto_btc':'Bitcoin','crypto_bnb':'BNB BSC','crypto_sol':'Solana','soinapay':'LeekPay'} %}
+<div class="hist-title"><i class="fas fa-history" style="color:var(--blue)"></i> Historique</div>
+{% set ml={'mtn':'MTN','orange':'Orange','crypto_btc':'Bitcoin','crypto_bnb':'BNB','crypto_sol':'Solana','soinapay':'LeekPay'} %}
 {% if history %}
 {% for r in history %}
 {% set bmap={'en_attente':('s-wait','⏳ En attente'),'valide':('s-ok','✅ Validee'),'refuse':('s-ref','❌ Refusee')} %}
@@ -110,10 +109,22 @@ var montantSelectionne = 0;
 var LEEKPAY_PK = "{{ leekpay_pk }}";
 var USER_EMAIL = "{{ session.user_email }}";
 
+{% if request.args.get('payer') == '1' %}
+var autoMontant = {{ request.args.get('montant', 0) }};
+if(autoMontant > 0) {
+    setTimeout(function(){
+        montantSelectionne = autoMontant;
+        document.getElementById('montantInp').value = autoMontant;
+        lancerLeekPay(autoMontant);
+    }, 500);
+}
+{% endif %}
+
 function setMontant(val, btn) {
     montantSelectionne = val;
     document.getElementById('montantInp').value = val;
-    document.querySelectorAll('.montant-btn').forEach(function(b) { b.classList.remove('sel'); });
+    document.getElementById('montantHidden').value = val;
+    document.querySelectorAll('.montant-btn').forEach(function(b){b.classList.remove('sel')});
     btn.classList.add('sel');
 }
 
@@ -123,19 +134,13 @@ function lancerPaiement() {
         alert('Veuillez choisir un montant minimum de 100 FCFA.');
         return;
     }
+    document.getElementById('montantHidden').value = montant;
+    montantSelectionne = montant;
+    // Soumettre le formulaire initier pour enregistrer en BDD d'abord
+    document.getElementById('initierForm').submit();
+}
 
-    LeekPay.configure({
-        onSuccess: function(data) {
-            console.log('Paiement reussi:', data);
-            document.getElementById('hiddenMontant').value = montant;
-            document.getElementById('hiddenPaymentId').value = data.payment_id || '';
-            document.getElementById('enregistrerForm').submit();
-        },
-        onCancel: function() {
-            alert('Paiement annule.');
-        }
-    });
-
+function lancerLeekPay(montant) {
     LeekPay.checkout({
         amount: montant,
         currency: 'XOF',
@@ -143,13 +148,12 @@ function lancerPaiement() {
         description: 'Recharge Boost Central',
         customerEmail: USER_EMAIL,
         onSuccess: function(data) {
-            console.log('Paiement reussi:', data);
-            document.getElementById('hiddenMontant').value = montant;
             document.getElementById('hiddenPaymentId').value = data.payment_id || '';
-            document.getElementById('enregistrerForm').submit();
+            document.getElementById('hiddenMontant').value = montant;
+            document.getElementById('successForm').submit();
         },
         onCancel: function() {
-            alert('Paiement annule.');
+            console.log('Paiement annule - recharge reste en attente');
         }
     });
 }
