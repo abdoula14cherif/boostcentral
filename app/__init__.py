@@ -22,11 +22,13 @@ def create_app(config_name="production"):
     from app.routes.admin import admin_bp
     from app.routes.recharge import recharge_bp
     from app.routes.webhook import webhook_bp
+    from app.routes.gagner import gagner_bp
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
     app.register_blueprint(admin_bp, url_prefix="/admin")
     app.register_blueprint(recharge_bp, url_prefix="/recharge")
     app.register_blueprint(webhook_bp, url_prefix="/recharge")
+    app.register_blueprint(gagner_bp, url_prefix="/gagner")
     csrf.exempt(webhook_bp)
     @app.route("/")
     def index():

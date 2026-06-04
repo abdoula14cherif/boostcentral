@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Gagner des points — Boost Central{% endblock %}
+{% block extra_css %}
+header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 2px 8px rgba(0,0,0,.04);position:sticky;top:0;z-index:10}
+.back-btn{background:var(--blue-l);border:none;color:var(--blue);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none}
+.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+main{padding:20px;max-width:680px;margin:0 auto}
+.points-card{background:linear-gradient(135deg,#0047CC,#0066FF);border-radius:20px;padding:28px 24px;margin-bottom:20px;text-align:center;color:#fff;box-shadow:0 8px 24px rgba(0,102,255,.3)}
+.points-val{font-size:3rem;font-weight:900;margin:8px 0}
+.points-lbl{font-size:.9rem;opacity:.85}
+.points-fcfa{font-size:1rem;font-weight:700;background:rgba(255,255,255,.2);padding:6px 16px;border-radius:20px;display:inline-block;margin-top:8px}
+.btn-convertir{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;margin-top:16px;border:none;border-radius:13px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:#fff;font-size:1rem;font-weight:800;cursor:pointer;box-shadow:0 5px 16px rgba(255,102,0,.3);transition:all .28s}
+.btn-convertir:hover{transform:translateY(-2px)}
+.btn-convertir:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.info-mini{font-size:.78rem;opacity:.7;margin-top:8px}
+.pub-card{background:var(--white);border-radius:16px;padding:22px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px}
+.pub-title{font-size:1rem;font-weight:800;color:var(--dark);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.pub-sub{font-size:.84rem;color:var(--mid);margin-bottom:16px;line-height:1.6}
+.pub-container{background:var(--light-g);border-radius:12px;padding:16px;min-height:120px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;border:2px dashed var(--gray)}
+.pub-timer{display:none;align-items:center;justify-content:center;gap:8px;background:var(--orange-l,#FFE6CC);border-radius:10px;padding:10px;font-size:.88rem;font-weight:700;color:var(--orange);margin-bottom:10px}
+.pub-timer.on{display:flex}
+.progress-bar{height:8px;background:var(--gray);border-radius:6px;overflow:hidden;margin-bottom:14px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--orange));border-radius:6px;transition:width .5s ease;width:0%}
+.btn-gagner{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border:none;border-radius:13px;background:linear-gradient(90deg,var(--green),#047857);color:#fff;font-size:1rem;font-weight:800;cursor:pointer;box-shadow:0 5px 16px rgba(5,150,105,.3);transition:all .28s}
+.btn-gagner:hover{transform:translateY(-2px)}
+.btn-gagner:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.how-card{background:var(--off);border-radius:16px;padding:20px;border:1px solid var(--gray);margin-bottom:20px}
+.how-title{font-size:.95rem;font-weight:800;color:var(--dark);margin-bottom:14px}
+.how-step{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.how-num{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--orange));color:#fff;font-size:.85rem;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.how-text{font-size:.84rem;color:var(--mid);line-height:1.5}
+.how-text strong{color:var(--dark)}
+.toast-pts{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:10px 24px;border-radius:30px;font-weight:700;font-size:.9rem;z-index:9999;display:none;animation:toastIn .3s ease}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+{% endblock %}
+
+{% block nav %}
+<header>
+<a href="{{ url_for('dashboard.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
+<div class="logo">BOOST CENTRAL</div>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="toast-pts" id="toastPts"></div>
+
+<main>
+<!-- Carte points -->
+<div class="points-card">
+<div style="font-size:1.8rem">🏆</div>
+<div class="points-lbl">Vos points actuels</div>
+<div class="points-val" id="pointsVal">{{ points }}</div>
+<div class="points-fcfa">= {{ "{:,.0f}".format(points * fcfa_par_point) }} FCFA</div>
+<div class="info-mini">{{ points_par_pub }} points par publicite regardee • Min {{ min_conversion }} pts pour convertir</div>
+<form method="POST" action="{{ url_for('gagner.convertir') }}" style="margin-top:0">
+<button type="submit" class="btn-convertir" {% if points < min_conversion %}disabled{% endif %}>
+<i class="fas fa-exchange-alt"></i>
+{% if points >= min_conversion %}
+Convertir {{ points }} pts → {{ "{:,.0f}".format(points * fcfa_par_point) }} FCFA
+{% else %}
+Il vous faut {{ min_conversion - points }} pts de plus
+{% endif %}
+</button>
+</form>
+</div>
+
+<!-- Publicites -->
+<div class="pub-card">
+<div class="pub-title"><i class="fas fa-play-circle" style="color:var(--orange)"></i> Regarder une publicite</div>
+<div class="pub-sub">Regardez la publicite jusqu'a la fin pour gagner <strong>+{{ points_par_pub }} points</strong>.</div>
+
+<div class="pub-timer" id="pubTimer">
+<i class="fas fa-clock"></i>
+<span id="timerText">Regardez jusqu'a la fin...</span>
+</div>
+
+<div class="progress-bar" id="progressWrap" style="display:none">
+<div class="progress-fill" id="progressFill"></div>
+</div>
+
+<!-- Zone publicite -->
+<div class="pub-container" id="pubZone">
+<script async="async" data-cfasync="false" src="https://pl29641214.effectivecpmnetwork.com/f26a2190803fc7f1c9161051c1fe1ac7/invoke.js"></script>
+<div id="container-f26a2190803fc7f1c9161051c1fe1ac7"></div>
+</div>
+
+<button class="btn-gagner" id="btnGagner" onclick="lancerGain()">
+<i class="fas fa-coins"></i> Gagner +{{ points_par_pub }} points
+</button>
+</div>
+
+<!-- Comment ca marche -->
+<div class="how-card">
+<div class="how-title"><i class="fas fa-info-circle" style="color:var(--blue)"></i> Comment ca marche ?</div>
+<div class="how-step">
+<div class="how-num">1</div>
+<div class="how-text"><strong>Regardez une pub</strong> — Cliquez sur "Gagner des points" et attendez la fin de la publicite.</div>
+</div>
+<div class="how-step">
+<div class="how-num">2</div>
+<div class="how-text"><strong>Accumulez des points</strong> — Chaque pub rapporte {{ points_par_pub }} points. Plus vous regardez, plus vous gagnez !</div>
+</div>
+<div class="how-step">
+<div class="how-num">3</div>
+<div class="how-text"><strong>Convertissez en FCFA</strong> — A partir de {{ min_conversion }} points, convertissez en solde pour booster vos reseaux.</div>
+</div>
+</div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var POINTS_PAR_PUB = {{ points_par_pub }};
+var dureeAttente = 15; // secondes a attendre
+var enCours = false;
+var timerInterval = null;
+
+function lancerGain() {
+    if (enCours) return;
+    enCours = true;
+
+    var btn = document.getElementById('btnGagner');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chargement...';
+
+    // Afficher timer et progress
+    document.getElementById('pubTimer').classList.add('on');
+    document.getElementById('progressWrap').style.display = 'block';
+
+    var temps = dureeAttente;
+    var fill = document.getElementById('progressFill');
+    var timerText = document.getElementById('timerText');
+
+    timerText.textContent = 'Regardez pendant ' + temps + ' secondes...';
+    fill.style.width = '0%';
+
+    timerInterval = setInterval(function() {
+        temps--;
+        var pct = ((dureeAttente - temps) / dureeAttente * 100).toFixed(0);
+        fill.style.width = pct + '%';
+
+        if (temps > 0) {
+            timerText.textContent = 'Encore ' + temps + ' secondes...';
+        } else {
+            clearInterval(timerInterval);
+            validerGain();
+        }
+    }, 1000);
+}
+
+function validerGain() {
+    fetch("{{ url_for('gagner.crediter_points') }}", {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.ok) {
+            var newPts = data.points;
+            document.getElementById('pointsVal').textContent = newPts;
+
+            // Toast
+            var toast = document.getElementById('toastPts');
+            toast.textContent = '+' + POINTS_PAR_PUB + ' points gagnes !';
+            toast.style.display = 'block';
+            setTimeout(function() { toast.style.display = 'none'; }, 3000);
+
+            // Reload pour mettre a jour le bouton convertir
+            setTimeout(function() { window.location.reload(); }, 2000);
+        }
+    })
+    .catch(function(e) {
+        console.error(e);
+    })
+    .finally(function() {
+        enCours = false;
+        document.getElementById('pubTimer').classList.remove('on');
+        document.getElementById('progressWrap').style.display = 'none';
+        var btn = document.getElementById('btnGagner');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-coins"></i> Gagner +' + POINTS_PAR_PUB + ' points';
+    });
+}
+</script>
+{% endblock %}
