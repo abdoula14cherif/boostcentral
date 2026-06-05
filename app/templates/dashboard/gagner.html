@@ -30,6 +30,11 @@ main{padding:20px;max-width:680px;margin:0 auto}
 .how-num{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--orange));color:#fff;font-size:.85rem;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .how-text{font-size:.84rem;color:var(--mid);line-height:1.5}
 .how-text strong{color:var(--dark)}
+#container-f26a2190803fc7f1c9161051c1fe1ac7{width:100%!important;max-width:100%!important}
+#container-f26a2190803fc7f1c9161051c1fe1ac7 iframe{width:100%!important;max-width:100%!important}
+#container-f26a2190803fc7f1c9161051c1fe1ac7 img{width:100%!important;max-width:100%!important;height:auto!important}
+#container-f26a2190803fc7f1c9161051c1fe1ac7 table{width:100%!important;max-width:100%!important}
+#container-f26a2190803fc7f1c9161051c1fe1ac7 div{max-width:100%!important;overflow:hidden!important}
 .toast-pts{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:var(--green);color:#fff;padding:10px 24px;border-radius:30px;font-weight:700;font-size:.9rem;z-index:9999;display:none;animation:toastIn .3s ease}
 @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-10px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 {% endblock %}
@@ -79,9 +84,11 @@ Il vous faut {{ min_conversion - points }} pts de plus
 </div>
 
 <!-- Zone publicite -->
-<div class="pub-container" id="pubZone">
+<div id="pubZone" style="width:100%;overflow:hidden;border-radius:12px;background:#f1f5f9;min-height:250px;position:relative">
+<div style="position:relative;width:100%;max-width:100%;overflow:hidden">
 <script async="async" data-cfasync="false" src="https://pl29641214.effectivecpmnetwork.com/f26a2190803fc7f1c9161051c1fe1ac7/invoke.js"></script>
-<div id="container-f26a2190803fc7f1c9161051c1fe1ac7"></div>
+<div id="container-f26a2190803fc7f1c9161051c1fe1ac7" style="width:100%!important;max-width:100%!important;overflow:hidden!important"></div>
+</div>
 </div>
 
 <button class="btn-gagner" id="btnGagner" onclick="lancerGain()">
