@@ -8,29 +8,29 @@ from app import limiter
 logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__)
 
+SUPABASE_URL = "https://yyecncgrmtbmvvwitwmf.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZWNuY2dybXRibXZ2d2l0d21mIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4MjgyMzUsImV4cCI6MjA5NTQwNDIzNX0.UA_K5k5VeX53WXFao-hQlXhM4gF3Kj8OMVa0T8yfKaM"
+
 def _auth_url():
-    return current_app.config["SUPABASE_URL"] + "/auth/v1"
+    return SUPABASE_URL + "/auth/v1"
 
 def _headers():
-    return {"apikey": current_app.config["SUPABASE_ANON_KEY"], "Content-Type": "application/json"}
+    return {"apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json"}
 
 def _admin_headers():
-    key = current_app.config.get("SUPABASE_SERVICE_KEY") or current_app.config["SUPABASE_ANON_KEY"]
-    return {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json", "Prefer": "return=representation"}
+    SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZWNuY2dybXRibXZ2d2l0d21mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTgyODIzNSwiZXhwIjoyMDk1NDA0MjM1fQ.4x5GwPi2pjU6kuBOvKdsL3GzMFFzyBlvL5ot8dkgc2g"
+    return {"apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}", "Content-Type": "application/json", "Prefer": "return=representation"}
 
 def _ensure_profile(user_id, email, full_name, country):
-    """Cree le profil si il n'existe pas encore."""
     try:
-        url = current_app.config["SUPABASE_URL"] + "/rest/v1/"
-        r = requests.get(f"{url}profiles?id=eq.{user_id}&limit=1", headers=_admin_headers())
+        r = requests.get(f"{SUPABASE_URL}/rest/v1/profiles?id=eq.{user_id}&limit=1", headers=_admin_headers())
         data = r.json()
         if not data:
-            requests.post(f"{url}profiles",
+            requests.post(f"{SUPABASE_URL}/rest/v1/profiles",
                 json={"id": user_id, "email": email, "full_name": full_name, "country": country, "balance": 0},
                 headers=_admin_headers())
-            logger.info(f"Profil cree pour {email}")
     except Exception as e:
-        logger.error(f"ensure_profile error: {e}")
+        logger.error(f"ensure_profile: {e}")
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("20 per minute")
@@ -79,33 +79,28 @@ def register():
                       "data": {"full_name": full_name, "country": country}},
                 headers=_headers())
             data = r.json()
-            logger.info(f"REGISTER status={r.status_code}")
-
             if r.status_code in (200, 201):
                 if "access_token" in data:
                     user = data.get("user", {})
                     user_id = user.get("id") or data.get("id")
-                    # Creer le profil manuellement
                     _ensure_profile(user_id, email, full_name, country)
                     set_session(user_id, email, full_name)
                     flash(f"Bienvenue {full_name.split()[0]} !", "success")
                     return redirect(url_for("dashboard.index"))
-                elif "id" in data:
-                    _ensure_profile(data["id"], email, full_name, country)
-                    flash("Compte cree ! Verifiez votre email pour confirmer.", "info")
-                    return redirect(url_for("auth.login"))
                 else:
+                    if "id" in data:
+                        _ensure_profile(data["id"], email, full_name, country)
                     flash("Compte cree ! Connectez-vous.", "info")
                     return redirect(url_for("auth.login"))
             else:
-                msg = data.get("msg", data.get("error_description", data.get("message", "Erreur inscription.")))
+                msg = data.get("msg", data.get("error_description", data.get("message", "Erreur.")))
                 if "already" in str(msg).lower():
                     flash("Email deja utilise. Connectez-vous.", "error")
                 else:
                     flash(f"Erreur : {msg}", "error")
         except Exception as e:
             logger.error(f"register error: {e}")
-            flash("Erreur serveur. Reessayez.", "error")
+            flash("Erreur serveur.", "error")
     else:
         for field, errors in reg_form.errors.items():
             for error in errors:
@@ -116,7 +111,7 @@ def register():
 def logout():
     if request.method == "POST":
         clear_session()
-        flash("Deconnecte avec succes.", "success")
+        flash("Deconnecte.", "success")
         return redirect(url_for("auth.login"))
     return render_template("auth/logout.html")
 
@@ -132,5 +127,5 @@ def forgot_password():
             flash("Lien envoye ! Verifiez vos spams.", "info")
             return redirect(url_for("auth.login"))
         except Exception as e:
-            flash("Erreur. Reessayez.", "error")
+            flash("Erreur.", "error")
     return render_template("auth/forgot_password.html", form=form)
