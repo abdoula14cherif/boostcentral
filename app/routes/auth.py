@@ -21,6 +21,40 @@ def _admin_headers():
     SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZWNuY2dybXRibXZ2d2l0d21mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTgyODIzNSwiZXhwIjoyMDk1NDA0MjM1fQ.4x5GwPi2pjU6kuBOvKdsL3GzMFFzyBlvL5ot8dkgc2g"
     return {"apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}", "Content-Type": "application/json", "Prefer": "return=representation"}
 
+def _crediter_parrain(ref_code, new_user_id):
+    """Credite le parrain de 200 points quand un filleul s inscrit."""
+    if not ref_code:
+        return
+    try:
+        import requests as req
+        SUPABASE_URL_P = "https://yyecncgrmtbmvvwitwmf.supabase.co"
+        SERVICE_KEY_P = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZWNuY2dybXRibXZ2d2l0d21mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTgyODIzNSwiZXhwIjoyMDk1NDA0MjM1fQ.4x5GwPi2pjU6kuBOvKdsL3GzMFFzyBlvL5ot8dkgc2g"
+        headers = {"apikey": SERVICE_KEY_P, "Authorization": f"Bearer {SERVICE_KEY_P}", "Content-Type": "application/json"}
+        
+        # Trouver le parrain
+        r = req.get(f"{SUPABASE_URL_P}/rest/v1/profiles?referral_code=eq.{ref_code}&limit=1", headers=headers)
+        data = r.json()
+        if not data:
+            return
+        parrain = data[0]
+        parrain_id = parrain["id"]
+        points_actuels = parrain.get("points", 0) or 0
+        referral_count = parrain.get("referral_count", 0) or 0
+        
+        # Crediter 200 points au parrain
+        req.patch(f"{SUPABASE_URL_P}/rest/v1/profiles?id=eq.{parrain_id}",
+            json={"points": points_actuels + 200, "referral_count": referral_count + 1},
+            headers=headers)
+        
+        # Enregistrer le parrain chez le filleul
+        req.patch(f"{SUPABASE_URL_P}/rest/v1/profiles?id=eq.{new_user_id}",
+            json={"referred_by": ref_code},
+            headers=headers)
+        
+        logger.info(f"Parrain credite: {parrain['email']} +200 points pour {ref_code}")
+    except Exception as e:
+        logger.error(f"crediter_parrain: {e}")
+
 def _ensure_profile(user_id, email, full_name, country):
     try:
         r = requests.get(f"{SUPABASE_URL}/rest/v1/profiles?id=eq.{user_id}&limit=1", headers=_admin_headers())

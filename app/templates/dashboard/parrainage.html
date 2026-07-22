@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Parrainage — Boost Central{% endblock %}
+{% block extra_css %}
+header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 2px 8px rgba(0,0,0,.04);position:sticky;top:0;z-index:10}
+.back-btn{background:var(--blue-l);border:none;color:var(--blue);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none}
+.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+main{padding:20px;max-width:680px;margin:0 auto}
+.hero-card{background:linear-gradient(135deg,#7C3AED,#6D28D9);border-radius:20px;padding:28px 24px;margin-bottom:20px;text-align:center;color:#fff;box-shadow:0 8px 24px rgba(124,58,237,.3)}
+.hero-emoji{font-size:3rem;margin-bottom:8px}
+.hero-title{font-size:1.3rem;font-weight:900;margin-bottom:6px}
+.hero-sub{font-size:.88rem;opacity:.85;line-height:1.6}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.stat-card{background:var(--white);border-radius:14px;padding:18px;border:1px solid var(--gray);text-align:center;box-shadow:0 3px 10px rgba(0,0,0,.04)}
+.stat-val{font-size:2rem;font-weight:900;color:var(--orange)}
+.stat-lbl{font-size:.78rem;color:var(--mid);margin-top:4px}
+.code-card{background:var(--white);border-radius:16px;padding:22px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px}
+.code-title{font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.code-box{background:var(--light-g);border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;border:2px dashed var(--blue-l)}
+.code-val{font-size:1.5rem;font-weight:900;color:var(--blue);letter-spacing:3px}
+.btn-copy{background:var(--blue);color:#fff;border:none;padding:8px 16px;border-radius:9px;font-weight:700;cursor:pointer;font-size:.82rem;transition:all .22s}
+.btn-copy:hover{background:var(--blue-d)}
+.lien-box{background:var(--light-g);border-radius:10px;padding:12px;font-size:.78rem;color:var(--mid);word-break:break-all;margin-bottom:12px}
+.share-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-share{display:flex;align-items:center;justify-content:center;gap:7px;padding:12px;border:none;border-radius:12px;font-weight:700;font-size:.85rem;cursor:pointer;text-decoration:none;transition:all .25s}
+.btn-wa{background:#25D366;color:#fff}
+.btn-wa:hover{background:#1da851}
+.btn-copy-lien{background:var(--blue-l);color:var(--blue)}
+.btn-copy-lien:hover{background:var(--blue);color:#fff}
+.convert-card{background:var(--white);border-radius:16px;padding:22px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px}
+.btn-convertir{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border:none;border-radius:13px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:#fff;font-size:1rem;font-weight:800;cursor:pointer;margin-top:14px;box-shadow:0 5px 16px rgba(255,102,0,.28)}
+.btn-convertir:disabled{opacity:.5;cursor:not-allowed}
+.how-card{background:var(--off);border-radius:16px;padding:20px;border:1px solid var(--gray)}
+.how-step{display:flex;align-items:flex-start;gap:12px;margin-bottom:12px}
+.how-num{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#6D28D9);color:#fff;font-size:.85rem;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.how-text{font-size:.84rem;color:var(--mid);line-height:1.5}
+.how-text strong{color:var(--dark)}
+{% endblock %}
+{% block nav %}
+<header>
+<a href="{{ url_for('dashboard.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
+<div class="logo">BOOST CENTRAL</div>
+</header>
+{% endblock %}
+{% block content %}
+<main>
+<div class="hero-card">
+<div class="hero-emoji">🎁</div>
+<div class="hero-title">Parrainez et gagnez !</div>
+<div class="hero-sub">Invitez vos amis sur Boost Central et gagnez <strong>{{ points_parrainage }} FCFA</strong> pour chaque ami qui s inscrit !</div>
+</div>
+
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-val">{{ referral_count }}</div>
+<div class="stat-lbl">Amis parraines</div>
+</div>
+<div class="stat-card">
+<div class="stat-val" style="color:#7C3AED">{{ points }}</div>
+<div class="stat-lbl">Points gagnes</div>
+</div>
+</div>
+
+<div class="code-card">
+<div class="code-title"><i class="fas fa-ticket-alt" style="color:#7C3AED"></i> Votre code de parrainage</div>
+<div class="code-box">
+<div class="code-val" id="codeVal">{{ code }}</div>
+<button class="btn-copy" onclick="copyCode()"><i class="fas fa-copy"></i> Copier</button>
+</div>
+<div class="lien-box" id="lienVal">{{ lien_parrainage }}</div>
+<div class="share-grid">
+<a href="https://wa.me/?text=Rejoins Boost Central et booste tes reseaux sociaux ! Utilise mon code {{ code }} ou ce lien : {{ lien_parrainage }}" class="btn-share btn-wa" target="_blank">
+<i class="fab fa-whatsapp"></i> Partager WhatsApp
+</a>
+<button class="btn-share btn-copy-lien" onclick="copyLien()">
+<i class="fas fa-link"></i> Copier le lien
+</button>
+</div>
+</div>
+
+<div class="convert-card">
+<div style="font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:8px"><i class="fas fa-exchange-alt" style="color:var(--orange)"></i> Convertir en solde</div>
+<div style="font-size:.84rem;color:var(--mid);line-height:1.6">
+Vous avez <strong style="color:#7C3AED">{{ points }} points</strong> = <strong style="color:var(--orange)">{{ points }} FCFA</strong><br>
+Minimum {{ min_conversion }} points pour convertir.
+</div>
+<form method="POST" action="{{ url_for('parrainage.convertir') }}">
+<button type="submit" class="btn-convertir" {% if points < min_conversion %}disabled{% endif %}>
+<i class="fas fa-coins"></i>
+{% if points >= min_conversion %}
+Convertir {{ points }} points → {{ points }} FCFA
+{% else %}
+Encore {{ min_conversion - points }} points avant de convertir
+{% endif %}
+</button>
+</form>
+</div>
+
+<div class="how-card">
+<div style="font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:14px"><i class="fas fa-info-circle" style="color:#7C3AED"></i> Comment ca marche ?</div>
+<div class="how-step">
+<div class="how-num">1</div>
+<div class="how-text"><strong>Partagez votre lien</strong> — Envoyez votre code ou lien a vos amis via WhatsApp, SMS ou reseaux sociaux.</div>
+</div>
+<div class="how-step">
+<div class="how-num">2</div>
+<div class="how-text"><strong>Votre ami s inscrit</strong> — Il utilise votre lien ou entre votre code a l inscription.</div>
+</div>
+<div class="how-step">
+<div class="how-num">3</div>
+<div class="how-text"><strong>Vous gagnez {{ points_parrainage }} FCFA</strong> — Des que votre ami cree son compte, {{ points_parrainage }} FCFA sont credites sur votre solde !</div>
+</div>
+</div>
+</main>
+{% endblock %}
+{% block extra_js %}
+<script>
+function copyCode(){
+    navigator.clipboard.writeText("{{ code }}").then(function(){
+        alert("Code copie : {{ code }}");
+    });
+}
+function copyLien(){
+    navigator.clipboard.writeText("{{ lien_parrainage }}").then(function(){
+        alert("Lien copie !");
+    });
+}
+</script>
+{% endblock %}

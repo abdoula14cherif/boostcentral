@@ -26,6 +26,7 @@ def create_app(config_name="production"):
     from app.routes.admin_boostci import admin_boostci_bp
     from app.routes.auto import auto_bp
     from app.routes.admin_sync import admin_sync_bp
+    from app.routes.parrainage import parrainage_bp
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
     app.register_blueprint(admin_bp, url_prefix="/admin")
@@ -35,6 +36,7 @@ def create_app(config_name="production"):
     app.register_blueprint(admin_boostci_bp, url_prefix="/admin/boostci")
     app.register_blueprint(auto_bp, url_prefix="/auto")
     app.register_blueprint(admin_sync_bp, url_prefix="/admin/sync")
+    app.register_blueprint(parrainage_bp, url_prefix="/parrainage")
     csrf.exempt(webhook_bp)
     @app.route("/")
     def index():
