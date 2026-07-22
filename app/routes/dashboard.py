@@ -4,7 +4,7 @@ from app.models.security import login_required, get_current_user
 from app.models.database import (get_profile, get_active_services, get_user_orders,
     get_service_by_id, create_order, debit_balance, update_order)
 from app.models.forms import OrderForm
-from app.models.boostci import add_order as boostci_add_order, get_order_status
+from app.models.boostci import add_order as boostci_add, get_balance as boostci_balance
 
 logger = logging.getLogger(__name__)
 dashboard_bp = Blueprint("dashboard", __name__)
@@ -78,7 +78,7 @@ def place_order():
         return redirect(url_for("dashboard.index"))
 
     # Creer la commande en BDD
-    order_data = {
+    order = create_order({
         "user_id": user["id"],
         "user_email": user["email"],
         "reseau": service["reseau"],
@@ -91,9 +91,8 @@ def place_order():
         "statut": "en_attente",
         "progression": 0,
         "note_admin": ""
-    }
+    })
 
-    order = create_order(order_data)
     if not order:
         flash("Erreur lors de la commande.", "error")
         return redirect(url_for("dashboard.index"))
@@ -104,30 +103,47 @@ def place_order():
         flash("Erreur lors du debit.", "error")
         return redirect(url_for("dashboard.index"))
 
-    # Envoyer automatiquement chez BOOSTCI si boostci_service_id existe
+    # Envoyer chez BOOSTCI si service lie
     boostci_id = service.get("boostci_service_id")
     if boostci_id:
         try:
-            result = boostci_add_order(
+            # Verifier solde BOOSTCI
+            solde = boostci_balance()
+            if solde < 0.5:
+                note = f"⚠️ SOLDE BOOSTCI INSUFFISANT ({solde}$) - Traiter manuellement"
+                update_order(order["id"], {"statut": "en_attente", "note_admin": note})
+                logger.warning(note)
+                flash(f"Commande enregistree ! ✅ {total_price:,.0f} FCFA debites. Livraison en cours.", "success")
+                return redirect(url_for("dashboard.index") + "#orders")
+
+            result = boostci_add(
                 service_id=int(boostci_id),
                 link=link,
                 quantity=quantity
             )
+
             if "order" in result:
                 boostci_order_id = result["order"]
                 update_order(order["id"], {
                     "statut": "en_cours",
                     "progression": 0,
-                    "note_admin": f"BOOSTCI order ID: {boostci_order_id}"
+                    "note_admin": f"✅ BOOSTCI order ID: {boostci_order_id}"
                 })
-                logger.info(f"Commande BOOSTCI: {boostci_order_id} pour {user['email']}")
-                flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Livraison en cours.", "success")
+                logger.info(f"BOOSTCI OK: order={boostci_order_id} user={user['email']}")
+                flash(f"Commande lancee ! ✅ {total_price:,.0f} FCFA debites. Livraison en cours.", "success")
             else:
                 error = result.get("error", "Erreur inconnue")
-                logger.error(f"BOOSTCI erreur: {error}")
-                update_order(order["id"], {"note_admin": f"BOOSTCI erreur: {error}"})
-                flash(f"Commande enregistree. Traitement manuel en cours.", "success")
+                note = f"❌ BOOSTCI ECHEC: {error} - Traiter manuellement"
+                update_order(order["id"], {
+                    "statut": "en_attente",
+                    "note_admin": note
+                })
+                logger.error(f"BOOSTCI erreur: {error} pour {user['email']}")
+                flash(f"Commande enregistree ! ✅ {total_price:,.0f} FCFA debites.", "success")
+
         except Exception as e:
+            note = f"❌ EXCEPTION BOOSTCI: {str(e)} - Traiter manuellement"
+            update_order(order["id"], {"note_admin": note})
             logger.error(f"BOOSTCI exception: {e}")
             flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites.", "success")
     else:
