@@ -42,7 +42,7 @@ def initier():
         "user_id": user["id"],
         "user_email": user["email"],
         "montant_fcfa": montant_fcfa,
-        "methode": "soinapay",
+        "methode": "leekpay",
         "hash_tx": None,
         "capture_url": None,
         "statut": "en_attente"
