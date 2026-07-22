@@ -9,7 +9,7 @@ from flask import current_app
 logger = logging.getLogger(__name__)
 
 USD_RATE = 600.0        # 1 USD = 600 FCFA
-MULTIPLICATEUR = 2.0    # Tu vends au double du prix BOOSTCI
+MULTIPLICATEUR = 1.0    # Tu ajoutes 1F fixe par unite
 
 def _post(data: dict) -> dict:
     try:
@@ -48,6 +48,8 @@ def prix_boostci_fcfa(rate_per_1k: float, quantity: int) -> float:
     """Prix reel BOOSTCI en FCFA."""
     return (rate_per_1k / 1000) * quantity * USD_RATE
 
+MARGE_PAR_UNITE = 1.0   # +1 FCFA par unite vendue
+
 def prix_client_fcfa(rate_per_1k: float, quantity: int) -> float:
-    """Prix client = prix BOOSTCI x MULTIPLICATEUR."""
-    return prix_boostci_fcfa(rate_per_1k, quantity) * MULTIPLICATEUR
+    """Prix client = prix BOOSTCI + 1 FCFA par unite."""
+    return prix_boostci_fcfa(rate_per_1k, quantity) + (MARGE_PAR_UNITE * quantity)

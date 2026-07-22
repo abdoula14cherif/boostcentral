@@ -58,14 +58,14 @@ select.sel-r{width:100%;padding:7px;border:1px solid var(--gray);border-radius:8
 <div class="info-item"><strong>{{ s.min }}</strong>Min quantite</div>
 <div class="info-item"><strong>{{ s.max }}</strong>Max quantite</div>
 </div>
-<div class="prix-boostci">Fournisseur : {{ "%.2f"|format(s.rate|float * 0.6) }} FCFA/unite</div>
-<div class="prix-client">Votre prix : {{ "%.2f"|format(s.rate|float * 0.6 * 2) }} FCFA/unite</div>
+<div class="prix-boostci">Fournisseur : {{ "%.2f"|format(s.rate|float * 0.6 / 1000) }} FCFA/unite</div>
+<div class="prix-client">Votre prix : {{ "%.2f"|format(s.rate|float * 0.6 / 1000 + 1) }} FCFA/unite</div>
 <form method="POST" action="{{ url_for('admin_boostci.importer') }}">
 <input type="hidden" name="boostci_id" value="{{ s.service }}">
 <input type="hidden" name="nom" value="{{ s.name }}">
 <input type="hidden" name="min_qte" value="{{ s.min }}">
 <input type="hidden" name="max_qte" value="{{ s.max }}">
-<input type="hidden" name="prix_fcfa" value="{{ "%.4f"|format(s.rate|float * 0.6 * 2 / 1000) }}">
+<input type="hidden" name="prix_fcfa" value="{{ "%.4f"|format(s.rate|float * 0.6 / 1000 + 1) }}">
 <select class="sel-r" name="reseau">
 <option value="">-- Choisir reseau --</option>
 {% for r in ['facebook','tiktok','instagram','youtube','twitter','telegram','spotify','whatsapp'] %}
