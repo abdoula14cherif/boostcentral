@@ -109,7 +109,7 @@ def place_order():
         try:
             # Verifier solde BOOSTCI
             solde = boostci_balance()
-            if solde < 0.5:
+            if solde < 0.05:
                 note = f"⚠️ SOLDE BOOSTCI INSUFFISANT ({solde}$) - Traiter manuellement"
                 update_order(order["id"], {"statut": "en_attente", "note_admin": note})
                 logger.warning(note)
