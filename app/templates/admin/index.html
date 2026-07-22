@@ -61,7 +61,7 @@ tr:hover td{background:var(--off)}
 <div class="adm-logo">BOOST CENTRAL — Admin</div>
 <div style="display:flex;align-items:center;gap:10px">
 <span class="adm-email">{{ session.user_email }}</span>
-<a href="{{ url_for('dashboard.index') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
+<div style="display:flex;gap:8px"><a href="/admin/boostci/" style="display:flex;align-items:center;gap:6px;background:#059669;border:none;color:#fff;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none"><i class="fas fa-download"></i> Import BOOSTCI</a><a href="{{ url_for('dashboard.index') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a></div>
 </div>
 </header>
 {% endblock %}

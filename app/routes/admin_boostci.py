@@ -1,0 +1,117 @@
+import logging
+import requests as req
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, jsonify
+from app.models.security import admin_required
+from app.models.boostci import get_services as boostci_get_services, prix_client_fcfa
+
+logger = logging.getLogger(__name__)
+admin_boostci_bp = Blueprint("admin_boostci", __name__)
+
+RESEAU_MAP = {
+    "facebook": "facebook", "instagram": "instagram", "tiktok": "tiktok",
+    "youtube": "youtube", "twitter": "twitter", "telegram": "telegram",
+    "spotify": "spotify", "whatsapp": "whatsapp"
+}
+
+def _admin_headers():
+    key = current_app.config.get("SUPABASE_SERVICE_KEY")
+    return {"apikey": key, "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json", "Prefer": "return=representation"}
+
+def _supabase_url(path):
+    return current_app.config["SUPABASE_URL"] + "/rest/v1/" + path
+
+def detect_reseau(name, category):
+    txt = (name + " " + category).lower()
+    for r in RESEAU_MAP:
+        if r in txt:
+            return r
+    return None
+
+@admin_boostci_bp.route("/")
+@admin_required
+def index():
+    """Liste tous les services BOOSTCI avec prix doubles."""
+    services = boostci_get_services()
+    # Grouper par categorie
+    grouped = {}
+    for s in services:
+        cat = s.get("category", "Autre")
+        if cat not in grouped:
+            grouped[cat] = []
+        reseau = detect_reseau(s.get("name",""), cat)
+        prix_1000 = prix_client_fcfa(float(s.get("rate", 0)), 1000)
+        grouped[cat].append({
+            **s,
+            "reseau_detecte": reseau,
+            "prix_client_1000": round(prix_1000)
+        })
+    return render_template("admin/boostci.html", grouped=grouped)
+
+@admin_boostci_bp.route("/importer", methods=["POST"])
+@admin_required
+def importer():
+    """Importe un service BOOSTCI dans ton catalogue."""
+    boostci_id = request.form.get("boostci_id")
+    nom = request.form.get("nom", "")
+    reseau = request.form.get("reseau", "")
+    min_qte = request.form.get("min_qte", 100)
+    max_qte = request.form.get("max_qte", 100000)
+    prix_fcfa = request.form.get("prix_fcfa", 0)
+
+    if not boostci_id or not reseau or not nom:
+        flash("Donnees manquantes.", "error")
+        return redirect(url_for("admin_boostci.index"))
+
+    try:
+        r = req.post(_supabase_url("services"), json={
+            "reseau": reseau,
+            "categorie": nom,
+            "prix_fcfa": float(prix_fcfa),
+            "min_qte": int(min_qte),
+            "max_qte": int(max_qte),
+            "description": f"Service premium Boost Central",
+            "actif": True,
+            "boostci_service_id": int(boostci_id)
+        }, headers=_admin_headers())
+        if r.status_code in (200, 201):
+            flash(f"✅ Service '{nom}' importe avec succes !", "success")
+        else:
+            flash(f"Erreur : {r.text}", "error")
+    except Exception as e:
+        flash(f"Erreur : {e}", "error")
+
+    return redirect(url_for("admin_boostci.index"))
+
+@admin_boostci_bp.route("/importer-tous", methods=["POST"])
+@admin_required
+def importer_tous():
+    """Importe automatiquement tous les services detectes."""
+    services = boostci_get_services()
+    importe = 0
+    ignore = 0
+
+    for s in services:
+        reseau = detect_reseau(s.get("name",""), s.get("category",""))
+        if not reseau:
+            ignore += 1
+            continue
+        try:
+            prix = prix_client_fcfa(float(s.get("rate", 0)), 1000) / 1000
+            req.post(_supabase_url("services"), json={
+                "reseau": reseau,
+                "categorie": s.get("name",""),
+                "prix_fcfa": round(prix, 2),
+                "min_qte": int(s.get("min", 100)),
+                "max_qte": int(s.get("max", 100000)),
+                "description": s.get("description", ""),
+                "actif": True,
+                "boostci_service_id": int(s.get("service", 0))
+            }, headers=_admin_headers())
+            importe += 1
+        except Exception as e:
+            logger.error(f"Import erreur: {e}")
+            ignore += 1
+
+    flash(f"✅ {importe} services importes, {ignore} ignores.", "success")
+    return redirect(url_for("admin_boostci.index"))

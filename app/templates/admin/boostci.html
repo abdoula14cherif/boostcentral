@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Services BOOSTCI — Admin{% endblock %}
+{% block extra_css %}
+body{background:var(--off)}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--dark);position:sticky;top:0;z-index:100}
+.adm-logo{font-size:1rem;font-weight:900;background:linear-gradient(90deg,#60a5fa,#f97316);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn-back{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;text-decoration:none}
+.main{padding:16px;max-width:1100px;margin:0 auto}
+.top-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.btn-import-all{display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,var(--green),#047857);color:#fff;border:none;padding:12px 20px;border-radius:12px;font-weight:700;cursor:pointer;font-size:.9rem}
+.cat-title{font-size:1rem;font-weight:800;color:var(--dark);margin:18px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--blue-l);display:flex;align-items:center;gap:8px}
+.svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:10px}
+.svc-card{background:var(--white);border-radius:12px;padding:14px;border:1px solid var(--gray)}
+.svc-name{font-size:.85rem;font-weight:700;color:var(--dark);margin-bottom:8px}
+.svc-info{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.info-item{font-size:.74rem;color:var(--mid)}
+.info-item strong{color:var(--dark);display:block;font-size:.82rem}
+.badge-reseau{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:.72rem;font-weight:700;background:var(--blue-l);color:var(--blue);margin-bottom:8px}
+.badge-no{background:#fee2e2;color:var(--red)}
+.prix-client{font-size:1rem;font-weight:900;color:var(--orange);margin-bottom:10px}
+.prix-boostci{font-size:.75rem;color:var(--light);text-decoration:line-through}
+.btn-import{width:100%;padding:9px;border:none;border-radius:9px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;font-size:.82rem;font-weight:700;cursor:pointer}
+.btn-import:disabled{opacity:.4;cursor:not-allowed}
+select.sel-r{width:100%;padding:7px;border:1px solid var(--gray);border-radius:8px;font-size:.82rem;margin-bottom:8px;background:var(--white)}
+{% endblock %}
+{% block nav %}
+<header>
+<div class="adm-logo">⚡ BOOST CENTRAL — Import BOOSTCI</div>
+<a href="{{ url_for('admin.index') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Admin</a>
+</header>
+{% endblock %}
+{% block content %}
+<div class="main">
+<div class="top-bar">
+<div>
+<div style="font-size:1.1rem;font-weight:800;color:var(--dark)">Catalogue BOOSTCI</div>
+<div style="font-size:.82rem;color:var(--mid)">Prix affiche = prix BOOSTCI x2 (ta marge incluse)</div>
+</div>
+<form method="POST" action="{{ url_for('admin_boostci.importer_tous') }}" onsubmit="return confirm('Importer tous les services detectes ?')">
+<button type="submit" class="btn-import-all"><i class="fas fa-download"></i> Tout importer automatiquement</button>
+</form>
+</div>
+
+{% for categorie, services in grouped.items() %}
+<div class="cat-title"><i class="fas fa-folder" style="color:var(--blue)"></i> {{ categorie }} ({{ services|length }})</div>
+<div class="svc-grid">
+{% for s in services %}
+<div class="svc-card">
+<div class="svc-name">{{ s.name }}</div>
+{% if s.reseau_detecte %}
+<span class="badge-reseau"><i class="fab fa-{{ s.reseau_detecte }}"></i> {{ s.reseau_detecte|capitalize }}</span>
+{% else %}
+<span class="badge-reseau badge-no">Non detecte</span>
+{% endif %}
+<div class="svc-info">
+<div class="info-item"><strong>ID: {{ s.service }}</strong>BOOSTCI ID</div>
+<div class="info-item"><strong>${{ s.rate }}/1k</strong>Prix fournisseur</div>
+<div class="info-item"><strong>{{ s.min }}</strong>Min quantite</div>
+<div class="info-item"><strong>{{ s.max }}</strong>Max quantite</div>
+</div>
+<div class="prix-boostci">Fournisseur : {{ "%.2f"|format(s.rate|float * 0.6) }} FCFA/unite</div>
+<div class="prix-client">Votre prix : {{ "%.2f"|format(s.rate|float * 0.6 * 2) }} FCFA/unite</div>
+<form method="POST" action="{{ url_for('admin_boostci.importer') }}">
+<input type="hidden" name="boostci_id" value="{{ s.service }}">
+<input type="hidden" name="nom" value="{{ s.name }}">
+<input type="hidden" name="min_qte" value="{{ s.min }}">
+<input type="hidden" name="max_qte" value="{{ s.max }}">
+<input type="hidden" name="prix_fcfa" value="{{ "%.4f"|format(s.rate|float * 0.6 * 2 / 1000) }}">
+<select class="sel-r" name="reseau">
+<option value="">-- Choisir reseau --</option>
+{% for r in ['facebook','tiktok','instagram','youtube','twitter','telegram','spotify','whatsapp'] %}
+<option value="{{ r }}" {% if s.reseau_detecte == r %}selected{% endif %}>{{ r|capitalize }}</option>
+{% endfor %}
+</select>
+<button type="submit" class="btn-import" {% if not s.reseau_detecte %}{% endif %}>
+<i class="fas fa-plus"></i> Importer ce service
+</button>
+</form>
+</div>
+{% endfor %}
+</div>
+{% endfor %}
+</div>
+{% endblock %}
