@@ -113,7 +113,7 @@ def place_order():
                 note = f"⚠️ SOLDE BOOSTCI INSUFFISANT ({solde}$) - Traiter manuellement"
                 update_order(order["id"], {"statut": "en_attente", "note_admin": note})
                 logger.warning(note)
-                flash(f"Commande enregistree ! ✅ {total_price:,.0f} FCFA debites. Livraison en cours.", "success")
+                flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
                 return redirect(url_for("dashboard.index") + "#orders")
 
             result = boostci_add(
@@ -130,7 +130,7 @@ def place_order():
                     "note_admin": f"✅ BOOSTCI order ID: {boostci_order_id}"
                 })
                 logger.info(f"BOOSTCI OK: order={boostci_order_id} user={user['email']}")
-                flash(f"Commande lancee ! ✅ {total_price:,.0f} FCFA debites. Livraison en cours.", "success")
+                flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
             else:
                 error = result.get("error", "Erreur inconnue")
                 note = f"❌ BOOSTCI ECHEC: {error} - Traiter manuellement"
@@ -139,15 +139,15 @@ def place_order():
                     "note_admin": note
                 })
                 logger.error(f"BOOSTCI erreur: {error} pour {user['email']}")
-                flash(f"Commande enregistree ! ✅ {total_price:,.0f} FCFA debites.", "success")
+                flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
 
         except Exception as e:
             note = f"❌ EXCEPTION BOOSTCI: {str(e)} - Traiter manuellement"
             update_order(order["id"], {"note_admin": note})
             logger.error(f"BOOSTCI exception: {e}")
-            flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites.", "success")
+            flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
     else:
-        flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites.", "success")
+        flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
 
     return redirect(url_for("dashboard.index") + "#orders")
 

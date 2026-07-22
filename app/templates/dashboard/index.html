@@ -140,7 +140,7 @@ main{padding:20px;max-width:1100px;margin:0 auto;position:relative;z-index:1}
 {% if o.statut != 'refuse' %}
 <div class="prog-wrap"><div class="prog-lbl"><span>Progression</span><span>{{ o.progression or 0 }}%</span></div><div class="prog-bar"><div class="prog-fill" style="width:{{ o.progression or 0 }}%"></div></div></div>
 {% endif %}
-{% if o.note_admin %}<div style="margin-top:8px;font-size:.78rem;color:var(--mid);background:var(--light-g);padding:8px 10px;border-radius:8px">Admin : {{ o.note_admin }}</div>{% endif %}
+{% if o.note_admin and not o.note_admin.startswith('BOOSTCI') and not o.note_admin.startswith('❌') and not o.note_admin.startswith('⚠️') and not o.note_admin.startswith('✅ BOOSTCI') %}<div style="margin-top:8px;font-size:.78rem;color:var(--mid);background:var(--light-g);padding:8px 10px;border-radius:8px">{{ o.note_admin }}</div>{% endif %}
 </div>
 {% endfor %}
 {% else %}
