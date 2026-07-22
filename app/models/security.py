@@ -4,7 +4,7 @@ from flask import session, redirect, url_for, flash, current_app, request, abort
 
 logger = logging.getLogger(__name__)
 
-ADMIN_EMAILS = ["abdoula13cherif@gmail.com"]
+ADMIN_EMAIL = "abdoula13cherif@gmail.com"
 
 def login_required(f):
     @wraps(f)
@@ -23,9 +23,9 @@ def admin_required(f):
             flash("Veuillez vous connecter.", "warning")
             return redirect(url_for("auth.login"))
         user_email = session.get("user_email", "").strip().lower()
-        logger.info(f"Admin check: {user_email}")
-        if user_email not in [e.lower() for e in ADMIN_EMAILS]:
-            logger.warning(f"Acces admin refuse: {user_email}")
+        logger.info(f"Admin check email: [{user_email}]")
+        if user_email != ADMIN_EMAIL.lower():
+            logger.warning(f"Acces refuse: {user_email}")
             abort(403)
         return f(*args, **kwargs)
     return decorated
