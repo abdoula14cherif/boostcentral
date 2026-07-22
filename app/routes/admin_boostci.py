@@ -64,10 +64,11 @@ def importer():
         return redirect(url_for("admin_boostci.index"))
 
     try:
+        prix_val = max(float(prix_fcfa), 0.01)
         r = req.post(_supabase_url("services"), json={
             "reseau": reseau,
             "categorie": nom,
-            "prix_fcfa": float(prix_fcfa),
+            "prix_fcfa": prix_val,
             "min_qte": int(min_qte),
             "max_qte": int(max_qte),
             "description": f"Service premium Boost Central",
@@ -97,11 +98,17 @@ def importer_tous():
             ignore += 1
             continue
         try:
-            prix = prix_client_fcfa(float(s.get("rate", 0)), 1000) / 1000
+            rate = float(s.get("rate", 0))
+            if rate <= 0:
+                ignore += 1
+                continue
+            prix = prix_client_fcfa(rate, 1000) / 1000
+            if prix <= 0:
+                prix = 0.01
             req.post(_supabase_url("services"), json={
                 "reseau": reseau,
                 "categorie": s.get("name",""),
-                "prix_fcfa": round(prix, 2),
+                "prix_fcfa": max(round(prix, 4), 0.01),
                 "min_qte": int(s.get("min", 100)),
                 "max_qte": int(s.get("max", 100000)),
                 "description": s.get("description", ""),
