@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Sync BOOSTCI — Admin{% endblock %}
+{% block extra_css %}
+body{background:var(--off)}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--dark);position:sticky;top:0;z-index:100}
+.adm-logo{font-size:1rem;font-weight:900;background:linear-gradient(90deg,#60a5fa,#f97316);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn-back{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;text-decoration:none}
+.main{padding:16px;max-width:1000px;margin:0 auto}
+.top-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.btn-sync{display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,#7C3AED,#6D28D9);color:#fff;border:none;padding:12px 20px;border-radius:12px;font-weight:700;cursor:pointer;font-size:.9rem;text-decoration:none}
+.tbl-box{background:var(--white);border-radius:16px;border:1px solid var(--gray);overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,.05)}
+table{width:100%;border-collapse:collapse}
+th{background:var(--light-g);padding:10px 14px;text-align:left;font-size:.75rem;font-weight:700;color:var(--mid);text-transform:uppercase;border-bottom:1px solid var(--gray);white-space:nowrap}
+td{padding:11px 14px;font-size:.83rem;color:var(--dark);border-bottom:1px solid var(--gray);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--off)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.71rem;font-weight:700}
+.b-pending{background:#FFF8E6;color:#D97706}
+.b-processing{background:var(--blue-l);color:var(--blue)}
+.b-completed{background:#EDFFF5;color:var(--green)}
+.b-canceled{background:#fee2e2;color:var(--red)}
+.b-na{background:var(--light-g);color:var(--mid)}
+.prog-bar{height:6px;background:var(--gray);border-radius:6px;overflow:hidden;min-width:80px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--orange));border-radius:6px}
+.no-data{text-align:center;padding:40px;color:var(--light)}
+{% endblock %}
+{% block nav %}
+<header>
+<div class="adm-logo">⚡ BOOST CENTRAL — Sync BOOSTCI</div>
+<a href="{{ url_for('admin.index') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Admin</a>
+</header>
+{% endblock %}
+{% block content %}
+<div class="main">
+<div class="top-bar">
+<div>
+<div style="font-size:1.1rem;font-weight:800;color:var(--dark)">Commandes en cours</div>
+<div style="font-size:.82rem;color:var(--mid)">{{ resultats|length }} commande(s) en cours chez BOOSTCI</div>
+</div>
+<a href="{{ url_for('admin_sync.sync_now') }}" class="btn-sync">
+<i class="fas fa-sync"></i> Sync maintenant
+</a>
+</div>
+
+{% if resultats %}
+<div class="tbl-box">
+<table>
+<thead>
+<tr>
+<th>Service</th>
+<th>Lien</th>
+<th>Qte</th>
+<th>BOOSTCI ID</th>
+<th>Statut BOOSTCI</th>
+<th>Reste</th>
+</tr>
+</thead>
+<tbody>
+{% for r in resultats %}
+{% set badge_map = {
+'Pending': 'b-pending',
+'Processing': 'b-processing',
+'In progress': 'b-processing',
+'Completed': 'b-completed',
+'Canceled': 'b-canceled',
+'Cancelled': 'b-canceled',
+'N/A': 'b-na'
+} %}
+{% set badge_cls = badge_map.get(r.statut_boostci, 'b-na') %}
+<tr>
+<td><strong>{{ r.service }}</strong><br><span style="font-size:.72rem;color:var(--light)">{{ r.date }}</span></td>
+<td style="font-size:.78rem;color:var(--mid)">{{ r.lien }}...</td>
+<td>{{ "{:,}".format(r.quantite) }}</td>
+<td><strong>{{ r.boostci_id or 'N/A' }}</strong></td>
+<td><span class="badge {{ badge_cls }}">{{ r.statut_boostci }}</span></td>
+<td>{{ r.remains }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% else %}
+<div class="no-data"><i class="fas fa-check-circle" style="font-size:3rem;color:var(--green);display:block;margin-bottom:12px"></i><p>Aucune commande en cours !</p></div>
+{% endif %}
+</div>
+{% endblock %}
