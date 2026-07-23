@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Utilisateurs — Admin{% endblock %}
+{% block extra_css %}
+body{background:var(--off)}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--dark);position:sticky;top:0;z-index:100}
+.adm-logo{font-size:1rem;font-weight:900;background:linear-gradient(90deg,#60a5fa,#f97316);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn-back{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;text-decoration:none}
+.main{padding:16px;max-width:1000px;margin:0 auto}
+.search-box{background:var(--white);border-radius:12px;padding:12px 16px;margin-bottom:16px;border:1px solid var(--gray);display:flex;align-items:center;gap:10px}
+.search-box input{flex:1;border:none;outline:none;font-size:.9rem;color:var(--dark);background:none}
+.search-box i{color:var(--mid)}
+.tbl-box{background:var(--white);border-radius:16px;border:1px solid var(--gray);overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,.05)}
+table{width:100%;border-collapse:collapse}
+th{background:var(--light-g);padding:10px 14px;text-align:left;font-size:.75rem;font-weight:700;color:var(--mid);text-transform:uppercase;border-bottom:1px solid var(--gray);white-space:nowrap}
+td{padding:11px 14px;font-size:.83rem;color:var(--dark);border-bottom:1px solid var(--gray);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--off);cursor:pointer}
+.btn-detail{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;background:var(--blue-l);color:var(--blue);border:none;border-radius:8px;font-size:.76rem;font-weight:700;cursor:pointer;text-decoration:none}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:10px;font-size:.72rem;font-weight:700}
+.b-active{background:#EDFFF5;color:var(--green)}
+.b-new{background:var(--blue-l);color:var(--blue)}
+{% endblock %}
+{% block nav %}
+<header>
+<div class="adm-logo">⚡ BOOST CENTRAL — Utilisateurs</div>
+<a href="{{ url_for('admin.index') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Admin</a>
+</header>
+{% endblock %}
+{% block content %}
+<div class="main">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+<div>
+<div style="font-size:1.1rem;font-weight:800;color:var(--dark)">Utilisateurs</div>
+<div style="font-size:.82rem;color:var(--mid)">{{ users|length }} compte(s) enregistre(s)</div>
+</div>
+</div>
+
+<div class="search-box">
+<i class="fas fa-search"></i>
+<input type="text" id="searchInput" placeholder="Rechercher par email ou nom..." oninput="filterUsers()">
+</div>
+
+<div class="tbl-box">
+<table id="usersTable">
+<thead><tr>
+<th>Email</th><th>Nom</th><th>Pays</th><th>Solde</th><th>Points</th><th>Parrainages</th><th>Inscription</th><th>Action</th>
+</tr></thead>
+<tbody>
+{% for u in users %}
+<tr onclick="window.location='/admin/users/{{ u.id }}'" style="cursor:pointer">
+<td style="font-size:.8rem">{{ u.email or '—' }}</td>
+<td>{{ u.full_name or '—' }}</td>
+<td>{{ u.country or '—' }}</td>
+<td><strong style="color:var(--orange)">{{ "{:,.0f}".format(u.balance or 0) }} F</strong></td>
+<td><strong style="color:#7C3AED">{{ u.points or 0 }}</strong></td>
+<td>{{ u.referral_count or 0 }}</td>
+<td style="font-size:.74rem;color:var(--mid)">{{ u.created_at[:10] if u.created_at else '—' }}</td>
+<td><a href="/admin/users/{{ u.id }}" class="btn-detail" onclick="event.stopPropagation()"><i class="fas fa-eye"></i> Voir</a></td>
+</tr>
+{% else %}
+<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--light)">Aucun utilisateur</td></tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function filterUsers(){
+    var val = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('#usersTable tbody tr').forEach(function(tr){
+        tr.style.display = tr.textContent.toLowerCase().includes(val) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}{{ user.email }} — Admin{% endblock %}
+{% block extra_css %}
+body{background:var(--off)}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--dark);position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:10px}
+.adm-logo{font-size:1rem;font-weight:900;background:linear-gradient(90deg,#60a5fa,#f97316);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn-back{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;text-decoration:none}
+.main{padding:16px;max-width:900px;margin:0 auto}
+.profile-card{background:var(--white);border-radius:16px;padding:22px;border:1px solid var(--gray);box-shadow:0 3px 12px rgba(0,0,0,.05);margin-bottom:16px}
+.profile-header{display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.avatar{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--orange));display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5rem;font-weight:900;flex-shrink:0}
+.profile-info h2{font-size:1.1rem;font-weight:800;color:var(--dark)}
+.profile-info p{font-size:.82rem;color:var(--mid)}
+.stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:480px){.stats-grid{grid-template-columns:1fr 1fr}}
+.stat-box{background:var(--light-g);border-radius:12px;padding:14px;text-align:center;border:1px solid var(--gray)}
+.stat-val{font-size:1.4rem;font-weight:900;color:var(--orange)}
+.stat-lbl{font-size:.72rem;color:var(--mid);margin-top:3px}
+.section{background:var(--white);border-radius:16px;padding:18px;border:1px solid var(--gray);margin-bottom:14px}
+.section-title{font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:14px;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--gray)}
+.form-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.inp{padding:10px 12px;border:2px solid var(--gray);border-radius:10px;font-size:.88rem;color:var(--dark);outline:none;flex:1;min-width:120px}
+.inp:focus{border-color:var(--blue)}
+.btn-sm{padding:9px 16px;border:none;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:all .22s}
+.btn-b{background:var(--blue);color:#fff}.btn-b:hover{background:var(--blue-d)}
+.btn-g{background:var(--green);color:#fff}
+.btn-r{background:var(--red);color:#fff}
+.btn-o{background:var(--orange);color:#fff}
+.btn-purple{background:#7C3AED;color:#fff}
+table{width:100%;border-collapse:collapse}
+th{background:var(--light-g);padding:8px 12px;text-align:left;font-size:.72rem;font-weight:700;color:var(--mid);text-transform:uppercase;border-bottom:1px solid var(--gray)}
+td{padding:10px 12px;font-size:.8rem;color:var(--dark);border-bottom:1px solid var(--gray)}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-flex;padding:3px 8px;border-radius:10px;font-size:.71rem;font-weight:700}
+.b-wait{background:#FFF8E6;color:#D97706}.b-ok{background:#EDFFF5;color:var(--green)}.b-ref{background:#fee2e2;color:var(--red)}.b-run{background:var(--blue-l);color:var(--blue)}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.info-item{background:var(--light-g);border-radius:10px;padding:12px}
+.info-lbl{font-size:.72rem;color:var(--mid);margin-bottom:3px}
+.info-val{font-size:.88rem;font-weight:700;color:var(--dark);word-break:break-all}
+textarea.inp{min-height:80px;resize:vertical}
+{% endblock %}
+{% block nav %}
+<header>
+<div class="adm-logo">⚡ {{ user.email }}</div>
+<a href="{{ url_for('admin_users.index') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Utilisateurs</a>
+</header>
+{% endblock %}
+{% block content %}
+<div class="main">
+
+<!-- Profil -->
+<div class="profile-card">
+<div class="profile-header">
+<div class="avatar">{{ (user.full_name or user.email or 'U')[0].upper() }}</div>
+<div class="profile-info">
+<h2>{{ user.full_name or 'Sans nom' }}</h2>
+<p>{{ user.email }}</p>
+<p style="color:var(--mid)">{{ user.country or 'Pays non renseigne' }} • Inscrit le {{ user.created_at[:10] if user.created_at else '—' }}</p>
+</div>
+</div>
+<div class="info-grid">
+<div class="info-item"><div class="info-lbl">ID</div><div class="info-val" style="font-size:.72rem">{{ user.id }}</div></div>
+<div class="info-item"><div class="info-lbl">Code parrainage</div><div class="info-val">{{ user.referral_code or 'N/A' }}</div></div>
+<div class="info-item"><div class="info-lbl">Parraine par</div><div class="info-val">{{ user.referred_by or 'Direct' }}</div></div>
+<div class="info-item"><div class="info-lbl">Filleuls</div><div class="info-val">{{ user.referral_count or 0 }}</div></div>
+</div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+<div class="stat-box"><div class="stat-val">{{ "{:,.0f}".format(user.balance or 0) }}</div><div class="stat-lbl">Solde FCFA</div></div>
+<div class="stat-box"><div class="stat-val" style="color:#7C3AED">{{ user.points or 0 }}</div><div class="stat-lbl">Points</div></div>
+<div class="stat-box"><div class="stat-val" style="color:var(--blue)">{{ nb_commandes }}</div><div class="stat-lbl">Commandes</div></div>
+<div class="stat-box"><div class="stat-val" style="color:var(--green)">{{ "{:,.0f}".format(total_recharge) }}</div><div class="stat-lbl">Total recharge</div></div>
+<div class="stat-box"><div class="stat-val" style="color:var(--red)">{{ "{:,.0f}".format(total_depense) }}</div><div class="stat-lbl">Total depense</div></div>
+<div class="stat-box"><div class="stat-val" style="color:var(--yellow)">{{ user.referral_count or 0 }}</div><div class="stat-lbl">Parrainages</div></div>
+</div>
+
+<!-- Modifier solde -->
+<div class="section">
+<div class="section-title"><i class="fas fa-wallet" style="color:var(--orange)"></i> Modifier le solde</div>
+<form method="POST" action="{{ url_for('admin_users.update_balance', user_id=user.id) }}">
+<div class="form-row">
+<input type="number" class="inp" name="balance" value="{{ user.balance or 0 }}" step="0.01">
+<button type="submit" class="btn-sm btn-o"><i class="fas fa-save"></i> Enregistrer</button>
+</div>
+</form>
+</div>
+
+<!-- Modifier points -->
+<div class="section">
+<div class="section-title"><i class="fas fa-star" style="color:#7C3AED"></i> Modifier les points</div>
+<form method="POST" action="{{ url_for('admin_users.update_points', user_id=user.id) }}">
+<div class="form-row">
+<input type="number" class="inp" name="points" value="{{ user.points or 0 }}">
+<button type="submit" class="btn-sm btn-purple"><i class="fas fa-save"></i> Enregistrer</button>
+</div>
+</form>
+</div>
+
+<!-- Mot de passe -->
+<div class="section">
+<div class="section-title"><i class="fas fa-key" style="color:var(--blue)"></i> Mot de passe</div>
+<form method="POST" action="{{ url_for('admin_users.reset_password', user_id=user.id) }}" style="margin-bottom:12px">
+<button type="submit" class="btn-sm btn-b"><i class="fas fa-envelope"></i> Envoyer email de reinitialisation</button>
+</form>
+<form method="POST" action="{{ url_for('admin_users.set_password', user_id=user.id) }}">
+<div class="form-row">
+<input type="text" class="inp" name="password" placeholder="Nouveau mot de passe...">
+<button type="submit" class="btn-sm btn-g"><i class="fas fa-lock"></i> Definir</button>
+</div>
+</form>
+</div>
+
+<!-- Note admin -->
+<div class="section">
+<div class="section-title"><i class="fas fa-sticky-note" style="color:var(--yellow)"></i> Note admin</div>
+<form method="POST" action="{{ url_for('admin_users.update_note', user_id=user.id) }}">
+<div class="form-row" style="flex-direction:column;align-items:stretch">
+<textarea class="inp" name="note" placeholder="Note interne sur cet utilisateur...">{{ user.note_admin or '' }}</textarea>
+<button type="submit" class="btn-sm btn-b" style="align-self:flex-end"><i class="fas fa-save"></i> Sauvegarder</button>
+</div>
+</form>
+</div>
+
+<!-- Bloquer -->
+<div class="section">
+<div class="section-title"><i class="fas fa-ban" style="color:var(--red)"></i> Actions compte</div>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<form method="POST" action="{{ url_for('admin_users.bloquer', user_id=user.id) }}">
+<input type="hidden" name="action" value="bloquer">
+<button type="submit" class="btn-sm btn-r" onclick="return confirm('Bloquer cet utilisateur ?')"><i class="fas fa-ban"></i> Bloquer</button>
+</form>
+<form method="POST" action="{{ url_for('admin_users.bloquer', user_id=user.id) }}">
+<input type="hidden" name="action" value="debloquer">
+<button type="submit" class="btn-sm btn-g"><i class="fas fa-check"></i> Debloquer</button>
+</form>
+</div>
+</div>
+
+<!-- Commandes -->
+<div class="section">
+<div class="section-title"><i class="fas fa-rocket" style="color:var(--blue)"></i> Commandes ({{ nb_commandes }})</div>
+{% if commandes %}
+<div style="overflow-x:auto">
+<table>
+<thead><tr><th>Service</th><th>Qte</th><th>Prix</th><th>Statut</th><th>Date</th></tr></thead>
+<tbody>
+{% for c in commandes %}
+{% set bmap={'en_attente':('b-wait','En attente'),'en_cours':('b-run','En cours'),'termine':('b-ok','Termine'),'refuse':('b-ref','Refuse')} %}
+{% set bc,bt=bmap.get(c.statut,('b-wait','En attente')) %}
+<tr>
+<td>{{ c.service }}</td>
+<td>{{ "{:,}".format(c.quantite) }}</td>
+<td>{{ "{:,.0f}".format(c.prix_total) }} F</td>
+<td><span class="badge {{ bc }}">{{ bt }}</span></td>
+<td style="font-size:.72rem;color:var(--mid)">{{ c.created_at[:10] if c.created_at else '' }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% else %}
+<p style="color:var(--light);font-size:.84rem">Aucune commande.</p>
+{% endif %}
+</div>
+
+<!-- Recharges -->
+<div class="section">
+<div class="section-title"><i class="fas fa-wallet" style="color:var(--green)"></i> Recharges</div>
+{% if recharges %}
+<div style="overflow-x:auto">
+<table>
+<thead><tr><th>Montant</th><th>Methode</th><th>Statut</th><th>Date</th></tr></thead>
+<tbody>
+{% for r in recharges %}
+{% set bmap={'en_attente':('b-wait','En attente'),'valide':('b-ok','Validee'),'refuse':('b-ref','Refusee')} %}
+{% set bc,bt=bmap.get(r.statut,('b-wait','En attente')) %}
+<tr>
+<td>{{ "{:,.0f}".format(r.montant_fcfa) }} F</td>
+<td>{{ r.methode }}</td>
+<td><span class="badge {{ bc }}">{{ bt }}</span></td>
+<td style="font-size:.72rem;color:var(--mid)">{{ r.created_at[:10] if r.created_at else '' }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% else %}
+<p style="color:var(--light);font-size:.84rem">Aucune recharge.</p>
+{% endif %}
+</div>
+
+</div>
+{% endblock %}
