@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Bientot disponible — Boost Central{% endblock %}
+{% block extra_css %}
+header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--white);border-bottom:2px solid var(--gray);position:sticky;top:0;z-index:10}
+.back-btn{background:var(--blue-l);border:none;color:var(--blue);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none}
+.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+main{display:flex;align-items:center;justify-content:center;min-height:80vh;padding:20px}
+.card{background:var(--white);border-radius:24px;padding:48px 32px;max-width:420px;width:100%;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.08);border:1px solid var(--gray)}
+.icon{font-size:4rem;margin-bottom:20px;animation:bounce 2s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+h2{font-size:1.5rem;font-weight:800;color:var(--dark);margin-bottom:10px}
+p{color:var(--mid);font-size:.9rem;line-height:1.7;margin-bottom:24px}
+.badge-soon{display:inline-flex;align-items:center;gap:6px;background:var(--orange-l,#FFE6CC);color:var(--orange);padding:8px 18px;border-radius:30px;font-weight:700;font-size:.85rem;margin-bottom:20px}
+.btn-back-home{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:700;font-size:.9rem}
+{% endblock %}
+{% block nav %}
+<header>
+<a href="{{ url_for('dashboard.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
+<div class="logo">BOOST CENTRAL</div>
+</header>
+{% endblock %}
+{% block content %}
+<main>
+<div class="card">
+<div class="icon">🚧</div>
+<div class="badge-soon"><i class="fas fa-clock"></i> Bientot disponible</div>
+<h2>Fonctionnalite en cours</h2>
+<p>Nous travaillons sur cette fonctionnalite pour vous offrir la meilleure experience possible. Elle sera disponible tres prochainement !</p>
+<a href="{{ url_for('dashboard.index') }}" class="btn-back-home"><i class="fas fa-home"></i> Retour au dashboard</a>
+</div>
+</main>
+{% endblock %}

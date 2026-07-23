@@ -14,6 +14,12 @@ MIN_CONVERSION = 500       # Minimum 500 points pour convertir
 @gagner_bp.route("/")
 @login_required
 def index():
+    from flask import render_template
+    return render_template("dashboard/maintenance.html")
+
+@gagner_bp.route("/old")
+@login_required
+def index_old():
     user = get_current_user()
     profile = get_profile(user["id"])
     points = profile.get("points", 0) if profile else 0
