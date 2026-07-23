@@ -43,7 +43,7 @@ def _crediter_parrain(ref_code, new_user_id):
         
         # Crediter 200 points au parrain
         req.patch(f"{SUPABASE_URL_P}/rest/v1/profiles?id=eq.{parrain_id}",
-            json={"points": points_actuels + 200, "referral_count": referral_count + 1},
+            json={"points": points_actuels + 2, "referral_count": referral_count + 1},
             headers=headers)
         
         # Enregistrer le parrain chez le filleul

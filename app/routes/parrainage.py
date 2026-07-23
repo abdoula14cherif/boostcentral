@@ -8,8 +8,8 @@ from app.models.database import get_profile
 logger = logging.getLogger(__name__)
 parrainage_bp = Blueprint("parrainage", __name__)
 
-POINTS_PARRAINAGE = 200  # 200 points = 200 FCFA par filleul
-MIN_CONVERSION = 100     # 100 points minimum
+POINTS_PARRAINAGE = 2  # 200 points = 200 FCFA par filleul
+MIN_CONVERSION = 50     # 100 points minimum
 
 def _headers():
     key = current_app.config.get("SUPABASE_SERVICE_KEY")
