@@ -65,6 +65,11 @@ def importer():
 
     try:
         prix_val = max(float(prix_fcfa), 0.01)
+        # Verifier si service existe deja
+        exist = req.get(_supabase_url(f"services?boostci_service_id=eq.{int(s.get('service',0))}&limit=1"), headers=_admin_headers())
+        if exist.json():
+            ignore += 1
+            continue
         r = req.post(_supabase_url("services"), json={
             "reseau": reseau,
             "categorie": nom,
