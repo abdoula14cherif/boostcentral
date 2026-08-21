@@ -14,6 +14,7 @@ class BaseConfig:
     ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "abdoula13cherif@gmail.com")
     WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "237689011185")
     SOINA_PAY_URL = os.environ.get("SOINA_PAY_URL", "https://soinapay.com/pay/zmnmqbap")
+    GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
     BOOSTCI_API_KEY = os.environ.get("BOOSTCI_API_KEY", "")
     BOOSTCI_API_URL = os.environ.get("BOOSTCI_API_URL", "https://boostci.com/api/v2")
     ORDERS_PER_PAGE = 20

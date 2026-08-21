@@ -5,6 +5,7 @@ from app.models.database import (get_profile, get_active_services, get_user_orde
     get_service_by_id, create_order, debit_balance, update_order)
 from app.models.forms import OrderForm
 from app.models.boostci import add_order as boostci_add, get_balance as boostci_balance
+from app.models.mailer import email_commande_passee, email_admin_nouvelle_commande, email_solde_insuffisant
 
 logger = logging.getLogger(__name__)
 dashboard_bp = Blueprint("dashboard", __name__)
@@ -75,6 +76,10 @@ def place_order():
 
     if balance < total_price:
         flash(f"Solde insuffisant. Solde : {balance:,.0f} FCFA — Requis : {total_price:,.0f} FCFA.", "error")
+        try:
+            email_solde_insuffisant(user["email"], user["name"], balance, total_price)
+        except:
+            pass
         return redirect(url_for("dashboard.index"))
 
     # Creer la commande en BDD
@@ -148,7 +153,11 @@ def place_order():
             flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
     else:
         flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
-
+    try:
+        email_commande_passee(user["email"], user["name"], service["categorie"], quantity, total_price, link)
+        email_admin_nouvelle_commande(user["email"], service["categorie"], quantity, total_price, link)
+    except:
+        pass
     return redirect(url_for("dashboard.index") + "#orders")
 
 @dashboard_bp.route("/api/services/<string:network>")

@@ -2,6 +2,7 @@ import logging
 import requests as req
 from flask import Blueprint, render_template, redirect, url_for, flash, current_app
 from app.models.security import admin_required
+from app.models.mailer import email_commande_livree
 
 logger = logging.getLogger(__name__)
 admin_sync_bp = Blueprint("admin_sync", __name__)
@@ -81,6 +82,10 @@ def sync_now():
             qte = cmd.get("quantite", 1)
 
             if statut == "completed":
+                try:
+                    email_commande_livree(cmd.get('user_email',''), cmd.get('user_email','').split('@')[0], cmd['service'], cmd['quantite'])
+                except:
+                    pass
                 req.patch(_url(f"commandes?id=eq.{cmd['id']}"),
                     json={"statut": "termine", "progression": 100,
                           "note_admin": f"✅ BOOSTCI order ID: {boostci_id} | Livre"},

@@ -21,6 +21,8 @@ def _admin_headers():
     SERVICE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZWNuY2dybXRibXZ2d2l0d21mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTgyODIzNSwiZXhwIjoyMDk1NDA0MjM1fQ.4x5GwPi2pjU6kuBOvKdsL3GzMFFzyBlvL5ot8dkgc2g"
     return {"apikey": SERVICE_KEY, "Authorization": f"Bearer {SERVICE_KEY}", "Content-Type": "application/json", "Prefer": "return=representation"}
 
+from app.models.mailer import email_admin_nouvelle_inscription
+
 def _crediter_parrain(ref_code, new_user_id):
     """Credite le parrain de 200 points quand un filleul s inscrit."""
     if not ref_code:
@@ -119,6 +121,10 @@ def register():
                     user_id = user.get("id") or data.get("id")
                     _ensure_profile(user_id, email, full_name, country)
                     set_session(user_id, email, full_name)
+                    try:
+                        email_admin_nouvelle_inscription(email, full_name, country)
+                    except:
+                        pass
                     flash(f"Bienvenue {full_name.split()[0]} !", "success")
                     return redirect(url_for("dashboard.index"))
                 else:

@@ -60,6 +60,10 @@ def process_recharge():
         user_id = recharge.get("user_id")
         credit_balance(user_id, amount)
         flash(f"{amount:,.0f} FCFA credites a {recharge.get('user_email')}.", "success")
+        try:
+            email_recharge_validee(recharge.get('user_email'), recharge.get('user_email','').split('@')[0], amount)
+        except:
+            pass
     else:
         flash("Recharge refusee.", "info")
     return redirect(url_for("admin.index"))
