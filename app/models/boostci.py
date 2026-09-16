@@ -8,8 +8,9 @@ from flask import current_app
 
 logger = logging.getLogger(__name__)
 
-USD_RATE = 600.0        # 1 USD = 600 FCFA
-MULTIPLICATEUR = 1.0    # Tu ajoutes 1F fixe par unite
+USD_RATE = 600.0  # 1 USD = 600 FCFA
+MULTIPLICATEUR = 1.0  # Tu ajoutes 1F fixe par unite
+
 
 def _post(data: dict) -> dict:
     try:
@@ -22,9 +23,11 @@ def _post(data: dict) -> dict:
         logger.error(f"BOOSTCI erreur: {e}")
         return {"error": str(e)}
 
+
 def get_services() -> list:
     result = _post({"action": "services"})
     return result if isinstance(result, list) else []
+
 
 def get_balance() -> float:
     result = _post({"action": "balance"})
@@ -33,22 +36,36 @@ def get_balance() -> float:
     except:
         return 0.0
 
-def add_order(service_id: int, link: str, quantity: int) -> dict:
-    return _post({
+
+def add_order(service_id: int, link: str, quantity: int, comments: str = None) -> dict:
+    """
+    Passe une commande chez BOOSTCI.
+    Si `comments` est fourni (texte multi-lignes, 1 commentaire par ligne),
+    il est envoye en plus de quantity pour les services de type
+    "commentaires personnalises".
+    """
+    payload = {
         "action": "add",
         "service": service_id,
         "link": link,
         "quantity": quantity
-    })
+    }
+    if comments:
+        payload["comments"] = comments
+    return _post(payload)
+
 
 def get_order_status(order_id: int) -> dict:
     return _post({"action": "status", "order": order_id})
+
 
 def prix_boostci_fcfa(rate_per_1k: float, quantity: int) -> float:
     """Prix reel BOOSTCI en FCFA."""
     return (rate_per_1k / 1000) * quantity * USD_RATE
 
-MARGE_PAR_UNITE = 1.0   # +1 FCFA par unite vendue
+
+MARGE_PAR_UNITE = 1.0  # +1 FCFA par unite vendue
+
 
 def prix_client_fcfa(rate_per_1k: float, quantity: int) -> float:
     """Prix client = prix BOOSTCI + 1 FCFA par unite."""
