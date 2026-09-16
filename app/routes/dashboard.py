@@ -8,7 +8,9 @@ from app.models.boostci import add_order as boostci_add, get_balance as boostci_
 from app.models.mailer import email_commande_passee, email_admin_nouvelle_commande, email_solde_insuffisant
 
 logger = logging.getLogger(__name__)
+
 dashboard_bp = Blueprint("dashboard", __name__)
+
 
 @dashboard_bp.route("/")
 @login_required
@@ -17,19 +19,23 @@ def index():
     profile = get_profile(user["id"])
     services = get_active_services()
     orders = get_user_orders(user["id"], limit=20)
+
     services_by_network = {}
     for svc in services:
         net = svc["reseau"]
         if net not in services_by_network:
             services_by_network[net] = []
         services_by_network[net].append(svc)
+
     form = OrderForm()
+
     return render_template("dashboard/index.html",
         user=user, profile=profile,
         services_by_network=services_by_network,
         orders=orders, form=form,
         whatsapp=current_app.config["WHATSAPP_NUMBER"],
         currency=session.get("currency", "FCFA"))
+
 
 @dashboard_bp.route("/order", methods=["POST"])
 @login_required
@@ -39,6 +45,7 @@ def place_order():
     service_id = request.form.get("service_id", "")
     link = request.form.get("link", "").strip()
     quantity = request.form.get("quantity", "0")
+    comments_raw = request.form.get("comments", "").strip()
 
     if not network or not service_id or not link:
         flash("Tous les champs sont requis.", "error")
@@ -59,6 +66,17 @@ def place_order():
     if not service or not service.get("actif"):
         flash("Service invalide.", "error")
         return redirect(url_for("dashboard.index"))
+
+    # Service "commentaires personnalises" : 1 commentaire par ligne,
+    # la quantite est deduite du nombre de lignes saisies.
+    is_custom = bool(service.get("custom_comments"))
+    comments_list = []
+    if is_custom:
+        comments_list = [l.strip() for l in comments_raw.splitlines() if l.strip()]
+        if not comments_list:
+            flash("Veuillez entrer au moins un commentaire.", "error")
+            return redirect(url_for("dashboard.index"))
+        quantity = len(comments_list)
 
     if quantity < service["min_qte"]:
         flash(f"Quantite minimum : {service['min_qte']:,}.", "error")
@@ -91,6 +109,7 @@ def place_order():
         "service_id": service["id"],
         "quantite": quantity,
         "lien": link,
+        "commentaires": "\n".join(comments_list) if is_custom else None,
         "prix_unitaire": unit_price,
         "prix_total": total_price,
         "statut": "en_attente",
@@ -124,7 +143,8 @@ def place_order():
             result = boostci_add(
                 service_id=int(boostci_id),
                 link=link,
-                quantity=quantity
+                quantity=quantity,
+                comments="\n".join(comments_list) if is_custom else None
             )
 
             if "order" in result:
@@ -145,7 +165,6 @@ def place_order():
                 })
                 logger.error(f"BOOSTCI erreur: {error} pour {user['email']}")
                 flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
-
         except Exception as e:
             note = f"❌ EXCEPTION BOOSTCI: {str(e)} - Traiter manuellement"
             update_order(order["id"], {"note_admin": note})
@@ -153,12 +172,15 @@ def place_order():
             flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
     else:
         flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
+
     try:
         email_commande_passee(user["email"], user["name"], service["categorie"], quantity, total_price, link)
         email_admin_nouvelle_commande(user["email"], service["categorie"], quantity, total_price, link)
     except:
         pass
+
     return redirect(url_for("dashboard.index") + "#orders")
+
 
 @dashboard_bp.route("/api/services/<string:network>")
 @login_required
@@ -173,5 +195,6 @@ def api_services(network):
         "prix_fcfa": s["prix_fcfa"],
         "min_qte": s["min_qte"],
         "max_qte": s["max_qte"],
-        "description": s.get("description", "")
+        "description": s.get("description", ""),
+        "custom_comments": s.get("custom_comments", False)
     } for s in services])
