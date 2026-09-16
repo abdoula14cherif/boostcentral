@@ -5,6 +5,7 @@ from app.models.security import admin_required
 from app.models.boostci import get_services as boostci_get_services, prix_client_fcfa
 
 logger = logging.getLogger(__name__)
+
 admin_boostci_bp = Blueprint("admin_boostci", __name__)
 
 RESEAU_MAP = {
@@ -13,13 +14,16 @@ RESEAU_MAP = {
     "spotify": "spotify", "whatsapp": "whatsapp"
 }
 
+
 def _admin_headers():
     key = current_app.config.get("SUPABASE_SERVICE_KEY")
     return {"apikey": key, "Authorization": f"Bearer {key}",
             "Content-Type": "application/json", "Prefer": "return=representation"}
 
+
 def _supabase_url(path):
     return current_app.config["SUPABASE_URL"] + "/rest/v1/" + path
+
 
 def detect_reseau(name, category):
     txt = (name + " " + category).lower()
@@ -27,6 +31,13 @@ def detect_reseau(name, category):
         if r in txt:
             return r
     return None
+
+
+def is_custom_comments(s):
+    """Detecte si un service BOOSTCI est de type 'commentaires personnalises'."""
+    t = (s.get("type") or "").lower()
+    return "custom" in t and "comment" in t
+
 
 @admin_boostci_bp.route("/")
 @admin_required
@@ -37,14 +48,16 @@ def index():
         cat = s.get("category", "Autre")
         if cat not in grouped:
             grouped[cat] = []
-        reseau = detect_reseau(s.get("name",""), cat)
+        reseau = detect_reseau(s.get("name", ""), cat)
         prix_1000 = prix_client_fcfa(float(s.get("rate", 0)), 1000)
         grouped[cat].append({
             **s,
             "reseau_detecte": reseau,
-            "prix_client_1000": round(prix_1000)
+            "prix_client_1000": round(prix_1000),
+            "is_custom": is_custom_comments(s)
         })
     return render_template("admin/boostci.html", grouped=grouped)
+
 
 @admin_boostci_bp.route("/importer", methods=["POST"])
 @admin_required
@@ -66,26 +79,41 @@ def importer():
         flash("Ce service est deja importe.", "warning")
         return redirect(url_for("admin_boostci.index"))
 
+    # Retrouver le service chez BOOSTCI pour detecter s'il s'agit de
+    # "commentaires personnalises" (permet un min_qte a 1 et le champ texte cote client)
+    custom_comments = False
+    try:
+        catalogue = boostci_get_services()
+        for s in catalogue:
+            if str(s.get("service")) == str(boostci_id):
+                custom_comments = is_custom_comments(s)
+                break
+    except Exception as e:
+        logger.error(f"Detection custom_comments erreur: {e}")
+
     try:
         prix_val = max(float(prix_fcfa), 0.01)
-        r = req.post(_supabase_url("services"), json={
+        payload = {
             "reseau": reseau,
             "categorie": nom,
             "prix_fcfa": prix_val,
-            "min_qte": int(min_qte),
+            "min_qte": 1 if custom_comments else int(min_qte),
             "max_qte": int(max_qte),
             "description": "Service premium Boost Central",
             "actif": True,
-            "boostci_service_id": int(boostci_id)
-        }, headers=_admin_headers())
+            "boostci_service_id": int(boostci_id),
+            "custom_comments": custom_comments
+        }
+        r = req.post(_supabase_url("services"), json=payload, headers=_admin_headers())
         if r.status_code in (200, 201):
-            flash(f"Service '{nom}' importe !", "success")
+            flash(f"Service '{nom}' importe !" + (" (commentaires personnalises)" if custom_comments else ""), "success")
         else:
             flash(f"Erreur : {r.text}", "error")
     except Exception as e:
         flash(f"Erreur : {e}", "error")
 
     return redirect(url_for("admin_boostci.index"))
+
 
 @admin_boostci_bp.route("/importer-tous", methods=["POST"])
 @admin_required
@@ -114,21 +142,24 @@ def importer_tous():
             ignore += 1
             continue
 
+        custom_comments = is_custom_comments(s)
+
         prix_boostci = (rate / 1000) * USD_RATE
         prix_client = max(round(prix_boostci + 1, 4), 0.01)
 
         try:
-            r = req.post(_supabase_url("services"), json={
+            payload = {
                 "reseau": reseau,
                 "categorie": s.get("name", ""),
                 "prix_fcfa": prix_client,
-                "min_qte": int(s.get("min", 100)),
+                "min_qte": 1 if custom_comments else int(s.get("min", 100)),
                 "max_qte": int(s.get("max", 100000)),
                 "description": s.get("description", ""),
                 "actif": True,
-                "boostci_service_id": boostci_sid
-            }, headers=_admin_headers())
-
+                "boostci_service_id": boostci_sid,
+                "custom_comments": custom_comments
+            }
+            r = req.post(_supabase_url("services"), json=payload, headers=_admin_headers())
             if r.status_code in (200, 201):
                 importe += 1
             else:
