@@ -40,6 +40,7 @@ main{padding:20px;max-width:1100px;margin:0 auto;position:relative;z-index:1}
 .sw select,.inp{width:100%;padding:13px 14px;background:var(--white);border:2px solid var(--gray);border-radius:12px;font-size:.92rem;color:var(--dark);appearance:none;outline:none;transition:border-color .22s}
 .sw select:focus,.inp:focus{border-color:var(--blue)}
 .sw::after{content:'\f078';font-family:'Font Awesome 6 Free';font-weight:900;position:absolute;right:13px;top:50%;transform:translateY(-50%);color:var(--blue);pointer-events:none;font-size:.78rem}
+textarea.inp{resize:vertical;appearance:auto}
 .desc-box{background:var(--light-g);border-radius:12px;padding:14px;margin:12px 0;border-left:4px solid var(--blue);font-size:.88rem;color:var(--mid);line-height:1.6}
 .price-row{display:flex;justify-content:space-around;background:var(--light-g);padding:14px;border-radius:12px;margin-bottom:4px}
 .price-col{text-align:center}
@@ -65,138 +66,195 @@ main{padding:20px;max-width:1100px;margin:0 auto;position:relative;z-index:1}
 {% endblock %}
 {% block nav %}
 <header>
-<div class="burger-menu">
-<button class="burger-btn" id="burgerBtn"><i class="fas fa-bars"></i></button>
-<div class="dropdown" id="dropdown">
-<a href="{{ url_for('recharge.index') }}" class="dd-item"><i class="fas fa-wallet"></i> Recharger mon solde</a>
-<a href="#orders" class="dd-item" onclick="closeMenu()"><i class="fas fa-shopping-cart"></i> Mes commandes</a>
-<a href="/gagner/" class="dd-item"><i class="fas fa-coins" style="color:#D97706"></i> Gagner des points</a>
-<a href="/parrainage/" class="dd-item"><i class="fas fa-gift" style="color:#7C3AED"></i> Parrainage</a>
-<div class="dd-div"></div>
-<a href="{{ url_for('auth.logout') }}" class="dd-item logout"><i class="fas fa-sign-out-alt"></i> Deconnexion</a>
-</div>
-</div>
-<div class="logo">BOOST CENTRAL</div>
-<div class="user-badge"><i class="fas fa-user-circle" style="color:var(--blue)"></i><span>{{ user.email }}</span></div>
+  <div class="burger-menu">
+    <button class="burger-btn" id="burgerBtn"><i class="fas fa-bars"></i></button>
+    <div class="dropdown" id="dropdown">
+      <a href="{{ url_for('recharge.index') }}" class="dd-item"><i class="fas fa-wallet"></i> Recharger mon solde</a>
+      <a href="#orders" class="dd-item" onclick="closeMenu()"><i class="fas fa-shopping-cart"></i> Mes commandes</a>
+      <a href="/gagner/" class="dd-item"><i class="fas fa-coins" style="color:#D97706"></i> Gagner des points</a>
+      <a href="/parrainage/" class="dd-item"><i class="fas fa-gift" style="color:#7C3AED"></i> Parrainage</a>
+      <div class="dd-div"></div>
+      <a href="{{ url_for('auth.logout') }}" class="dd-item logout"><i class="fas fa-sign-out-alt"></i> Deconnexion</a>
+    </div>
+  </div>
+  <div class="logo">BOOST CENTRAL</div>
+  <div class="user-badge"><i class="fas fa-user-circle" style="color:var(--blue)"></i><span>{{ user.email }}</span></div>
 </header>
 {% endblock %}
 {% block content %}
 <div class="glow g1"></div><div class="glow g2"></div>
 <main>
-<div class="grid2">
-<div class="card">
-<h2 style="font-size:1.4rem;font-weight:700;color:var(--dark);margin-bottom:6px">Bienvenue, <span class="hi-name">{{ user.name.split(' ')[0] if user.name else user.email.split('@')[0] }}</span> !</h2>
-<p style="font-size:.9rem;color:var(--mid)">Que souhaitez-vous booster aujourd hui ?</p>
-</div>
-<div class="card">
-<div style="font-size:.85rem;color:var(--mid);margin-bottom:6px">Votre solde</div>
-<div class="balance-val">{{ "{:,.0f}".format(profile.balance or 0) if profile else '0' }}</div>
-<div style="font-size:.85rem;color:var(--mid);margin-bottom:14px">FCFA</div>
-<a href="{{ url_for('recharge.index') }}" class="btn-recharge"><i class="fas fa-plus-circle"></i> Recharger</a>
-</div>
-</div>
-<div class="card">
-<div class="sec-title"><i class="fas fa-share-alt"></i> Reseaux supportes</div>
-<div class="nets-grid">
-{% for net_id,icon,label in [('facebook','fab fa-facebook','Facebook'),('tiktok','fab fa-tiktok','TikTok'),('instagram','fab fa-instagram','Instagram'),('youtube','fab fa-youtube','YouTube'),('twitter','fab fa-twitter','Twitter'),('telegram','fab fa-telegram','Telegram'),('spotify','fab fa-spotify','Spotify'),('whatsapp','fab fa-whatsapp','WhatsApp')] %}
-<div class="net-card" data-net="{{ net_id }}" onclick="selectNet(this)"><i class="{{ icon }}"></i><span>{{ label }}</span></div>
-{% endfor %}
-</div>
-</div>
-<div class="card">
-<div class="sec-title"><i class="fas fa-rocket"></i> Nouvelle commande</div>
-<form method="POST" action="{{ url_for('dashboard.place_order') }}">
-{{ form.hidden_tag() }}
-<div class="form-row">
-<div class="fg"><label>Reseau social</label><div class="sw"><select id="selNet" name="network" onchange="onNetChange()"><option value="">Selectionnez</option>{% for net_id,icon,label in [('facebook','','Facebook'),('tiktok','','TikTok'),('instagram','','Instagram'),('youtube','','YouTube'),('twitter','','Twitter'),('telegram','','Telegram'),('spotify','','Spotify'),('whatsapp','','WhatsApp')] %}<option value="{{ net_id }}">{{ label }}</option>{% endfor %}</select></div></div>
-<div class="fg"><label>Service</label><div class="sw"><select id="selSvc" name="service_id" onchange="onSvcChange()" disabled><option value="">Choisissez un reseau</option></select></div></div>
-</div>
-<div class="fg"><label>Lien du compte / video</label><input type="text" class="inp" name="link" id="inpLink" placeholder="https://..."></div>
-<div class="fg"><label>Quantite (minimum : <span id="minQty">100</span>)</label><input type="number" class="inp" name="quantity" id="inpQty" value="1000" min="1"></div>
-<div class="desc-box" id="descBox">Selectionnez un reseau et un service.</div>
-<div class="price-row">
-<div class="price-col"><div class="price-lbl">Prix unitaire</div><div class="price-val" id="pUnit">0 FCFA</div></div>
-<div class="price-col"><div class="price-lbl">Total (-1%)</div><div class="price-val" id="pTotal">0 FCFA</div></div>
-</div>
-<button type="submit" class="btn-boost"><i class="fas fa-bolt"></i> BOOSTER MAINTENANT</button>
-</form>
-</div>
-<div class="card" id="orders">
-<div class="sec-title"><i class="fas fa-list-check"></i> Mes commandes</div>
-{% if orders %}
-{% for o in orders %}
-{% set bmap={'en_attente':('s-wait','En attente'),'en_cours':('s-run','En cours'),'termine':('s-done','Termine'),'refuse':('s-ref','Refuse')} %}
-{% set bc,bt=bmap.get(o.statut,('s-wait','En attente')) %}
-<div class="order-card">
-<div class="order-head">
-<div><div class="order-name">{{ o.service }}</div><div class="order-date">{{ o.created_at[:10] if o.created_at else '' }}</div></div>
-<span class="badge {{ bc }}">{{ bt }}</span>
-</div>
-<div class="order-meta">
-<span class="meta-item"><strong>{{ o.reseau|capitalize }}</strong></span>
-<span class="meta-item">Qte : <strong>{{ "{:,}".format(o.quantite) }}</strong></span>
-<span class="meta-item">Total : <strong>{{ "{:,.0f}".format(o.prix_total) }} FCFA</strong></span>
-</div>
-<div style="font-size:.76rem;color:var(--light);margin-bottom:6px;word-break:break-all">{{ o.lien }}</div>
-{% if o.statut != 'refuse' %}
-<div class="prog-wrap"><div class="prog-lbl"><span>Progression</span><span>{{ o.progression or 0 }}%</span></div><div class="prog-bar"><div class="prog-fill" style="width:{{ o.progression or 0 }}%"></div></div></div>
-{% endif %}
-{% if o.note_admin and not o.note_admin.startswith('BOOSTCI') and not o.note_admin.startswith('❌') and not o.note_admin.startswith('⚠️') and not o.note_admin.startswith('✅ BOOSTCI') %}<div style="margin-top:8px;font-size:.78rem;color:var(--mid);background:var(--light-g);padding:8px 10px;border-radius:8px">{{ o.note_admin }}</div>{% endif %}
-</div>
-{% endfor %}
-{% else %}
-<div class="no-orders"><i class="fas fa-inbox"></i><p>Aucune commande pour l instant.</p></div>
-{% endif %}
-</div>
+  <div class="grid2">
+    <div class="card">
+      <h2 style="font-size:1.4rem;font-weight:700;color:var(--dark);margin-bottom:6px">Bienvenue, <span class="hi-name">{{ user.name.split(' ')[0] if user.name else user.email.split('@')[0] }}</span> !</h2>
+      <p style="font-size:.9rem;color:var(--mid)">Que souhaitez-vous booster aujourd hui ?</p>
+    </div>
+    <div class="card">
+      <div style="font-size:.85rem;color:var(--mid);margin-bottom:6px">Votre solde</div>
+      <div class="balance-val">{{ "{:,.0f}".format(profile.balance or 0) if profile else '0' }}</div>
+      <div style="font-size:.85rem;color:var(--mid);margin-bottom:14px">FCFA</div>
+      <a href="{{ url_for('recharge.index') }}" class="btn-recharge"><i class="fas fa-plus-circle"></i> Recharger</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-title"><i class="fas fa-share-alt"></i> Reseaux supportes</div>
+    <div class="nets-grid">
+      {% for net_id,icon,label in [('facebook','fab fa-facebook','Facebook'),('tiktok','fab fa-tiktok','TikTok'),('instagram','fab fa-instagram','Instagram'),('youtube','fab fa-youtube','YouTube'),('twitter','fab fa-twitter','Twitter'),('telegram','fab fa-telegram','Telegram'),('spotify','fab fa-spotify','Spotify'),('whatsapp','fab fa-whatsapp','WhatsApp')] %}
+      <div class="net-card" data-net="{{ net_id }}" onclick="selectNet(this)"><i class="{{ icon }}"></i><span>{{ label }}</span></div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-title"><i class="fas fa-rocket"></i> Nouvelle commande</div>
+    <form method="POST" action="{{ url_for('dashboard.place_order') }}" id="orderForm">
+      {{ form.hidden_tag() }}
+      <div class="form-row">
+        <div class="fg"><label>Reseau social</label><div class="sw"><select id="selNet" name="network" onchange="onNetChange()"><option value="">Selectionnez</option>{% for net_id,icon,label in [('facebook','','Facebook'),('tiktok','','TikTok'),('instagram','','Instagram'),('youtube','','YouTube'),('twitter','','Twitter'),('telegram','','Telegram'),('spotify','','Spotify'),('whatsapp','','WhatsApp')] %}<option value="{{ net_id }}">{{ label }}</option>{% endfor %}</select></div></div>
+        <div class="fg"><label>Service</label><div class="sw"><select id="selSvc" name="service_id" onchange="onSvcChange()" disabled><option value="">Choisissez un reseau</option></select></div></div>
+      </div>
+      <div class="fg"><label>Lien du compte / video</label><input type="text" class="inp" name="link" id="inpLink" placeholder="https://..."></div>
+
+      <div class="fg" id="fgQty">
+        <label>Quantite (minimum : <span id="minQty">100</span>)</label>
+        <input type="number" class="inp" name="quantity" id="inpQty" value="1000" min="1">
+      </div>
+
+      <div class="fg" id="fgComments" style="display:none">
+        <label>Commentaires (1 par ligne — <span id="cCount">0</span> commentaire(s))</label>
+        <textarea class="inp" name="comments" id="inpComments" rows="6" placeholder="Super produit !&#10;Trop bien&#10;J'adore ca"></textarea>
+      </div>
+
+      <div class="desc-box" id="descBox">Selectionnez un reseau et un service.</div>
+      <div class="price-row">
+        <div class="price-col"><div class="price-lbl">Prix unitaire</div><div class="price-val" id="pUnit">0 FCFA</div></div>
+        <div class="price-col"><div class="price-lbl">Total (-1%)</div><div class="price-val" id="pTotal">0 FCFA</div></div>
+      </div>
+      <button type="submit" class="btn-boost"><i class="fas fa-bolt"></i> BOOSTER MAINTENANT</button>
+    </form>
+  </div>
+
+  <div class="card" id="orders">
+    <div class="sec-title"><i class="fas fa-list-check"></i> Mes commandes</div>
+    {% if orders %}
+      {% for o in orders %}
+      {% set bmap={'en_attente':('s-wait','En attente'),'en_cours':('s-run','En cours'),'termine':('s-done','Termine'),'refuse':('s-ref','Refuse')} %}
+      {% set bc,bt=bmap.get(o.statut,('s-wait','En attente')) %}
+      <div class="order-card">
+        <div class="order-head">
+          <div><div class="order-name">{{ o.service }}</div><div class="order-date">{{ o.created_at[:10] if o.created_at else '' }}</div></div>
+          <span class="badge {{ bc }}">{{ bt }}</span>
+        </div>
+        <div class="order-meta">
+          <span class="meta-item"><strong>{{ o.reseau|capitalize }}</strong></span>
+          <span class="meta-item">Qte : <strong>{{ "{:,}".format(o.quantite) }}</strong></span>
+          <span class="meta-item">Total : <strong>{{ "{:,.0f}".format(o.prix_total) }} FCFA</strong></span>
+        </div>
+        <div style="font-size:.76rem;color:var(--light);margin-bottom:6px;word-break:break-all">{{ o.lien }}</div>
+        {% if o.statut != 'refuse' %}
+        <div class="prog-wrap"><div class="prog-lbl"><span>Progression</span><span>{{ o.progression or 0 }}%</span></div><div class="prog-bar"><div class="prog-fill" style="width:{{ o.progression or 0 }}%"></div></div></div>
+        {% endif %}
+        {% if o.note_admin and not o.note_admin.startswith('BOOSTCI') and not o.note_admin.startswith('❌') and not o.note_admin.startswith('⚠️') and not o.note_admin.startswith('✅ BOOSTCI') %}<div style="margin-top:8px;font-size:.78rem;color:var(--mid);background:var(--light-g);padding:8px 10px;border-radius:8px">{{ o.note_admin }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="no-orders"><i class="fas fa-inbox"></i><p>Aucune commande pour l instant.</p></div>
+    {% endif %}
+  </div>
 </main>
 {% endblock %}
 {% block extra_js %}
 <script>
 const svcData={{ services_by_network|tojson }};
+
 document.getElementById('burgerBtn').addEventListener('click',function(e){e.stopPropagation();document.getElementById('dropdown').classList.toggle('open')});
 document.addEventListener('click',function(e){var dd=document.getElementById('dropdown');if(!dd.contains(e.target)&&!document.getElementById('burgerBtn').contains(e.target))dd.classList.remove('open')});
 function closeMenu(){document.getElementById('dropdown').classList.remove('open')}
+
 function selectNet(card){
-document.querySelectorAll('.net-card').forEach(c=>c.classList.remove('sel'));
-card.classList.add('sel');
-document.getElementById('selNet').value=card.dataset.net;
-onNetChange();
+  document.querySelectorAll('.net-card').forEach(c=>c.classList.remove('sel'));
+  card.classList.add('sel');
+  document.getElementById('selNet').value=card.dataset.net;
+  onNetChange();
 }
+
 function onNetChange(){
-var net=document.getElementById('selNet').value;
-var sel=document.getElementById('selSvc');
-sel.innerHTML='<option value="">Selectionnez un service</option>';
-sel.disabled=!net;
-document.getElementById('descBox').textContent='Selectionnez un service.';
-calcPrice();
-if(!net||!svcData[net])return;
-svcData[net].forEach(function(s){
-var opt=document.createElement('option');
-opt.value=s.id;opt.textContent=s.categorie;
-opt.dataset.prix=s.prix_fcfa;opt.dataset.min=s.min_qte;opt.dataset.max=s.max_qte;opt.dataset.desc=s.description||'';
-sel.appendChild(opt);
-});
-sel.disabled=false;
-document.querySelectorAll('.net-card').forEach(c=>c.classList.toggle('sel',c.dataset.net===net));
+  var net=document.getElementById('selNet').value;
+  var sel=document.getElementById('selSvc');
+  sel.innerHTML='<option value="">Selectionnez un service</option>';
+  sel.disabled=!net;
+  document.getElementById('descBox').textContent='Selectionnez un service.';
+  resetCustomFields();
+  calcPrice();
+  if(!net||!svcData[net])return;
+  svcData[net].forEach(function(s){
+    var opt=document.createElement('option');
+    opt.value=s.id;opt.textContent=s.categorie;
+    opt.dataset.prix=s.prix_fcfa;opt.dataset.min=s.min_qte;opt.dataset.max=s.max_qte;opt.dataset.desc=s.description||'';
+    opt.dataset.custom=s.custom_comments?'1':'0';
+    sel.appendChild(opt);
+  });
+  sel.disabled=false;
+  document.querySelectorAll('.net-card').forEach(c=>c.classList.toggle('sel',c.dataset.net===net));
 }
+
+function resetCustomFields(){
+  document.getElementById('fgQty').style.display='';
+  document.getElementById('fgComments').style.display='none';
+  document.getElementById('inpComments').value='';
+  document.getElementById('cCount').textContent='0';
+}
+
 function onSvcChange(){
-var opt=document.getElementById('selSvc').selectedOptions[0];
-if(!opt||!opt.value){calcPrice();return;}
-document.getElementById('minQty').textContent=Number(opt.dataset.min).toLocaleString();
-document.getElementById('inpQty').min=opt.dataset.min;
-if(parseInt(document.getElementById('inpQty').value)<parseInt(opt.dataset.min))document.getElementById('inpQty').value=opt.dataset.min;
-document.getElementById('descBox').textContent=opt.dataset.desc||opt.textContent;
-calcPrice();
+  var opt=document.getElementById('selSvc').selectedOptions[0];
+  if(!opt||!opt.value){resetCustomFields();calcPrice();return;}
+
+  var isCustom=opt.dataset.custom==='1';
+
+  if(isCustom){
+    document.getElementById('fgQty').style.display='none';
+    document.getElementById('fgComments').style.display='';
+  }else{
+    document.getElementById('fgQty').style.display='';
+    document.getElementById('fgComments').style.display='none';
+    document.getElementById('minQty').textContent=Number(opt.dataset.min).toLocaleString();
+    document.getElementById('inpQty').min=opt.dataset.min;
+    if(parseInt(document.getElementById('inpQty').value)<parseInt(opt.dataset.min))document.getElementById('inpQty').value=opt.dataset.min;
+  }
+
+  document.getElementById('descBox').textContent=opt.dataset.desc||opt.textContent;
+  calcPrice();
 }
+
 document.getElementById('inpQty').addEventListener('input',calcPrice);
+
+document.getElementById('inpComments').addEventListener('input',function(){
+  var lines=this.value.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+  document.getElementById('cCount').textContent=lines.length;
+  document.getElementById('inpQty').value=lines.length;
+  calcPrice();
+});
+
 function calcPrice(){
-var opt=document.getElementById('selSvc').selectedOptions[0];
-var qty=parseInt(document.getElementById('inpQty').value)||0;
-if(!opt||!opt.value){document.getElementById('pUnit').textContent='0 FCFA';document.getElementById('pTotal').textContent='0 FCFA';return;}
-var prix=parseFloat(opt.dataset.prix);
-var total=prix*qty*0.99;
-document.getElementById('pUnit').textContent=prix%1===0?prix+' FCFA':prix.toFixed(1)+' FCFA';
-document.getElementById('pTotal').textContent=Math.round(total).toLocaleString()+' FCFA';
+  var opt=document.getElementById('selSvc').selectedOptions[0];
+  var qty=parseInt(document.getElementById('inpQty').value)||0;
+  if(!opt||!opt.value){document.getElementById('pUnit').textContent='0 FCFA';document.getElementById('pTotal').textContent='0 FCFA';return;}
+  var prix=parseFloat(opt.dataset.prix);
+  var total=prix*qty*0.99;
+  document.getElementById('pUnit').textContent=prix%1===0?prix+' FCFA':prix.toFixed(1)+' FCFA';
+  document.getElementById('pTotal').textContent=Math.round(total).toLocaleString()+' FCFA';
 }
+
+document.getElementById('orderForm').addEventListener('submit',function(e){
+  var opt=document.getElementById('selSvc').selectedOptions[0];
+  if(opt&&opt.value&&opt.dataset.custom==='1'){
+    var lines=document.getElementById('inpComments').value.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+    if(lines.length===0){
+      e.preventDefault();
+      alert('Veuillez entrer au moins un commentaire.');
+    }
+  }
+});
 </script>
 {% endblock %}
