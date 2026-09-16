@@ -14,6 +14,9 @@ RESEAU_MAP = {
     "spotify": "spotify", "whatsapp": "whatsapp"
 }
 
+USD_RATE = 600
+MARGE_PAR_UNITE = 1.0
+
 
 def _admin_headers():
     key = current_app.config.get("SUPABASE_SERVICE_KEY")
@@ -73,14 +76,11 @@ def importer():
         flash("Donnees manquantes.", "error")
         return redirect(url_for("admin_boostci.index"))
 
-    # Verifier si deja importe
     exist = req.get(_supabase_url(f"services?boostci_service_id=eq.{boostci_id}&limit=1"), headers=_admin_headers())
     if exist.json():
         flash("Ce service est deja importe.", "warning")
         return redirect(url_for("admin_boostci.index"))
 
-    # Retrouver le service chez BOOSTCI pour detecter s'il s'agit de
-    # "commentaires personnalises" (permet un min_qte a 1 et le champ texte cote client)
     custom_comments = False
     try:
         catalogue = boostci_get_services()
@@ -121,7 +121,6 @@ def importer_tous():
     services = boostci_get_services()
     importe = 0
     ignore = 0
-    USD_RATE = 600
 
     for s in services:
         reseau = detect_reseau(s.get("name", ""), s.get("category", ""))
@@ -136,7 +135,6 @@ def importer_tous():
 
         boostci_sid = int(s.get("service", 0))
 
-        # Verifier si deja importe
         exist = req.get(_supabase_url(f"services?boostci_service_id=eq.{boostci_sid}&limit=1"), headers=_admin_headers())
         if exist.json():
             ignore += 1
@@ -145,7 +143,7 @@ def importer_tous():
         custom_comments = is_custom_comments(s)
 
         prix_boostci = (rate / 1000) * USD_RATE
-        prix_client = max(round(prix_boostci + 1, 4), 0.01)
+        prix_client = max(round(prix_boostci + MARGE_PAR_UNITE, 4), 0.01)
 
         try:
             payload = {
@@ -169,4 +167,71 @@ def importer_tous():
             ignore += 1
 
     flash(f"✅ {importe} services importes, {ignore} ignores.", "success")
+    return redirect(url_for("admin_boostci.index"))
+
+
+@admin_boostci_bp.route("/recalculer-prix")
+@admin_required
+def recalculer_prix():
+    """
+    Recalcule le prix de TOUS les services deja importes a partir du
+    tarif BOOSTCI actuel + la marge standard (meme formule que l'import).
+    Utile quand un prix a ete fige avant une mise a jour du tarif fournisseur,
+    ou pour un service dont le prix n'a jamais ete calcule automatiquement.
+    Accessible simplement en visitant cette URL en etant connecte en admin.
+    """
+    try:
+        catalogue = boostci_get_services()
+    except Exception as e:
+        flash(f"Erreur recuperation catalogue BOOSTCI : {e}", "error")
+        return redirect(url_for("admin_boostci.index"))
+
+    rates = {}
+    for s in catalogue:
+        try:
+            rates[int(s.get("service", 0))] = float(s.get("rate", 0))
+        except Exception:
+            continue
+
+    try:
+        r = req.get(
+            _supabase_url("services?boostci_service_id=not.is.null&select=id,boostci_service_id,prix_fcfa"),
+            headers=_admin_headers()
+        )
+        nos_services = r.json() or []
+    except Exception as e:
+        flash(f"Erreur lecture Supabase : {e}", "error")
+        return redirect(url_for("admin_boostci.index"))
+
+    updated = 0
+    skipped = 0
+    for svc in nos_services:
+        bid = svc.get("boostci_service_id")
+        if bid not in rates or rates[bid] <= 0:
+            skipped += 1
+            continue
+
+        prix_boostci = (rates[bid] / 1000) * USD_RATE
+        prix_client = max(round(prix_boostci + MARGE_PAR_UNITE, 4), 0.01)
+
+        try:
+            ancien = float(svc.get("prix_fcfa") or 0)
+        except Exception:
+            ancien = 0
+
+        if abs(prix_client - ancien) < 0.001:
+            continue
+
+        try:
+            req.patch(
+                _supabase_url(f"services?id=eq.{svc['id']}"),
+                json={"prix_fcfa": prix_client},
+                headers=_admin_headers()
+            )
+            updated += 1
+        except Exception as e:
+            logger.error(f"Recalcul prix erreur service {svc['id']}: {e}")
+            skipped += 1
+
+    flash(f"✅ {updated} prix mis a jour, {skipped} inchanges/ignores.", "success")
     return redirect(url_for("admin_boostci.index"))
