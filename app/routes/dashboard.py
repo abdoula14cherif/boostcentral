@@ -1,8 +1,9 @@
 import logging
+import secrets
 from flask import Blueprint, render_template, redirect, url_for, flash, session, jsonify, current_app, request
 from app.models.security import login_required, get_current_user
 from app.models.database import (get_profile, get_active_services, get_user_orders,
-    get_service_by_id, create_order, debit_balance, update_order)
+    get_service_by_id, create_order, debit_balance, update_order, set_api_key)
 from app.models.forms import OrderForm
 from app.models.boostci import add_order as boostci_add, get_balance as boostci_balance
 from app.models.mailer import email_commande_passee, email_admin_nouvelle_commande, email_solde_insuffisant
@@ -46,6 +47,30 @@ def commandes():
 
     return render_template("dashboard/commandes.html",
         user=user, profile=profile, orders=orders)
+
+
+@dashboard_bp.route("/api")
+@login_required
+def api_page():
+    user = get_current_user()
+    profile = get_profile(user["id"])
+    api_key = profile.get("api_key") if profile else None
+    api_base_url = request.url_root.rstrip("/") + "/api/v1"
+
+    return render_template("dashboard/api.html",
+        user=user, profile=profile, api_key=api_key, api_base_url=api_base_url)
+
+
+@dashboard_bp.route("/api/generer", methods=["POST"])
+@login_required
+def generer_api_key():
+    user = get_current_user()
+    new_key = "bc_" + secrets.token_hex(20)
+    if set_api_key(user["id"], new_key):
+        flash("Cle API generee avec succes.", "success")
+    else:
+        flash("Erreur lors de la generation de la cle.", "error")
+    return redirect(url_for("dashboard.api_page"))
 
 
 @dashboard_bp.route("/order", methods=["POST"])
