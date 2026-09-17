@@ -4,19 +4,24 @@ from flask import current_app
 
 logger = logging.getLogger(__name__)
 
+
 def _headers(admin=False):
     url = current_app.config["SUPABASE_URL"]
     key = current_app.config["SUPABASE_SERVICE_KEY"] if admin else current_app.config["SUPABASE_ANON_KEY"]
     return {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json", "Prefer": "return=representation"}
 
+
 def _url(path):
     return current_app.config["SUPABASE_URL"] + "/rest/v1/" + path
+
 
 def get_supabase():
     return None
 
+
 def get_supabase_admin():
     return None
+
 
 def get_profile(user_id):
     try:
@@ -29,6 +34,7 @@ def get_profile(user_id):
         logger.error(f"get_profile: {e}")
         return None
 
+
 def update_balance(user_id, new_balance):
     try:
         r = requests.patch(_url(f"profiles?id=eq.{user_id}"), json={"balance": new_balance}, headers=_headers(True))
@@ -36,6 +42,7 @@ def update_balance(user_id, new_balance):
     except Exception as e:
         logger.error(f"update_balance: {e}")
         return False
+
 
 def credit_balance(user_id, amount):
     try:
@@ -49,6 +56,7 @@ def credit_balance(user_id, amount):
     except Exception as e:
         logger.error(f"credit_balance: {e}")
         return None
+
 
 def debit_balance(user_id, amount):
     try:
@@ -66,6 +74,7 @@ def debit_balance(user_id, amount):
         logger.error(f"debit_balance: {e}")
         return None
 
+
 def get_active_services(network=None):
     try:
         if network:
@@ -81,6 +90,7 @@ def get_active_services(network=None):
         logger.error(f"get_active_services: {e}")
         return []
 
+
 def get_service_by_id(service_id):
     try:
         r = requests.get(_url(f"services?id=eq.{service_id}&limit=1"), headers=_headers(True))
@@ -91,6 +101,7 @@ def get_service_by_id(service_id):
     except Exception as e:
         logger.error(f"get_service_by_id: {e}")
         return None
+
 
 def create_order(data):
     try:
@@ -103,6 +114,7 @@ def create_order(data):
         logger.error(f"create_order: {e}")
         return None
 
+
 def get_user_orders(user_id, limit=20):
     try:
         r = requests.get(_url(f"commandes?user_id=eq.{user_id}&order=created_at.desc&limit={limit}"), headers=_headers(True))
@@ -113,6 +125,19 @@ def get_user_orders(user_id, limit=20):
     except Exception as e:
         logger.error(f"get_user_orders: {e}")
         return []
+
+
+def get_order_by_id_for_user(order_id, user_id):
+    try:
+        r = requests.get(_url(f"commandes?id=eq.{order_id}&user_id=eq.{user_id}&limit=1"), headers=_headers(True))
+        data = r.json()
+        if isinstance(data, list) and len(data) > 0:
+            return data[0]
+        return None
+    except Exception as e:
+        logger.error(f"get_order_by_id_for_user: {e}")
+        return None
+
 
 def get_all_orders(limit=100):
     try:
@@ -125,6 +150,7 @@ def get_all_orders(limit=100):
         logger.error(f"get_all_orders: {e}")
         return []
 
+
 def update_order(order_id, data):
     try:
         r = requests.patch(_url(f"commandes?id=eq.{order_id}"), json=data, headers=_headers(True))
@@ -132,6 +158,7 @@ def update_order(order_id, data):
     except Exception as e:
         logger.error(f"update_order: {e}")
         return False
+
 
 def create_recharge(data):
     try:
@@ -144,6 +171,7 @@ def create_recharge(data):
         logger.error(f"create_recharge: {e}")
         return None
 
+
 def get_user_recharges(user_id, limit=10):
     try:
         r = requests.get(_url(f"recharges?user_id=eq.{user_id}&order=created_at.desc&limit={limit}"), headers=_headers(True))
@@ -154,6 +182,7 @@ def get_user_recharges(user_id, limit=10):
     except Exception as e:
         logger.error(f"get_user_recharges: {e}")
         return []
+
 
 def get_all_recharges(limit=50):
     try:
@@ -166,6 +195,7 @@ def get_all_recharges(limit=50):
         logger.error(f"get_all_recharges: {e}")
         return []
 
+
 def update_recharge(recharge_id, data):
     try:
         r = requests.patch(_url(f"recharges?id=eq.{recharge_id}"), json=data, headers=_headers(True))
@@ -173,6 +203,7 @@ def update_recharge(recharge_id, data):
     except Exception as e:
         logger.error(f"update_recharge: {e}")
         return False
+
 
 def get_all_users():
     try:
@@ -184,3 +215,24 @@ def get_all_users():
     except Exception as e:
         logger.error(f"get_all_users: {e}")
         return []
+
+
+def get_profile_by_api_key(api_key):
+    try:
+        r = requests.get(_url(f"profiles?api_key=eq.{api_key}&limit=1"), headers=_headers(True))
+        data = r.json()
+        if isinstance(data, list) and len(data) > 0:
+            return data[0]
+        return None
+    except Exception as e:
+        logger.error(f"get_profile_by_api_key: {e}")
+        return None
+
+
+def set_api_key(user_id, api_key):
+    try:
+        r = requests.patch(_url(f"profiles?id=eq.{user_id}"), json={"api_key": api_key}, headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"set_api_key: {e}")
+        return False
