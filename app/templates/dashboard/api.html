@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}API — Boost Central{% endblock %}
+{% block extra_css %}
+.glow{position:fixed;border-radius:50%;filter:blur(70px);z-index:0;pointer-events:none;animation:pulse 9s ease-in-out infinite alternate}
+.g1{width:320px;height:320px;background:rgba(255,102,0,.12);top:-80px;left:-60px}
+.g2{width:280px;height:280px;background:rgba(0,102,255,.1);bottom:-60px;right:-50px}
+@keyframes pulse{0%{opacity:.3;transform:scale(1)}100%{opacity:.6;transform:scale(1.1)}}
+header{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 3px 10px rgba(0,0,0,.05)}
+.burger-menu{position:relative}
+.burger-btn{background:var(--blue-l);border:none;color:var(--blue);font-size:1.5rem;cursor:pointer;padding:9px 11px;border-radius:10px}
+.logo{font-size:1.4rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+.user-badge{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--mid);background:var(--blue-l);padding:5px 12px;border-radius:20px;max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.dropdown{position:absolute;top:52px;left:0;background:var(--white);border-radius:14px;padding:12px;min-width:220px;box-shadow:0 10px 28px rgba(0,0,0,.1);border:2px solid var(--gray);display:none;z-index:1000}
+.dropdown.open{display:block}
+.dd-item{display:flex;align-items:center;gap:10px;padding:10px 13px;color:var(--mid);text-decoration:none;border-radius:9px;margin-bottom:4px;font-size:.9rem;transition:all .22s}
+.dd-item:hover{background:var(--blue-l);color:var(--blue)}
+.dd-item i{color:var(--blue);width:18px;text-align:center}
+.dd-item.logout i{color:var(--red)}.dd-item.logout:hover{background:#fee2e2;color:var(--red)}
+.dd-div{height:1px;background:var(--gray);margin:6px 0}
+main{padding:20px;max-width:1100px;margin:0 auto;position:relative;z-index:1}
+.card{background:var(--white);border-radius:18px;padding:22px;border:1px solid var(--gray);box-shadow:0 5px 18px rgba(0,0,0,.05);margin-bottom:20px}
+.sec-title{font-size:1.1rem;font-weight:700;color:var(--dark);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sec-title i{color:var(--blue)}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--blue);text-decoration:none;font-size:.85rem;font-weight:600;margin-bottom:16px}
+.key-box{display:flex;align-items:center;gap:8px;background:var(--light-g);border:2px dashed var(--gray);border-radius:12px;padding:14px;font-family:monospace;font-size:.88rem;color:var(--dark);word-break:break-all;margin-bottom:14px}
+.key-empty{color:var(--light);font-style:italic;font-family:inherit}
+.btn-copy{background:var(--blue-l);border:none;color:var(--blue);padding:8px 10px;border-radius:8px;cursor:pointer;flex-shrink:0}
+.btn-gen{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:#fff;border:none;padding:11px 20px;border-radius:10px;font-size:.88rem;font-weight:700;cursor:pointer}
+.warn-box{background:#FFF8E6;border-left:4px solid #D97706;border-radius:10px;padding:12px 14px;font-size:.82rem;color:#92610a;margin-bottom:14px}
+.doc-block{margin-bottom:22px}
+.doc-block h3{font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.doc-block h3 .m{font-size:.68rem;background:var(--blue-l);color:var(--blue);padding:3px 8px;border-radius:6px;font-weight:800}
+.doc-block p{font-size:.85rem;color:var(--mid);margin-bottom:8px;line-height:1.6}
+pre.code{background:#1e2530;color:#e6e8ee;padding:14px;border-radius:10px;font-size:.78rem;overflow-x:auto;line-height:1.6;margin-bottom:8px}
+.param-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:8px}
+.param-table th,.param-table td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--gray)}
+.param-table th{color:var(--mid);font-weight:600}
+.param-table td{color:var(--dark)}
+.param-table code{background:var(--light-g);padding:2px 6px;border-radius:5px;font-size:.76rem}
+{% endblock %}
+{% block nav %}
+<header>
+  <div class="burger-menu">
+    <button class="burger-btn" id="burgerBtn"><i class="fas fa-bars"></i></button>
+    <div class="dropdown" id="dropdown">
+      <a href="{{ url_for('dashboard.index') }}" class="dd-item"><i class="fas fa-house"></i> Accueil</a>
+      <a href="{{ url_for('recharge.index') }}" class="dd-item"><i class="fas fa-wallet"></i> Recharger mon solde</a>
+      <a href="{{ url_for('dashboard.commandes') }}" class="dd-item"><i class="fas fa-shopping-cart"></i> Mes commandes</a>
+      <a href="{{ url_for('dashboard.api_page') }}" class="dd-item"><i class="fas fa-code" style="color:#059669"></i> API</a>
+      <a href="/gagner/" class="dd-item"><i class="fas fa-coins" style="color:#D97706"></i> Gagner des points</a>
+      <a href="/parrainage/" class="dd-item"><i class="fas fa-gift" style="color:#7C3AED"></i> Parrainage</a>
+      <div class="dd-div"></div>
+      <a href="{{ url_for('auth.logout') }}" class="dd-item logout"><i class="fas fa-sign-out-alt"></i> Deconnexion</a>
+    </div>
+  </div>
+  <div class="logo">BOOST CENTRAL</div>
+  <div class="user-badge"><i class="fas fa-user-circle" style="color:var(--blue)"></i><span>{{ user.email }}</span></div>
+</header>
+{% endblock %}
+{% block content %}
+<div class="glow g1"></div><div class="glow g2"></div>
+<main>
+  <a href="{{ url_for('dashboard.index') }}" class="back-link"><i class="fas fa-arrow-left"></i> Retour au dashboard</a>
+
+  <div class="card">
+    <div class="sec-title"><i class="fas fa-key"></i> Ma cle API</div>
+    <div class="key-box">
+      {% if api_key %}
+        <span id="apiKeyVal">{{ api_key }}</span>
+        <button class="btn-copy" onclick="copyKey()"><i class="fas fa-copy"></i></button>
+      {% else %}
+        <span class="key-empty">Aucune cle generee pour le moment.</span>
+      {% endif %}
+    </div>
+    {% if api_key %}
+    <div class="warn-box"><i class="fas fa-triangle-exclamation"></i> Regenerer ta cle rendra l ancienne inutilisable immediatement.</div>
+    {% endif %}
+    <form method="POST" action="{{ url_for('dashboard.generer_api_key') }}" onsubmit="return confirm('{% if api_key %}Regenerer va desactiver l ancienne cle. Continuer ?{% else %}Generer ta cle API ?{% endif %}')">
+      <button type="submit" class="btn-gen"><i class="fas fa-rotate"></i> {% if api_key %}Regenerer ma cle{% else %}Generer ma cle API{% endif %}</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="sec-title"><i class="fas fa-book"></i> Documentation</div>
+
+    <div class="doc-block">
+      <h3>Base URL</h3>
+      <pre class="code">POST {{ api_base_url }}</pre>
+      <p>Toutes les requetes se font en <strong>POST</strong>, en <code>form-data</code> (ou en parametres d URL), avec au minimum ta cle API et une action.</p>
+    </div>
+
+    <div class="doc-block">
+      <h3>Parametres communs</h3>
+      <table class="param-table">
+        <tr><th>Parametre</th><th>Description</th></tr>
+        <tr><td><code>key</code></td><td>Ta cle API (obligatoire sur chaque requete)</td></tr>
+        <tr><td><code>action</code></td><td>balance, services, add, ou status</td></tr>
+      </table>
+    </div>
+
+    <div class="doc-block">
+      <h3>Solde <span class="m">action=balance</span></h3>
+      <pre class="code">key={{ api_key or 'TA_CLE' }}
+action=balance</pre>
+      <p>Reponse :</p>
+      <pre class="code">{ "balance": "12500", "currency": "FCFA" }</pre>
+    </div>
+
+    <div class="doc-block">
+      <h3>Liste des services <span class="m">action=services</span></h3>
+      <pre class="code">key={{ api_key or 'TA_CLE' }}
+action=services</pre>
+      <p>Reponse :</p>
+      <pre class="code">[
+  {
+    "service": 12,
+    "name": "Followers TikTok",
+    "category": "tiktok",
+    "rate": 7.9,
+    "min": 100,
+    "max": 50000,
+    "type": "Default"
+  }
+]</pre>
+    </div>
+
+    <div class="doc-block">
+      <h3>Passer une commande <span class="m">action=add</span></h3>
+      <table class="param-table">
+        <tr><th>Parametre</th><th>Description</th></tr>
+        <tr><td><code>service</code></td><td>ID du service (voir action=services)</td></tr>
+        <tr><td><code>link</code></td><td>Lien du compte / de la video</td></tr>
+        <tr><td><code>quantity</code></td><td>Quantite (non requis si le service est de type "Custom Comments")</td></tr>
+        <tr><td><code>comments</code></td><td>Uniquement pour les services "Custom Comments" : 1 commentaire par ligne</td></tr>
+      </table>
+      <pre class="code">key={{ api_key or 'TA_CLE' }}
+action=add
+service=12
+link=https://tiktok.com/@moncompte
+quantity=1000</pre>
+      <p>Reponse :</p>
+      <pre class="code">{ "order": 4581 }</pre>
+    </div>
+
+    <div class="doc-block">
+      <h3>Statut d une commande <span class="m">action=status</span></h3>
+      <pre class="code">key={{ api_key or 'TA_CLE' }}
+action=status
+order=4581</pre>
+      <p>Reponse :</p>
+      <pre class="code">{
+  "charge": "7900",
+  "start_count": "0",
+  "status": "en_cours",
+  "remains": "300",
+  "currency": "FCFA"
+}</pre>
+    </div>
+
+    <div class="doc-block">
+      <h3>Exemple cURL</h3>
+      <pre class="code">curl -X POST {{ api_base_url }} \
+  -d key={{ api_key or 'TA_CLE' }} \
+  -d action=add \
+  -d service=12 \
+  -d link=https://tiktok.com/@moncompte \
+  -d quantity=1000</pre>
+    </div>
+  </div>
+</main>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.getElementById('burgerBtn').addEventListener('click',function(e){e.stopPropagation();document.getElementById('dropdown').classList.toggle('open')});
+document.addEventListener('click',function(e){var dd=document.getElementById('dropdown');if(!dd.contains(e.target)&&!document.getElementById('burgerBtn').contains(e.target))dd.classList.remove('open')});
+
+function copyKey(){
+  var el=document.getElementById('apiKeyVal');
+  if(!el)return;
+  navigator.clipboard.writeText(el.textContent.trim()).then(function(){
+    alert('Cle copiee !');
+  });
+}
+</script>
+{% endblock %}
