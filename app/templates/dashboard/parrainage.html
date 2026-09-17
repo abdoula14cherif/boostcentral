@@ -37,92 +37,92 @@ main{padding:20px;max-width:680px;margin:0 auto}
 {% endblock %}
 {% block nav %}
 <header>
-<a href="{{ url_for('dashboard.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
-<div class="logo">BOOST CENTRAL</div>
+  <a href="{{ url_for('dashboard.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
+  <div class="logo">BOOST CENTRAL</div>
 </header>
 {% endblock %}
 {% block content %}
 <main>
-<div class="hero-card">
-<div class="hero-emoji">🎁</div>
-<div class="hero-title">Parrainez et gagnez !</div>
-<div class="hero-sub">Invitez vos amis sur Boost Central et gagnez <strong>{{ points_parrainage }} FCFA</strong> pour chaque ami qui s inscrit !</div>
-</div>
+  <div class="hero-card">
+    <div class="hero-emoji">🎁</div>
+    <div class="hero-title">Parrainez et gagnez !</div>
+    <div class="hero-sub">Invitez vos amis sur Boost Central et gagnez <strong>{{ taux_commission }}% de chaque recharge</strong> qu ils effectuent — pour toujours, pas juste a l inscription !</div>
+  </div>
 
-<div class="stats-grid">
-<div class="stat-card">
-<div class="stat-val">{{ referral_count }}</div>
-<div class="stat-lbl">Amis parraines</div>
-</div>
-<div class="stat-card">
-<div class="stat-val" style="color:#7C3AED">{{ points }}</div>
-<div class="stat-lbl">Points gagnes</div>
-</div>
-</div>
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-val">{{ referral_count }}</div>
+      <div class="stat-lbl">Amis parraines</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:#7C3AED">{{ points }}</div>
+      <div class="stat-lbl">Points gagnes</div>
+    </div>
+  </div>
 
-<div class="code-card">
-<div class="code-title"><i class="fas fa-ticket-alt" style="color:#7C3AED"></i> Votre code de parrainage</div>
-<div class="code-box">
-<div class="code-val" id="codeVal">{{ code }}</div>
-<button class="btn-copy" onclick="copyCode()"><i class="fas fa-copy"></i> Copier</button>
-</div>
-<div class="lien-box" id="lienVal">{{ lien_parrainage }}</div>
-<div class="share-grid">
-<a href="https://wa.me/?text=Rejoins Boost Central et booste tes reseaux sociaux ! Utilise mon code {{ code }} ou ce lien : {{ lien_parrainage }}" class="btn-share btn-wa" target="_blank">
-<i class="fab fa-whatsapp"></i> Partager WhatsApp
-</a>
-<button class="btn-share btn-copy-lien" onclick="copyLien()">
-<i class="fas fa-link"></i> Copier le lien
-</button>
-</div>
-</div>
+  <div class="code-card">
+    <div class="code-title"><i class="fas fa-ticket-alt" style="color:#7C3AED"></i> Votre code de parrainage</div>
+    <div class="code-box">
+      <div class="code-val" id="codeVal">{{ code }}</div>
+      <button class="btn-copy" onclick="copyCode()"><i class="fas fa-copy"></i> Copier</button>
+    </div>
+    <div class="lien-box" id="lienVal">{{ lien_parrainage }}</div>
+    <div class="share-grid">
+      <a href="https://wa.me/?text=Rejoins Boost Central et booste tes reseaux sociaux ! Utilise mon code {{ code }} ou ce lien : {{ lien_parrainage }}" class="btn-share btn-wa" target="_blank">
+        <i class="fab fa-whatsapp"></i> Partager WhatsApp
+      </a>
+      <button class="btn-share btn-copy-lien" onclick="copyLien()">
+        <i class="fas fa-link"></i> Copier le lien
+      </button>
+    </div>
+  </div>
 
-<div class="convert-card">
-<div style="font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:8px"><i class="fas fa-exchange-alt" style="color:var(--orange)"></i> Convertir en solde</div>
-<div style="font-size:.84rem;color:var(--mid);line-height:1.6">
-Vous avez <strong style="color:#7C3AED">{{ points }} points</strong> = <strong style="color:var(--orange)">{{ points }} FCFA</strong><br>
-Minimum {{ min_conversion }} points pour convertir.
-</div>
-<form method="POST" action="{{ url_for('parrainage.convertir') }}">
-<button type="submit" class="btn-convertir" {% if points < min_conversion %}disabled{% endif %}>
-<i class="fas fa-coins"></i>
-{% if points >= min_conversion %}
-Convertir {{ points }} points → {{ points }} FCFA
-{% else %}
-Encore {{ min_conversion - points }} points avant de convertir
-{% endif %}
-</button>
-</form>
-</div>
+  <div class="convert-card">
+    <div style="font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:8px"><i class="fas fa-exchange-alt" style="color:var(--orange)"></i> Convertir en solde</div>
+    <div style="font-size:.84rem;color:var(--mid);line-height:1.6">
+      Vous avez <strong style="color:#7C3AED">{{ points }} points</strong> = <strong style="color:var(--orange)">{{ points }} FCFA</strong><br>
+      Minimum {{ min_conversion }} points pour convertir.
+    </div>
+    <form method="POST" action="{{ url_for('parrainage.convertir') }}">
+      <button type="submit" class="btn-convertir" {% if points < min_conversion %}disabled{% endif %}>
+        <i class="fas fa-coins"></i>
+        {% if points >= min_conversion %}
+          Convertir {{ points }} points → {{ points }} FCFA
+        {% else %}
+          Encore {{ min_conversion - points }} points avant de convertir
+        {% endif %}
+      </button>
+    </form>
+  </div>
 
-<div class="how-card">
-<div style="font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:14px"><i class="fas fa-info-circle" style="color:#7C3AED"></i> Comment ca marche ?</div>
-<div class="how-step">
-<div class="how-num">1</div>
-<div class="how-text"><strong>Partagez votre lien</strong> — Envoyez votre code ou lien a vos amis via WhatsApp, SMS ou reseaux sociaux.</div>
-</div>
-<div class="how-step">
-<div class="how-num">2</div>
-<div class="how-text"><strong>Votre ami s inscrit</strong> — Il utilise votre lien ou entre votre code a l inscription.</div>
-</div>
-<div class="how-step">
-<div class="how-num">3</div>
-<div class="how-text"><strong>Vous gagnez {{ points_parrainage }} FCFA</strong> — Des que votre ami cree son compte, {{ points_parrainage }} FCFA sont credites sur votre solde !</div>
-</div>
-</div>
+  <div class="how-card">
+    <div style="font-size:.95rem;font-weight:700;color:var(--dark);margin-bottom:14px"><i class="fas fa-info-circle" style="color:#7C3AED"></i> Comment ca marche ?</div>
+    <div class="how-step">
+      <div class="how-num">1</div>
+      <div class="how-text"><strong>Partagez votre lien</strong> — Envoyez votre code ou lien a vos amis via WhatsApp, SMS ou reseaux sociaux.</div>
+    </div>
+    <div class="how-step">
+      <div class="how-num">2</div>
+      <div class="how-text"><strong>Votre ami s inscrit et recharge</strong> — Il utilise votre lien ou entre votre code a l inscription, puis recharge son solde.</div>
+    </div>
+    <div class="how-step">
+      <div class="how-num">3</div>
+      <div class="how-text"><strong>Vous gagnez {{ taux_commission }}%</strong> — A chaque recharge confirmee de votre filleul, {{ taux_commission }}% du montant est credite en points sur votre compte, automatiquement, sans limite de temps.</div>
+    </div>
+  </div>
 </main>
 {% endblock %}
 {% block extra_js %}
 <script>
 function copyCode(){
-    navigator.clipboard.writeText("{{ code }}").then(function(){
-        alert("Code copie : {{ code }}");
-    });
+  navigator.clipboard.writeText("{{ code }}").then(function(){
+    alert("Code copie : {{ code }}");
+  });
 }
 function copyLien(){
-    navigator.clipboard.writeText("{{ lien_parrainage }}").then(function(){
-        alert("Lien copie !");
-    });
+  navigator.clipboard.writeText("{{ lien_parrainage }}").then(function(){
+    alert("Lien copie !");
+  });
 }
 </script>
 {% endblock %}
