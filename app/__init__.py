@@ -11,12 +11,16 @@ load_dotenv()
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per hour"])
 csrf = CSRFProtect()
 
+
 def create_app(config_name="production"):
     app = Flask(__name__, template_folder="templates", static_folder="static")
+
     from app.config import config_map
     app.config.from_object(config_map[config_name])
+
     limiter.init_app(app)
     csrf.init_app(app)
+
     from app.routes.auth import auth_bp
     from app.routes.dashboard import dashboard_bp
     from app.routes.admin import admin_bp
@@ -28,6 +32,8 @@ def create_app(config_name="production"):
     from app.routes.admin_sync import admin_sync_bp
     from app.routes.parrainage import parrainage_bp
     from app.routes.admin_users import admin_users_bp
+    from app.routes.api import api_bp
+
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
     app.register_blueprint(admin_bp, url_prefix="/admin")
@@ -39,27 +45,39 @@ def create_app(config_name="production"):
     app.register_blueprint(admin_sync_bp, url_prefix="/admin/sync")
     app.register_blueprint(parrainage_bp, url_prefix="/parrainage")
     app.register_blueprint(admin_users_bp, url_prefix="/admin/users")
+    app.register_blueprint(api_bp, url_prefix="/api/v1")
+
     csrf.exempt(webhook_bp)
+    csrf.exempt(api_bp)
+
     @app.route("/")
     def index():
         return render_template("index.html")
+
     @app.route("/conditions")
     def conditions():
         return render_template("conditions.html")
+
     @app.route("/sw.js")
     def sw():
         return send_from_directory("static", "sw.js", mimetype="application/javascript")
+
     @app.route("/manifest.json")
     def manifest():
         return send_from_directory("static", "manifest.json", mimetype="application/manifest+json")
+
     @app.errorhandler(404)
     def not_found(e):
         return render_template("errors/404.html"), 404
+
     @app.errorhandler(403)
     def forbidden(e):
         return render_template("errors/403.html"), 403
+
     @app.errorhandler(500)
     def internal_error(e):
         return render_template("errors/500.html"), 500
+
     logging.basicConfig(level=logging.INFO)
+
     return app
