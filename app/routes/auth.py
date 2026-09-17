@@ -49,7 +49,8 @@ def _crediter_parrain(ref_code, new_user_id):
         r = req.get(f"{SUPABASE_URL_P}/rest/v1/profiles?referral_code=eq.{ref_code}&limit=1", headers=headers)
         data = r.json()
         if not data:
-            return
+            logger.warning(f"crediter_parrain: aucun parrain trouve pour le code {ref_code}")
+            return False
         parrain = data[0]
         parrain_id = parrain["id"]
         referral_count = parrain.get("referral_count", 0) or 0
@@ -65,8 +66,10 @@ def _crediter_parrain(ref_code, new_user_id):
                   headers=headers)
 
         logger.info(f"Filleul enregistre pour le parrain {parrain.get('email')} (code {ref_code}) - commission a venir sur recharge")
+        return True
     except Exception as e:
         logger.error(f"crediter_parrain: {e}")
+        return False
 
 
 def _ensure_profile(user_id, email, full_name, country):
@@ -84,14 +87,15 @@ def _ensure_profile(user_id, email, full_name, country):
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("20 per minute")
 def login():
-    if "user_id" in session:
-        return redirect(url_for("dashboard.index"))
-
-    # Conserver le code de parrainage (?ref=XXXX) jusqu'a l'inscription,
-    # meme si l'utilisateur arrive sur /login avant de creer son compte.
+    # On capture le code de parrainage AVANT toute redirection, y compris
+    # si le visiteur est deja connecte (son propre compte) - sinon le code
+    # est perdu silencieusement pour tous les visiteurs deja connectes.
     ref_code = request.args.get("ref", "").strip().upper()
     if ref_code:
         session["ref_code"] = ref_code
+
+    if "user_id" in session:
+        return redirect(url_for("dashboard.index"))
 
     form = LoginForm()
     reg_form = RegisterForm()
@@ -135,7 +139,10 @@ def register():
         password = reg_form.password.data
         full_name = reg_form.full_name.data.strip()
         country = reg_form.country.data.strip() if reg_form.country.data else "CM"
-        ref_code = session.pop("ref_code", None)
+        # On NE retire PAS le code de la session ici : si l'inscription
+        # echoue (email deja utilise, erreur serveur...), l'utilisateur doit
+        # pouvoir reessayer sans perdre son code de parrainage.
+        ref_code = session.get("ref_code")
 
         try:
             r = requests.post(f"{_auth_url()}/signup",
@@ -149,7 +156,8 @@ def register():
                     user = data.get("user", {})
                     user_id = user.get("id") or data.get("id")
                     _ensure_profile(user_id, email, full_name, country)
-                    _crediter_parrain(ref_code, user_id)
+                    if _crediter_parrain(ref_code, user_id):
+                        session.pop("ref_code", None)
                     set_session(user_id, email, full_name)
                     try:
                         email_admin_nouvelle_inscription(email, full_name, country)
@@ -160,7 +168,8 @@ def register():
                 else:
                     if "id" in data:
                         _ensure_profile(data["id"], email, full_name, country)
-                        _crediter_parrain(ref_code, data["id"])
+                        if _crediter_parrain(ref_code, data["id"]):
+                            session.pop("ref_code", None)
                     flash("Compte cree ! Connectez-vous.", "info")
                     return redirect(url_for("auth.login"))
             else:
