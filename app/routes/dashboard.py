@@ -37,6 +37,17 @@ def index():
         currency=session.get("currency", "FCFA"))
 
 
+@dashboard_bp.route("/commandes")
+@login_required
+def commandes():
+    user = get_current_user()
+    profile = get_profile(user["id"])
+    orders = get_user_orders(user["id"], limit=200)
+
+    return render_template("dashboard/commandes.html",
+        user=user, profile=profile, orders=orders)
+
+
 @dashboard_bp.route("/order", methods=["POST"])
 @login_required
 def place_order():
