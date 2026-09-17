@@ -6,17 +6,21 @@ from app.models.security import login_required, get_current_user
 from app.models.database import get_profile
 
 logger = logging.getLogger(__name__)
+
 parrainage_bp = Blueprint("parrainage", __name__)
 
-POINTS_PARRAINAGE = 2  # 200 points = 200 FCFA par filleul
-MIN_CONVERSION = 50     # 100 points minimum
+TAUX_COMMISSION_PARRAINAGE = 0.05  # 5% de chaque recharge REELLEMENT payee par le filleul
+MIN_CONVERSION = 50  # 50 points minimum pour convertir
+
 
 def _headers():
     key = current_app.config.get("SUPABASE_SERVICE_KEY")
     return {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json", "Prefer": "return=representation"}
 
+
 def _url(path):
     return current_app.config["SUPABASE_URL"] + "/rest/v1/" + path
+
 
 def get_or_create_code(user_id, email):
     """Recupere ou cree le code de parrainage."""
@@ -34,6 +38,46 @@ def get_or_create_code(user_id, email):
     except Exception as e:
         logger.error(f"get_or_create_code: {e}")
         return None
+
+
+def crediter_commission_recharge(filleul_id, montant_recharge_fcfa):
+    """
+    Credite le parrain d'une commission de TAUX_COMMISSION_PARRAINAGE (5%)
+    UNIQUEMENT sur de l'argent reellement recu (appelee depuis le webhook,
+    apres qu'un paiement de recharge ait ete confirme).
+
+    Le parrain ne touche donc jamais plus que ce que Cherif vient d'encaisser :
+    le systeme est auto-finance et ne peut jamais faire perdre d'argent,
+    contrairement a un bonus fixe verse a l'inscription.
+    """
+    try:
+        r = req.get(_url(f"profiles?id=eq.{filleul_id}&select=referred_by"), headers=_headers())
+        data = r.json()
+        if not data or not data[0].get("referred_by"):
+            return
+
+        ref_code = data[0]["referred_by"]
+
+        rp = req.get(_url(f"profiles?referral_code=eq.{ref_code}&limit=1&select=id,points,email"), headers=_headers())
+        parrain_data = rp.json()
+        if not parrain_data:
+            return
+        parrain = parrain_data[0]
+
+        commission = round(montant_recharge_fcfa * TAUX_COMMISSION_PARRAINAGE)
+        if commission <= 0:
+            return
+
+        points_actuels = parrain.get("points", 0) or 0
+        req.patch(_url(f"profiles?id=eq.{parrain['id']}"),
+                  json={"points": points_actuels + commission},
+                  headers=_headers())
+
+        logger.info(f"Commission parrainage: {parrain['email']} +{commission} points "
+                    f"(5% de {montant_recharge_fcfa} FCFA recharges par le filleul {filleul_id})")
+    except Exception as e:
+        logger.error(f"crediter_commission_recharge: {e}")
+
 
 @parrainage_bp.route("/")
 @login_required
@@ -56,9 +100,10 @@ def index():
         points=points,
         referral_count=referral_count,
         lien_parrainage=lien_parrainage,
-        points_parrainage=POINTS_PARRAINAGE,
+        taux_commission=int(TAUX_COMMISSION_PARRAINAGE * 100),
         min_conversion=MIN_CONVERSION,
         whatsapp=current_app.config["WHATSAPP_NUMBER"])
+
 
 @parrainage_bp.route("/convertir", methods=["POST"])
 @login_required
@@ -70,7 +115,6 @@ def convertir():
         return redirect(url_for("parrainage.index"))
 
     points = profile.get("points", 0) or 0
-
     if points < MIN_CONVERSION:
         flash(f"Minimum {MIN_CONVERSION} points requis. Vous avez {points} points.", "error")
         return redirect(url_for("parrainage.index"))
@@ -80,8 +124,8 @@ def convertir():
 
     try:
         req.patch(_url(f"profiles?id=eq.{user['id']}"),
-            json={"points": 0, "balance": new_balance},
-            headers=_headers())
+                  json={"points": 0, "balance": new_balance},
+                  headers=_headers())
         flash(f"✅ {points} points convertis en {montant_fcfa:,.0f} FCFA !", "success")
     except Exception as e:
         flash(f"Erreur : {e}", "error")
