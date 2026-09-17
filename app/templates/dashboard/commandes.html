@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Mes commandes — Boost Central{% endblock %}
+{% block extra_css %}
+.glow{position:fixed;border-radius:50%;filter:blur(70px);z-index:0;pointer-events:none;animation:pulse 9s ease-in-out infinite alternate}
+.g1{width:320px;height:320px;background:rgba(255,102,0,.12);top:-80px;left:-60px}
+.g2{width:280px;height:280px;background:rgba(0,102,255,.1);bottom:-60px;right:-50px}
+@keyframes pulse{0%{opacity:.3;transform:scale(1)}100%{opacity:.6;transform:scale(1.1)}}
+header{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 3px 10px rgba(0,0,0,.05)}
+.burger-menu{position:relative}
+.burger-btn{background:var(--blue-l);border:none;color:var(--blue);font-size:1.5rem;cursor:pointer;padding:9px 11px;border-radius:10px}
+.logo{font-size:1.4rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+.user-badge{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--mid);background:var(--blue-l);padding:5px 12px;border-radius:20px;max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.dropdown{position:absolute;top:52px;left:0;background:var(--white);border-radius:14px;padding:12px;min-width:220px;box-shadow:0 10px 28px rgba(0,0,0,.1);border:2px solid var(--gray);display:none;z-index:1000}
+.dropdown.open{display:block}
+.dd-item{display:flex;align-items:center;gap:10px;padding:10px 13px;color:var(--mid);text-decoration:none;border-radius:9px;margin-bottom:4px;font-size:.9rem;transition:all .22s}
+.dd-item:hover{background:var(--blue-l);color:var(--blue)}
+.dd-item i{color:var(--blue);width:18px;text-align:center}
+.dd-item.logout i{color:var(--red)}.dd-item.logout:hover{background:#fee2e2;color:var(--red)}
+.dd-div{height:1px;background:var(--gray);margin:6px 0}
+main{padding:20px;max-width:1100px;margin:0 auto;position:relative;z-index:1}
+.card{background:var(--white);border-radius:18px;padding:22px;border:1px solid var(--gray);box-shadow:0 5px 18px rgba(0,0,0,.05);margin-bottom:20px}
+.sec-title{font-size:1.1rem;font-weight:700;color:var(--dark);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.sec-title i{color:var(--blue)}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:var(--blue);text-decoration:none;font-size:.85rem;font-weight:600;margin-bottom:16px}
+.order-card{background:var(--white);border:1px solid var(--gray);border-radius:14px;padding:18px;margin-bottom:12px}
+.order-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.order-name{font-size:.92rem;font-weight:700;color:var(--dark)}
+.order-date{font-size:.75rem;color:var(--light)}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:700}
+.s-wait{background:#FFF8E6;color:#D97706}.s-run{background:var(--blue-l);color:var(--blue)}.s-done{background:#EDFFF5;color:var(--green)}.s-ref{background:#fee2e2;color:var(--red)}
+.order-meta{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px}
+.meta-item{font-size:.78rem;color:var(--mid)}
+.meta-item strong{color:var(--dark)}
+.prog-wrap{margin-top:8px}
+.prog-lbl{display:flex;justify-content:space-between;font-size:.75rem;color:var(--mid);margin-bottom:4px}
+.prog-bar{height:7px;background:var(--gray);border-radius:6px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--orange));border-radius:6px}
+.no-orders{text-align:center;padding:40px 20px;color:var(--light)}
+.no-orders i{font-size:2.5rem;display:block;margin-bottom:12px;color:var(--gray)}
+.comments-box{margin-top:8px;font-size:.76rem;color:var(--mid);background:var(--light-g);padding:8px 10px;border-radius:8px;white-space:pre-line;max-height:120px;overflow-y:auto}
+{% endblock %}
+{% block nav %}
+<header>
+  <div class="burger-menu">
+    <button class="burger-btn" id="burgerBtn"><i class="fas fa-bars"></i></button>
+    <div class="dropdown" id="dropdown">
+      <a href="{{ url_for('dashboard.index') }}" class="dd-item"><i class="fas fa-house"></i> Accueil</a>
+      <a href="{{ url_for('recharge.index') }}" class="dd-item"><i class="fas fa-wallet"></i> Recharger mon solde</a>
+      <a href="{{ url_for('dashboard.commandes') }}" class="dd-item"><i class="fas fa-shopping-cart"></i> Mes commandes</a>
+      <a href="/gagner/" class="dd-item"><i class="fas fa-coins" style="color:#D97706"></i> Gagner des points</a>
+      <a href="/parrainage/" class="dd-item"><i class="fas fa-gift" style="color:#7C3AED"></i> Parrainage</a>
+      <div class="dd-div"></div>
+      <a href="{{ url_for('auth.logout') }}" class="dd-item logout"><i class="fas fa-sign-out-alt"></i> Deconnexion</a>
+    </div>
+  </div>
+  <div class="logo">BOOST CENTRAL</div>
+  <div class="user-badge"><i class="fas fa-user-circle" style="color:var(--blue)"></i><span>{{ user.email }}</span></div>
+</header>
+{% endblock %}
+{% block content %}
+<div class="glow g1"></div><div class="glow g2"></div>
+<main>
+  <a href="{{ url_for('dashboard.index') }}" class="back-link"><i class="fas fa-arrow-left"></i> Retour au dashboard</a>
+
+  <div class="card">
+    <div class="sec-title"><i class="fas fa-list-check"></i> Mes commandes</div>
+    {% if orders %}
+      {% for o in orders %}
+      {% set bmap={'en_attente':('s-wait','En attente'),'en_cours':('s-run','En cours'),'termine':('s-done','Termine'),'refuse':('s-ref','Refuse')} %}
+      {% set bc,bt=bmap.get(o.statut,('s-wait','En attente')) %}
+      <div class="order-card">
+        <div class="order-head">
+          <div><div class="order-name">{{ o.service }}</div><div class="order-date">{{ o.created_at[:10] if o.created_at else '' }}</div></div>
+          <span class="badge {{ bc }}">{{ bt }}</span>
+        </div>
+        <div class="order-meta">
+          <span class="meta-item"><strong>{{ o.reseau|capitalize }}</strong></span>
+          <span class="meta-item">Qte : <strong>{{ "{:,}".format(o.quantite) }}</strong></span>
+          <span class="meta-item">Total : <strong>{{ "{:,.0f}".format(o.prix_total) }} FCFA</strong></span>
+        </div>
+        <div style="font-size:.76rem;color:var(--light);margin-bottom:6px;word-break:break-all">{{ o.lien }}</div>
+        {% if o.commentaires %}
+        <div class="comments-box">{{ o.commentaires }}</div>
+        {% endif %}
+        {% if o.statut != 'refuse' %}
+        <div class="prog-wrap"><div class="prog-lbl"><span>Progression</span><span>{{ o.progression or 0 }}%</span></div><div class="prog-bar"><div class="prog-fill" style="width:{{ o.progression or 0 }}%"></div></div></div>
+        {% endif %}
+        {% if o.note_admin and not o.note_admin.startswith('BOOSTCI') and not o.note_admin.startswith('❌') and not o.note_admin.startswith('⚠️') and not o.note_admin.startswith('✅ BOOSTCI') %}<div style="margin-top:8px;font-size:.78rem;color:var(--mid);background:var(--light-g);padding:8px 10px;border-radius:8px">{{ o.note_admin }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="no-orders"><i class="fas fa-inbox"></i><p>Aucune commande pour l instant.</p></div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.getElementById('burgerBtn').addEventListener('click',function(e){e.stopPropagation();document.getElementById('dropdown').classList.toggle('open')});
+document.addEventListener('click',function(e){var dd=document.getElementById('dropdown');if(!dd.contains(e.target)&&!document.getElementById('burgerBtn').contains(e.target))dd.classList.remove('open')});
+</script>
+{% endblock %}
