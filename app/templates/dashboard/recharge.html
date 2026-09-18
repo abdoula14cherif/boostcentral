@@ -34,22 +34,17 @@ main{padding:20px;max-width:680px;margin:0 auto}
 </header>
 {% endblock %}
 {% block content %}
-<div id="soleaspay_btn_V4_1"></div>
-<script id="SBScript" type="text/javascript" data-lang="fr" data-apikey="{{ soleaspay_pk }}" src="https://btn.soleaspay.com/main.js"></script>
 
-<div id="debugStatus" style="display:none;background:#FFF8E6;border:2px solid #D97706;border-radius:12px;padding:14px;margin:16px 20px;font-size:.82rem;color:#92610a;word-break:break-word"></div>
-
-{% if request.args.get('payer') == '1' %}
-<div id="payBtnBox" style="margin:16px 20px;text-align:center">
-  <button id="realPayBtn" class="btn-pay" style="display:none;max-width:400px;margin:0 auto" onclick="lancerSoleasPayClic()">
-    <i class="fas fa-credit-card"></i> Cliquez ici pour payer {{ request.args.get('montant', 0) }} FCFA
-  </button>
-</div>
-{% endif %}
-
-<form id="successForm" method="POST" action="{{ url_for('recharge.success') }}" style="display:none">
-<input type="hidden" name="payment_id" id="hiddenPaymentId">
-<input type="hidden" name="montant" id="hiddenMontant">
+<!-- Formulaire cache : redirige vers la page de paiement hebergee SoleasPay (Checkout v4) -->
+<form id="soleaspayForm" method="POST" action="https://pay.soleaspay.com" style="display:none">
+  <input type="hidden" name="apiKey" value="{{ soleaspay_pk }}">
+  <input type="hidden" name="amount" id="checkoutAmount">
+  <input type="hidden" name="currency" value="XAF">
+  <input type="hidden" name="orderId" id="checkoutOrderId">
+  <input type="hidden" name="description" value="Recharge Boost Central">
+  <input type="hidden" name="shopName" value="Boost Central">
+  <input type="hidden" name="successUrl" value="{{ request.url_root.rstrip('/') }}{{ url_for('recharge.receive_payment') }}">
+  <input type="hidden" name="failureUrl" value="{{ request.url_root.rstrip('/') }}{{ url_for('recharge.payment_failed') }}">
 </form>
 
 <main>
@@ -65,7 +60,7 @@ main{padding:20px;max-width:680px;margin:0 auto}
 <div class="pay-card">
 <div style="font-size:2rem;text-align:center;margin-bottom:12px">💳</div>
 <div class="pay-title">Recharger mon solde</div>
-<div class="pay-sub">Choisissez un montant. Votre demande sera enregistree avant le paiement.</div>
+<div class="pay-sub">Choisissez un montant. Vous serez redirige vers la page de paiement securisee.</div>
 
 <form id="initierForm" method="POST" action="{{ url_for('recharge.initier') }}">
 <input type="hidden" name="montant" id="montantHidden" value="0">
@@ -117,58 +112,14 @@ main{padding:20px;max-width:680px;margin:0 auto}
 {% block extra_js %}
 <script>
 var montantSelectionne = 0;
-var USER_EMAIL = "{{ session.user_email }}";
-
-function debugShow(msg){
-  try {
-    var el = document.getElementById('debugStatus');
-    if(el){
-      el.style.display = 'block';
-      el.textContent = msg;
-    } else {
-      alert(msg);
-    }
-  } catch(e) {
-    alert(msg);
-  }
-}
 
 {% if request.args.get('payer') == '1' %}
-try {
 var autoMontant = {{ request.args.get('montant', 0) }};
 var autoOrderRef = "{{ request.args.get('order', '') }}";
 if(autoMontant > 0 && autoOrderRef) {
-  montantSelectionne = autoMontant;
-  document.getElementById('montantInp').value = autoMontant;
-
-  var soleaspayKey = "{{ soleaspay_pk }}";
-  if(!soleaspayKey){
-    debugShow("DEBUG: la cle SOLEASPAY_API_KEY est vide cote serveur (verifie la variable d'environnement sur Vercel).");
-  } else {
-    debugShow("DEBUG: chargement du module de paiement...");
-    var sbScript = document.getElementById('SBScript');
-    var tries = 0;
-    function tryLaunch(){
-      tries++;
-      if(typeof SopayButton !== 'undefined'){
-        debugShow("Module de paiement pret. Clique sur le bouton ci-dessus pour payer.");
-        var btn = document.getElementById('realPayBtn');
-        if(btn) btn.style.display = 'flex';
-      } else if(tries < 15){
-        setTimeout(tryLaunch, 400);
-      } else {
-        debugShow("DEBUG: le module SoleasPay (SopayButton) ne s'est jamais charge apres 6s. Le script https://btn.soleaspay.com/main.js n'a peut-etre pas pu se charger (reseau, cle invalide, ou bloque).");
-      }
-    }
-    sbScript.addEventListener('load', tryLaunch);
-    sbScript.addEventListener('error', function(){
-      debugShow("DEBUG: erreur de chargement du script https://btn.soleaspay.com/main.js (verifie ta connexion ou si l'URL est correcte).");
-    });
-    setTimeout(tryLaunch, 800);
-  }
-}
-} catch(e) {
-  alert("DEBUG erreur JS: " + e.message);
+  document.getElementById('checkoutAmount').value = autoMontant;
+  document.getElementById('checkoutOrderId').value = autoOrderRef;
+  document.getElementById('soleaspayForm').submit();
 }
 {% endif %}
 
@@ -188,42 +139,7 @@ function lancerPaiement() {
   }
   document.getElementById('montantHidden').value = montant;
   montantSelectionne = montant;
-  // Soumettre le formulaire initier pour enregistrer en BDD d'abord
   document.getElementById('initierForm').submit();
-}
-
-function lancerSoleasPay(montant, orderRef) {
-  var options = {
-    btnTitle: "Payer",
-    amount: montant,
-    currency: "XAF",
-    orderId: orderRef,
-    description: "Recharge Boost Central",
-    businessName: "Boost Central",
-    loadInvoice: true,
-    successUrl: window.location.origin + "{{ url_for('recharge.index') }}",
-    mode: "BILLING"
-  };
-
-  SopayButton.pay(options)
-    .then(function(res){
-      debugShow("DEBUG reponse: " + JSON.stringify(res));
-      if(res && res.success && (res.status === 'SUCCESS' || res.status === 'COMPLETED')){
-        document.getElementById('hiddenPaymentId').value = (res.data && res.data.transaction_reference) || '';
-        document.getElementById('hiddenMontant').value = montant;
-        document.getElementById('successForm').submit();
-      }
-    })
-    .catch(function(err){
-      debugShow("DEBUG erreur paiement: " + JSON.stringify(err));
-    });
-}
-
-function lancerSoleasPayClic() {
-  var montant = {{ request.args.get('montant', 0) }};
-  var orderRef = "{{ request.args.get('order', '') }}";
-  debugShow("Ouverture du paiement...");
-  lancerSoleasPay(montant, orderRef);
 }
 </script>
 {% endblock %}
