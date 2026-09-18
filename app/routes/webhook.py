@@ -51,7 +51,7 @@ def soleaspay_webhook():
     Webhook serveur-a-serveur SoleasPay. C'est LUI qui credite reellement le
     solde - jamais la confirmation cote client (recharge.success). URL a
     configurer sur le dashboard marchand SoleasPay :
-    https://<ton-domaine>/recharge/webhook-soleaspay
+    https://boost central.vercel.app/recharge/webhook-soleaspay
     """
     try:
         data = request.get_json(force=True, silent=True) or {}
