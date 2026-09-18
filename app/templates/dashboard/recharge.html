@@ -111,23 +111,56 @@ main{padding:20px;max-width:680px;margin:0 auto}
 var montantSelectionne = 0;
 var USER_EMAIL = "{{ session.user_email }}";
 
+function debugShow(msg){
+  try {
+    var el = document.getElementById('debugStatus');
+    if(el){
+      el.style.display = 'block';
+      el.textContent = msg;
+    } else {
+      alert(msg);
+    }
+  } catch(e) {
+    alert(msg);
+  }
+}
+
 {% if request.args.get('payer') == '1' %}
+try {
+alert("DEBUG: script de paiement demarre");
 var autoMontant = {{ request.args.get('montant', 0) }};
 var autoOrderRef = "{{ request.args.get('order', '') }}";
 if(autoMontant > 0 && autoOrderRef) {
   montantSelectionne = autoMontant;
   document.getElementById('montantInp').value = autoMontant;
-  var sbScript = document.getElementById('SBScript');
-  function tryLaunch(){
-    if(typeof SopayButton !== 'undefined'){
-      lancerSoleasPay(autoMontant, autoOrderRef);
-    } else {
-      setTimeout(tryLaunch, 300);
+
+  var soleaspayKey = "{{ soleaspay_pk }}";
+  if(!soleaspayKey){
+    debugShow("DEBUG: la cle SOLEASPAY_API_KEY est vide cote serveur (verifie la variable d'environnement sur Vercel).");
+  } else {
+    debugShow("DEBUG: chargement du module de paiement...");
+    var sbScript = document.getElementById('SBScript');
+    var tries = 0;
+    function tryLaunch(){
+      tries++;
+      if(typeof SopayButton !== 'undefined'){
+        debugShow("DEBUG: module charge, ouverture du paiement...");
+        lancerSoleasPay(autoMontant, autoOrderRef);
+      } else if(tries < 15){
+        setTimeout(tryLaunch, 400);
+      } else {
+        debugShow("DEBUG: le module SoleasPay (SopayButton) ne s'est jamais charge apres 6s. Le script https://btn.soleaspay.com/main.js n'a peut-etre pas pu se charger (reseau, cle invalide, ou bloque).");
+      }
     }
+    sbScript.addEventListener('load', tryLaunch);
+    sbScript.addEventListener('error', function(){
+      debugShow("DEBUG: erreur de chargement du script https://btn.soleaspay.com/main.js (verifie ta connexion ou si l'URL est correcte).");
+    });
+    setTimeout(tryLaunch, 800);
   }
-  sbScript.addEventListener('load', tryLaunch);
-  // Filet de securite si le script est deja en cache (evenement load deja passe)
-  setTimeout(tryLaunch, 800);
+}
+} catch(e) {
+  alert("DEBUG erreur JS: " + e.message);
 }
 {% endif %}
 
@@ -166,6 +199,7 @@ function lancerSoleasPay(montant, orderRef) {
 
   SopayButton.pay(options)
     .then(function(res){
+      debugShow("DEBUG reponse: " + JSON.stringify(res));
       if(res && res.success && (res.status === 'SUCCESS' || res.status === 'COMPLETED')){
         document.getElementById('hiddenPaymentId').value = (res.data && res.data.transaction_reference) || '';
         document.getElementById('hiddenMontant').value = montant;
@@ -173,7 +207,7 @@ function lancerSoleasPay(montant, orderRef) {
       }
     })
     .catch(function(err){
-      console.log('Paiement annule ou echoue - recharge reste en attente', err);
+      debugShow("DEBUG erreur paiement: " + JSON.stringify(err));
     });
 }
 </script>
