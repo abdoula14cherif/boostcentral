@@ -34,7 +34,7 @@ main{padding:20px;max-width:680px;margin:0 auto}
 </header>
 {% endblock %}
 {% block content %}
-<div id="soleaspay_btn_V4_1" style="display:none"></div>
+<div id="soleaspay_btn_V4_1"></div>
 <script id="SBScript" type="text/javascript" data-lang="fr" data-apikey="{{ soleaspay_pk }}" src="https://btn.soleaspay.com/main.js"></script>
 
 <form id="successForm" method="POST" action="{{ url_for('recharge.success') }}" style="display:none">
@@ -113,11 +113,19 @@ var USER_EMAIL = "{{ session.user_email }}";
 var autoMontant = {{ request.args.get('montant', 0) }};
 var autoOrderRef = "{{ request.args.get('order', '') }}";
 if(autoMontant > 0 && autoOrderRef) {
-  setTimeout(function(){
-    montantSelectionne = autoMontant;
-    document.getElementById('montantInp').value = autoMontant;
-    lancerSoleasPay(autoMontant, autoOrderRef);
-  }, 500);
+  montantSelectionne = autoMontant;
+  document.getElementById('montantInp').value = autoMontant;
+  var sbScript = document.getElementById('SBScript');
+  function tryLaunch(){
+    if(typeof SopayButton !== 'undefined'){
+      lancerSoleasPay(autoMontant, autoOrderRef);
+    } else {
+      setTimeout(tryLaunch, 300);
+    }
+  }
+  sbScript.addEventListener('load', tryLaunch);
+  // Filet de securite si le script est deja en cache (evenement load deja passe)
+  setTimeout(tryLaunch, 800);
 }
 {% endif %}
 
