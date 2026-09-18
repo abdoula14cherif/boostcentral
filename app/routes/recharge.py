@@ -1,13 +1,18 @@
 import logging
+import os
+import secrets
 from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request, session, jsonify
 from app.models.security import login_required, get_current_user
 from app.models.database import get_profile, get_user_recharges, create_recharge, update_recharge
-import requests as req
 
 logger = logging.getLogger(__name__)
+
 recharge_bp = Blueprint("recharge", __name__)
 
-LEEKPAY_PK = "pk_live_h0RQu365IhnhdXkW2YeWZiDmKQGo7Pn1"
+# Cle marchand SoleasPay (Button v4) - definie sur Vercel (Project Settings -> Environment Variables)
+# Nom de la variable : SOLEASPAY_API_KEY
+SOLEASPAY_API_KEY = os.environ.get("SOLEASPAY_API_KEY", "")
+
 
 @recharge_bp.route("/")
 @login_required
@@ -17,8 +22,9 @@ def index():
     history = get_user_recharges(user["id"], limit=10)
     return render_template("dashboard/recharge.html",
         user=user, profile=profile, history=history,
-        leekpay_pk=LEEKPAY_PK,
+        soleaspay_pk=SOLEASPAY_API_KEY,
         whatsapp=current_app.config["WHATSAPP_NUMBER"])
+
 
 @recharge_bp.route("/initier", methods=["POST"])
 @login_required
@@ -37,21 +43,23 @@ def initier():
         flash("Montant minimum : 100 FCFA.", "error")
         return redirect(url_for("recharge.index"))
 
-    # Enregistrer EN ATTENTE immediatement
+    # Reference unique qui servira a retrouver cette recharge quand
+    # SoleasPay appellera le webhook (invoice_reference = cette valeur)
+    order_ref = "BC" + secrets.token_hex(6).upper()
+
     result = create_recharge({
         "user_id": user["id"],
         "user_email": user["email"],
         "montant_fcfa": montant_fcfa,
-        "methode": "leekpay",
-        "hash_tx": None,
+        "methode": "soleaspay",
+        "hash_tx": order_ref,
         "capture_url": None,
         "statut": "en_attente"
     })
 
     if result:
         recharge_id = result.get("id", "")
-        logger.info(f"Recharge {recharge_id} creee en attente: {user['email']} - {montant_fcfa} FCFA")
-        # Stocker l'ID dans la session pour mise a jour apres paiement
+        logger.info(f"Recharge {recharge_id} creee en attente ({order_ref}): {user['email']} - {montant_fcfa} FCFA")
         session["pending_recharge_id"] = recharge_id
         session["pending_recharge_amount"] = montant_fcfa
         flash(f"Paiement de {montant_fcfa:,.0f} FCFA initie. Completez le paiement.", "info")
@@ -59,23 +67,26 @@ def initier():
         flash("Erreur lors de l'enregistrement.", "error")
         return redirect(url_for("recharge.index"))
 
-    return redirect(url_for("recharge.index") + "?payer=1&montant=" + str(int(montant_fcfa)))
+    return redirect(url_for("recharge.index") + f"?payer=1&montant={int(montant_fcfa)}&order={order_ref}")
+
 
 @recharge_bp.route("/success", methods=["POST"])
 @login_required
 def success():
-    """Appele par LeekPay JS apres paiement reussi."""
-    user = get_current_user()
+    """
+    Appele par le plugin SoleasPay (cote client) juste apres le paiement,
+    pour affichage immediat. Le CREDIT REEL du solde se fait uniquement via
+    le webhook serveur-a-serveur (/recharge/webhook-soleaspay), jamais ici -
+    cet appel client n'est pas fiable a lui seul pour crediter de l'argent.
+    """
     payment_id = request.form.get("payment_id", "")
-    montant = request.form.get("montant", "0")
     recharge_id = session.get("pending_recharge_id", "")
 
-    if recharge_id:
-        # Mettre a jour avec le hash de transaction
-        update_recharge(recharge_id, {"hash_tx": payment_id})
-        logger.info(f"Paiement reussi: {payment_id} pour recharge {recharge_id}")
-        session.pop("pending_recharge_id", None)
-        session.pop("pending_recharge_amount", None)
+    if recharge_id and payment_id:
+        update_recharge(recharge_id, {"capture_url": payment_id})
+        logger.info(f"Confirmation client SoleasPay: {payment_id} pour recharge {recharge_id}")
 
-    flash(f"Paiement confirme ! Votre solde sera credite apres validation admin.", "success")
+    session.pop("pending_recharge_id", None)
+    session.pop("pending_recharge_amount", None)
+    flash("Paiement soumis ! Votre solde sera credite automatiquement des confirmation.", "success")
     return redirect(url_for("recharge.index"))
