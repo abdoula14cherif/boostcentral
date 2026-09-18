@@ -6,6 +6,7 @@ from app.models.database import (get_profile, get_active_services, get_user_orde
     get_service_by_id, create_order, debit_balance, update_order, set_api_key)
 from app.models.forms import OrderForm
 from app.models.boostci import add_order as boostci_add, get_balance as boostci_balance
+from app.models.cheapsmmglobal import add_order as cheapsmm_add, get_balance as cheapsmm_balance
 from app.models.mailer import email_commande_passee, email_admin_nouvelle_commande, email_solde_insuffisant
 
 logger = logging.getLogger(__name__)
@@ -136,6 +137,9 @@ def place_order():
             pass
         return redirect(url_for("dashboard.index"))
 
+    # Fournisseur associe au service (boostci par defaut si non renseigne)
+    fournisseur = service.get("fournisseur") or "boostci"
+
     # Creer la commande en BDD
     order = create_order({
         "user_id": user["id"],
@@ -150,7 +154,8 @@ def place_order():
         "prix_total": total_price,
         "statut": "en_attente",
         "progression": 0,
-        "note_admin": ""
+        "note_admin": "",
+        "fournisseur": fournisseur
     })
 
     if not order:
@@ -163,48 +168,55 @@ def place_order():
         flash("Erreur lors du debit.", "error")
         return redirect(url_for("dashboard.index"))
 
-    # Envoyer chez BOOSTCI si service lie
-    boostci_id = service.get("boostci_service_id")
-    if boostci_id:
+    # Envoyer chez le bon fournisseur si service lie
+    provider_id = service.get("boostci_service_id")
+    if provider_id:
         try:
-            # Verifier solde BOOSTCI
-            solde = boostci_balance()
+            if fournisseur == "cheapsmmglobal":
+                add_fn = cheapsmm_add
+                solde = cheapsmm_balance()
+                nom_fournisseur = "CHEAPSMMGLOBAL"
+            else:
+                add_fn = boostci_add
+                solde = boostci_balance()
+                nom_fournisseur = "BOOSTCI"
+
             if solde < 0.05:
-                note = f"⚠️ SOLDE BOOSTCI INSUFFISANT ({solde}$) - Traiter manuellement"
+                note = f"⚠️ SOLDE {nom_fournisseur} INSUFFISANT ({solde}$) - Traiter manuellement"
                 update_order(order["id"], {"statut": "en_attente", "note_admin": note})
                 logger.warning(note)
                 flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
-                return redirect(url_for("dashboard.index") + "#orders")
+                return redirect(url_for("dashboard.index") + "?commande=ok")
 
-            result = boostci_add(
-                service_id=int(boostci_id),
+            result = add_fn(
+                service_id=int(provider_id),
                 link=link,
                 quantity=quantity,
                 comments="\n".join(comments_list) if is_custom else None
             )
 
             if "order" in result:
-                boostci_order_id = result["order"]
+                provider_order_id = result["order"]
                 update_order(order["id"], {
                     "statut": "en_cours",
                     "progression": 0,
-                    "note_admin": f"✅ BOOSTCI order ID: {boostci_order_id}"
+                    "note_admin": f"✅ {nom_fournisseur} order ID: {provider_order_id}"
                 })
-                logger.info(f"BOOSTCI OK: order={boostci_order_id} user={user['email']}")
+                logger.info(f"{nom_fournisseur} OK: order={provider_order_id} user={user['email']}")
                 flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
             else:
                 error = result.get("error", "Erreur inconnue")
-                note = f"❌ BOOSTCI ECHEC: {error} - Traiter manuellement"
+                note = f"❌ {nom_fournisseur} ECHEC: {error} - Traiter manuellement"
                 update_order(order["id"], {
                     "statut": "en_attente",
                     "note_admin": note
                 })
-                logger.error(f"BOOSTCI erreur: {error} pour {user['email']}")
+                logger.error(f"{nom_fournisseur} erreur: {error} pour {user['email']}")
                 flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
         except Exception as e:
-            note = f"❌ EXCEPTION BOOSTCI: {str(e)} - Traiter manuellement"
+            note = f"❌ EXCEPTION FOURNISSEUR: {str(e)} - Traiter manuellement"
             update_order(order["id"], {"note_admin": note})
-            logger.error(f"BOOSTCI exception: {e}")
+            logger.error(f"fournisseur exception: {e}")
             flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
     else:
         flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
@@ -215,7 +227,7 @@ def place_order():
     except:
         pass
 
-    return redirect(url_for("dashboard.index") + "#orders")
+    return redirect(url_for("dashboard.index") + "?commande=ok")
 
 
 @dashboard_bp.route("/api/services/<string:network>")
