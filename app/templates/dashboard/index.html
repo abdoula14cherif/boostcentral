@@ -1,68 +1,133 @@
 {% extends "base.html" %}
 {% block title %}Dashboard — Boost Central{% endblock %}
 {% block extra_css %}
-.glow{position:fixed;border-radius:50%;filter:blur(70px);z-index:0;pointer-events:none;animation:pulse 9s ease-in-out infinite alternate}
-.g1{width:320px;height:320px;background:rgba(255,102,0,.12);top:-80px;left:-60px}
-.g2{width:280px;height:280px;background:rgba(0,102,255,.1);bottom:-60px;right:-50px}
-@keyframes pulse{0%{opacity:.3;transform:scale(1)}100%{opacity:.6;transform:scale(1.1)}}
-header{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 3px 10px rgba(0,0,0,.05)}
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Sora:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg:#0A0E17;
+  --panel:#11162A;
+  --panel-2:#171D36;
+  --line:#262D4A;
+  --signal:#22D3B8;
+  --signal-dim:rgba(34,211,184,.14);
+  --boost:#FF7A3D;
+  --boost-dim:rgba(255,122,61,.14);
+  --text:#EDEFF7;
+  --mid2:#9AA3BE;
+  --dim:#5C6483;
+  --ok:#34D399;
+  --warn:#FBBF24;
+  --bad:#F87171;
+}
+
+*{font-family:'Sora',sans-serif}
+.num,h1,h2,h3,.balance-val,.price-val,.stat-val{font-family:'Space Grotesk',sans-serif}
+
+body{background:var(--bg)}
+
+header{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(10,14,23,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .burger-menu{position:relative}
-.burger-btn{background:var(--blue-l);border:none;color:var(--blue);font-size:1.5rem;cursor:pointer;padding:9px 11px;border-radius:10px}
-.logo{font-size:1.4rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
-.user-badge{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--mid);background:var(--blue-l);padding:5px 12px;border-radius:20px;max-width:180px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
-.dropdown{position:absolute;top:52px;left:0;background:var(--white);border-radius:14px;padding:12px;min-width:220px;box-shadow:0 10px 28px rgba(0,0,0,.1);border:2px solid var(--gray);display:none;z-index:1000}
+.burger-btn{background:var(--panel-2);border:1px solid var(--line);color:var(--signal);font-size:1.3rem;cursor:pointer;padding:8px 11px;border-radius:10px}
+.logo{font-size:1.2rem;font-weight:800;letter-spacing:.2px;color:var(--text)}
+.logo span{color:var(--signal)}
+.user-badge{display:flex;align-items:center;gap:8px;font-size:.76rem;color:var(--mid2);background:var(--panel-2);border:1px solid var(--line);padding:6px 12px 6px 8px;border-radius:20px;max-width:180px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--signal);flex-shrink:0;box-shadow:0 0 0 3px var(--signal-dim)}
+.user-badge span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+.dropdown{position:absolute;top:52px;left:0;background:var(--panel);border-radius:14px;padding:10px;min-width:220px;box-shadow:0 20px 40px rgba(0,0,0,.5);border:1px solid var(--line);display:none;z-index:1000}
 .dropdown.open{display:block}
-.dd-item{display:flex;align-items:center;gap:10px;padding:10px 13px;color:var(--mid);text-decoration:none;border-radius:9px;margin-bottom:4px;font-size:.9rem;transition:all .22s}
-.dd-item:hover{background:var(--blue-l);color:var(--blue)}
-.dd-item i{color:var(--blue);width:18px;text-align:center}
-.dd-item.logout i{color:var(--red)}.dd-item.logout:hover{background:#fee2e2;color:var(--red)}
-.dd-div{height:1px;background:var(--gray);margin:6px 0}
-main{padding:20px;max-width:1100px;margin:0 auto;position:relative;z-index:1}
-.card{background:var(--white);border-radius:18px;padding:22px;border:1px solid var(--gray);box-shadow:0 5px 18px rgba(0,0,0,.05);margin-bottom:20px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
-@media(max-width:600px){.grid2{grid-template-columns:1fr}}
-.hi-name{color:var(--blue);font-weight:700}
-.balance-val{font-size:2.2rem;font-weight:900;color:var(--orange);margin-bottom:3px}
-.btn-recharge{display:inline-flex;align-items:center;gap:7px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;border:none;padding:9px 18px;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;text-decoration:none}
-.sec-title{font-size:1.1rem;font-weight:700;color:var(--dark);margin-bottom:14px;display:flex;align-items:center;gap:8px}
-.sec-title i{color:var(--blue)}
-.nets-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-@media(max-width:480px){.nets-grid{grid-template-columns:repeat(3,1fr)}}
-.net-card{background:var(--white);border-radius:13px;padding:16px 10px;text-align:center;border:2px solid var(--gray);cursor:pointer;transition:all .25s}
-.net-card:hover,.net-card.sel{border-color:var(--blue);background:var(--blue-l);transform:translateY(-3px)}
-.net-card i{font-size:1.6rem;margin-bottom:6px;display:block}
-.net-card span{font-size:.75rem;font-weight:600;color:var(--dark)}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
-@media(max-width:560px){.form-row{grid-template-columns:1fr}}
+.dd-item{display:flex;align-items:center;gap:10px;padding:10px 13px;color:var(--mid2);text-decoration:none;border-radius:9px;margin-bottom:2px;font-size:.88rem;transition:background .18s,color .18s}
+.dd-item:hover{background:var(--panel-2);color:var(--text)}
+.dd-item i{color:var(--signal);width:18px;text-align:center}
+.dd-item.logout i{color:var(--bad)}.dd-item.logout:hover{background:rgba(248,113,113,.1);color:var(--bad)}
+.dd-div{height:1px;background:var(--line);margin:6px 0}
+
+main{padding:18px 16px 40px;max-width:900px;margin:0 auto;position:relative}
+
+/* HERO */
+.hero{position:relative;border-radius:22px;padding:30px 24px;margin-bottom:22px;background:radial-gradient(120% 140% at 15% 0%,#152040 0%,var(--panel) 55%,var(--panel) 100%);border:1px solid var(--line);overflow:hidden}
+.hero::before{content:'';position:absolute;top:-40%;right:-15%;width:60%;height:180%;background:radial-gradient(circle,var(--signal-dim) 0%,transparent 65%);pointer-events:none;animation:breathe 7s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){.hero::before{animation:none}}
+@keyframes breathe{0%,100%{opacity:.6;transform:scale(1)}50%{opacity:1;transform:scale(1.08)}}
+.hero-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:22px;position:relative;z-index:1}
+.hero-greet{font-size:.92rem;color:var(--mid2)}
+.hero-greet b{color:var(--text);font-weight:600}
+.hero-badge{font-size:.72rem;color:var(--signal);background:var(--signal-dim);border:1px solid rgba(34,211,184,.3);padding:5px 11px;border-radius:20px;white-space:nowrap}
+.bal-label{font-size:.82rem;color:var(--mid2);margin-bottom:2px;position:relative;z-index:1}
+.bal-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;position:relative;z-index:1}
+.balance-val{font-size:2.9rem;font-weight:700;color:var(--text);letter-spacing:-1px;line-height:1}
+.bal-cur{font-size:1rem;color:var(--mid2);font-weight:600}
+.hero-actions{display:flex;gap:10px;margin-top:20px;position:relative;z-index:1;flex-wrap:wrap}
+.btn-recharge{display:inline-flex;align-items:center;gap:8px;background:var(--signal);color:#04241f;border:none;padding:11px 20px;border-radius:11px;font-size:.86rem;font-weight:700;cursor:pointer;text-decoration:none;transition:transform .18s}
+.btn-recharge:hover{transform:translateY(-2px)}
+.btn-ghost{display:inline-flex;align-items:center;gap:8px;background:transparent;color:var(--mid2);border:1px solid var(--line);padding:11px 18px;border-radius:11px;font-size:.86rem;font-weight:600;cursor:pointer;text-decoration:none}
+.btn-ghost:hover{border-color:var(--signal);color:var(--text)}
+
+/* CHANNEL STRIP */
+.sec-label{font-size:.86rem;font-weight:600;color:var(--mid2);margin-bottom:12px;padding:0 2px}
+.channels{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin-bottom:24px;scrollbar-width:none}
+.channels::-webkit-scrollbar{display:none}
+.chan{flex:0 0 auto;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);color:var(--mid2);padding:10px 16px;border-radius:30px;font-size:.84rem;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
+.chan i{font-size:1rem}
+.chan.sel{background:var(--boost-dim);border-color:var(--boost);color:#ffb088}
+.chan.sel i{color:var(--boost)}
+
+/* CONSOLE (order form) */
+.console{background:var(--panel);border-radius:20px;padding:22px;border:1px solid var(--line);margin-bottom:22px}
+.console-head{display:flex;align-items:center;gap:9px;margin-bottom:18px}
+.console-head i{color:var(--boost);font-size:1.05rem}
+.console-head h2{font-size:1.02rem;font-weight:700;color:var(--text)}
 .fg{margin-bottom:14px}
-.fg label{display:block;font-size:.82rem;font-weight:600;color:var(--dark);margin-bottom:5px}
+.fg label{display:block;font-size:.78rem;font-weight:600;color:var(--mid2);margin-bottom:6px}
 .sw{position:relative}
-.sw select,.inp{width:100%;padding:13px 14px;background:var(--white);border:2px solid var(--gray);border-radius:12px;font-size:.92rem;color:var(--dark);appearance:none;outline:none;transition:border-color .22s}
-.sw select:focus,.inp:focus{border-color:var(--blue)}
-.sw::after{content:'\f078';font-family:'Font Awesome 6 Free';font-weight:900;position:absolute;right:13px;top:50%;transform:translateY(-50%);color:var(--blue);pointer-events:none;font-size:.78rem}
-textarea.inp{resize:vertical;appearance:auto}
-.desc-box{background:var(--light-g);border-radius:12px;padding:14px;margin:12px 0;border-left:4px solid var(--blue);font-size:.88rem;color:var(--mid);line-height:1.6}
-.price-row{display:flex;justify-content:space-around;background:var(--light-g);padding:14px;border-radius:12px;margin-bottom:4px}
-.price-col{text-align:center}
-.price-lbl{font-size:.78rem;color:var(--mid);margin-bottom:3px}
-.price-val{font-size:1.3rem;font-weight:900;color:var(--orange)}
-.btn-boost{width:100%;padding:16px;margin-top:14px;border:none;border-radius:13px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:#fff;font-size:1.05rem;font-weight:900;cursor:pointer;text-transform:uppercase;letter-spacing:.8px;box-shadow:0 7px 20px rgba(255,102,0,.28);transition:all .28s}
-.btn-boost:hover{transform:translateY(-3px)}
-.order-card{background:var(--white);border:1px solid var(--gray);border-radius:14px;padding:18px;margin-bottom:12px}
-.order-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
-.order-name{font-size:.92rem;font-weight:700;color:var(--dark)}
-.order-date{font-size:.75rem;color:var(--light)}
-.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:.75rem;font-weight:700}
-.s-wait{background:#FFF8E6;color:#D97706}.s-run{background:var(--blue-l);color:var(--blue)}.s-done{background:#EDFFF5;color:var(--green)}.s-ref{background:#fee2e2;color:var(--red)}
-.order-meta{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px}
-.meta-item{font-size:.78rem;color:var(--mid)}
-.meta-item strong{color:var(--dark)}
-.prog-wrap{margin-top:8px}
-.prog-lbl{display:flex;justify-content:space-between;font-size:.75rem;color:var(--mid);margin-bottom:4px}
-.prog-bar{height:7px;background:var(--gray);border-radius:6px;overflow:hidden}
-.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--orange));border-radius:6px}
-.no-orders{text-align:center;padding:40px 20px;color:var(--light)}
-.no-orders i{font-size:2.5rem;display:block;margin-bottom:12px;color:var(--gray)}
+.sw select,.inp{width:100%;padding:13px 14px;background:var(--panel-2);border:1px solid var(--line);border-radius:12px;font-size:.9rem;color:var(--text);appearance:none;outline:none;transition:border-color .2s;font-family:'Sora',sans-serif}
+.sw select:focus,.inp:focus{border-color:var(--signal)}
+.sw::after{content:'\f078';font-family:'Font Awesome 6 Free';font-weight:900;position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--signal);pointer-events:none;font-size:.72rem}
+textarea.inp{resize:vertical;appearance:auto;font-family:'Sora',sans-serif}
+.inp::placeholder{color:var(--dim)}
+.desc-box{background:var(--panel-2);border-radius:12px;padding:13px 15px;margin:14px 0;border-left:3px solid var(--signal);font-size:.85rem;color:var(--mid2);line-height:1.6}
+.price-row{display:flex;background:var(--panel-2);border-radius:14px;overflow:hidden;margin-bottom:6px;border:1px solid var(--line)}
+.price-col{flex:1;text-align:center;padding:14px 8px}
+.price-col+.price-col{border-left:1px solid var(--line)}
+.price-lbl{font-size:.72rem;color:var(--dim);margin-bottom:4px}
+.price-val{font-size:1.25rem;font-weight:700;color:var(--signal)}
+.btn-boost{width:100%;padding:16px;margin-top:14px;border:none;border-radius:13px;background:var(--boost);color:#2b0f02;font-size:1rem;font-weight:800;cursor:pointer;transition:transform .2s;display:flex;align-items:center;justify-content:center;gap:9px}
+.btn-boost:hover{transform:translateY(-2px)}
+
+/* ACTIVITY LOG */
+.log-wrap{background:var(--panel);border-radius:20px;padding:22px 22px 8px;border:1px solid var(--line)}
+.log-head{display:flex;align-items:center;gap:9px;margin-bottom:16px}
+.log-head i{color:var(--signal);font-size:1.05rem}
+.log-head h2{font-size:1.02rem;font-weight:700;color:var(--text)}
+.log-row{position:relative;padding:14px 0 14px 20px;border-bottom:1px solid var(--line)}
+.log-row:last-child{border-bottom:none}
+.log-row::before{content:'';position:absolute;left:0;top:19px;width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.log-row.s-wait::before{background:var(--warn)}
+.log-row.s-run::before{background:var(--signal);box-shadow:0 0 0 3px var(--signal-dim)}
+.log-row.s-done::before{background:var(--ok)}
+.log-row.s-ref::before{background:var(--bad)}
+.log-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.log-name{font-size:.9rem;font-weight:600;color:var(--text)}
+.log-date{font-size:.7rem;color:var(--dim)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:16px;font-size:.7rem;font-weight:700}
+.s-wait .badge{background:rgba(251,191,36,.12);color:var(--warn)}
+.s-run .badge{background:var(--signal-dim);color:var(--signal)}
+.s-done .badge{background:rgba(52,211,153,.12);color:var(--ok)}
+.s-ref .badge{background:rgba(248,113,113,.12);color:var(--bad)}
+.log-meta{display:flex;gap:16px;flex-wrap:wrap;font-size:.76rem;color:var(--mid2);margin-bottom:6px}
+.log-meta b{color:var(--text)}
+.log-link{font-size:.74rem;color:var(--dim);word-break:break-all;margin-bottom:6px}
+.prog-bar{height:5px;background:var(--panel-2);border-radius:5px;overflow:hidden;margin-top:4px}
+.prog-fill{height:100%;background:var(--signal);border-radius:5px}
+.note-line{margin-top:6px;font-size:.74rem;color:var(--mid2);background:var(--panel-2);padding:7px 10px;border-radius:8px}
+.no-orders{text-align:center;padding:40px 20px;color:var(--dim)}
+.no-orders i{font-size:2.2rem;display:block;margin-bottom:10px;color:var(--line)}
+
+@media(min-width:640px){
+  main{padding:24px 24px 50px}
+  .hero{padding:36px 32px}
+  .balance-val{font-size:3.6rem}
+}
 {% endblock %}
 {% block nav %}
 <header>
@@ -78,43 +143,44 @@ textarea.inp{resize:vertical;appearance:auto}
       <a href="{{ url_for('auth.logout') }}" class="dd-item logout"><i class="fas fa-sign-out-alt"></i> Deconnexion</a>
     </div>
   </div>
-  <div class="logo">BOOST CENTRAL</div>
-  <div class="user-badge"><i class="fas fa-user-circle" style="color:var(--blue)"></i><span>{{ user.email }}</span></div>
+  <div class="logo">BOOST <span>CENTRAL</span></div>
+  <div class="user-badge"><span class="live-dot"></span><span>{{ user.email }}</span></div>
 </header>
 {% endblock %}
 {% block content %}
-<div class="glow g1"></div><div class="glow g2"></div>
 <main>
-  <div class="grid2">
-    <div class="card">
-      <h2 style="font-size:1.4rem;font-weight:700;color:var(--dark);margin-bottom:6px">Bienvenue, <span class="hi-name">{{ user.name.split(' ')[0] if user.name else user.email.split('@')[0] }}</span> !</h2>
-      <p style="font-size:.9rem;color:var(--mid)">Que souhaitez-vous booster aujourd hui ?</p>
+
+  <div class="hero">
+    <div class="hero-top">
+      <div class="hero-greet">Bienvenue, <b>{{ user.name.split(' ')[0] if user.name else user.email.split('@')[0] }}</b></div>
+      <div class="hero-badge">Compte actif</div>
     </div>
-    <div class="card">
-      <div style="font-size:.85rem;color:var(--mid);margin-bottom:6px">Votre solde</div>
-      <div class="balance-val">{{ "{:,.0f}".format(profile.balance or 0) if profile else '0' }}</div>
-      <div style="font-size:.85rem;color:var(--mid);margin-bottom:14px">FCFA</div>
-      <a href="{{ url_for('recharge.index') }}" class="btn-recharge"><i class="fas fa-plus-circle"></i> Recharger</a>
+    <div class="bal-label">Solde disponible</div>
+    <div class="bal-row">
+      <span class="balance-val">{{ "{:,.0f}".format(profile.balance or 0) if profile else '0' }}</span>
+      <span class="bal-cur">FCFA</span>
+    </div>
+    <div class="hero-actions">
+      <a href="{{ url_for('recharge.index') }}" class="btn-recharge"><i class="fas fa-plus"></i> Recharger</a>
+      <a href="{{ url_for('dashboard.commandes') }}" class="btn-ghost"><i class="fas fa-list-check"></i> Historique complet</a>
     </div>
   </div>
 
-  <div class="card">
-    <div class="sec-title"><i class="fas fa-share-alt"></i> Reseaux supportes</div>
-    <div class="nets-grid">
-      {% for net_id,icon,label in [('facebook','fab fa-facebook','Facebook'),('tiktok','fab fa-tiktok','TikTok'),('instagram','fab fa-instagram','Instagram'),('youtube','fab fa-youtube','YouTube'),('twitter','fab fa-twitter','Twitter'),('telegram','fab fa-telegram','Telegram'),('spotify','fab fa-spotify','Spotify'),('whatsapp','fab fa-whatsapp','WhatsApp')] %}
-      <div class="net-card" data-net="{{ net_id }}" onclick="selectNet(this)"><i class="{{ icon }}"></i><span>{{ label }}</span></div>
-      {% endfor %}
-    </div>
+  <div class="sec-label">Réseaux sociaux</div>
+  <div class="channels">
+    {% for net_id,icon,label in [('facebook','fab fa-facebook','Facebook'),('tiktok','fab fa-tiktok','TikTok'),('instagram','fab fa-instagram','Instagram'),('youtube','fab fa-youtube','YouTube'),('twitter','fab fa-twitter','Twitter'),('telegram','fab fa-telegram','Telegram'),('spotify','fab fa-spotify','Spotify'),('whatsapp','fab fa-whatsapp','WhatsApp')] %}
+    <div class="chan" data-net="{{ net_id }}" onclick="selectNet(this)"><i class="{{ icon }}"></i>{{ label }}</div>
+    {% endfor %}
   </div>
 
-  <div class="card">
-    <div class="sec-title"><i class="fas fa-rocket"></i> Nouvelle commande</div>
+  <div class="console">
+    <div class="console-head"><i class="fas fa-satellite-dish"></i><h2>Nouvelle commande</h2></div>
     <form method="POST" action="{{ url_for('dashboard.place_order') }}" id="orderForm">
       {{ form.hidden_tag() }}
-      <div class="form-row">
-        <div class="fg"><label>Reseau social</label><div class="sw"><select id="selNet" name="network" onchange="onNetChange()"><option value="">Selectionnez</option>{% for net_id,icon,label in [('facebook','','Facebook'),('tiktok','','TikTok'),('instagram','','Instagram'),('youtube','','YouTube'),('twitter','','Twitter'),('telegram','','Telegram'),('spotify','','Spotify'),('whatsapp','','WhatsApp')] %}<option value="{{ net_id }}">{{ label }}</option>{% endfor %}</select></div></div>
-        <div class="fg"><label>Service</label><div class="sw"><select id="selSvc" name="service_id" onchange="onSvcChange()" disabled><option value="">Choisissez un reseau</option></select></div></div>
+      <div class="fg" style="display:none">
+        <div class="sw"><select id="selNet" name="network" onchange="onNetChange()"><option value="">Selectionnez</option>{% for net_id,icon,label in [('facebook','','Facebook'),('tiktok','','TikTok'),('instagram','','Instagram'),('youtube','','YouTube'),('twitter','','Twitter'),('telegram','','Telegram'),('spotify','','Spotify'),('whatsapp','','WhatsApp')] %}<option value="{{ net_id }}">{{ label }}</option>{% endfor %}</select></div>
       </div>
+      <div class="fg"><label>Service</label><div class="sw"><select id="selSvc" name="service_id" onchange="onSvcChange()" disabled><option value="">Choisissez un reseau ci-dessus</option></select></div></div>
       <div class="fg"><label>Lien du compte / video</label><input type="text" class="inp" name="link" id="inpLink" placeholder="https://..."></div>
 
       <div class="fg" id="fgQty">
@@ -132,31 +198,33 @@ textarea.inp{resize:vertical;appearance:auto}
         <div class="price-col"><div class="price-lbl">Prix unitaire</div><div class="price-val" id="pUnit">0 FCFA</div></div>
         <div class="price-col"><div class="price-lbl">Total (-1%)</div><div class="price-val" id="pTotal">0 FCFA</div></div>
       </div>
-      <button type="submit" class="btn-boost"><i class="fas fa-bolt"></i> BOOSTER MAINTENANT</button>
+      <button type="submit" class="btn-boost"><i class="fas fa-bolt"></i> Booster maintenant</button>
     </form>
   </div>
 
-  <div class="card" id="orders">
-    <div class="sec-title"><i class="fas fa-list-check"></i> Mes commandes</div>
+  <div class="log-wrap" id="orders">
+    <div class="log-head"><i class="fas fa-chart-line"></i><h2>Mes commandes</h2></div>
     {% if orders %}
       {% for o in orders %}
-      {% set bmap={'en_attente':('s-wait','En attente'),'en_cours':('s-run','En cours'),'termine':('s-done','Termine'),'refuse':('s-ref','Refuse')} %}
-      {% set bc,bt=bmap.get(o.statut,('s-wait','En attente')) %}
-      <div class="order-card">
-        <div class="order-head">
-          <div><div class="order-name">{{ o.service }}</div><div class="order-date">{{ o.created_at[:10] if o.created_at else '' }}</div></div>
-          <span class="badge {{ bc }}">{{ bt }}</span>
+      {% set smap={'en_attente':'s-wait','en_cours':'s-run','termine':'s-done','refuse':'s-ref'} %}
+      {% set bmap={'en_attente':'En attente','en_cours':'En cours','termine':'Termine','refuse':'Refuse'} %}
+      {% set sc=smap.get(o.statut,'s-wait') %}
+      <div class="log-row {{ sc }}">
+        <div class="log-top">
+          <span class="log-name">{{ o.service }}</span>
+          <span class="badge">{{ bmap.get(o.statut,'En attente') }}</span>
         </div>
-        <div class="order-meta">
-          <span class="meta-item"><strong>{{ o.reseau|capitalize }}</strong></span>
-          <span class="meta-item">Qte : <strong>{{ "{:,}".format(o.quantite) }}</strong></span>
-          <span class="meta-item">Total : <strong>{{ "{:,.0f}".format(o.prix_total) }} FCFA</strong></span>
+        <div class="log-date">{{ o.created_at[:10] if o.created_at else '' }}</div>
+        <div class="log-meta">
+          <span><b>{{ o.reseau|capitalize }}</b></span>
+          <span>Qte <b>{{ "{:,}".format(o.quantite) }}</b></span>
+          <span>Total <b>{{ "{:,.0f}".format(o.prix_total) }} FCFA</b></span>
         </div>
-        <div style="font-size:.76rem;color:var(--light);margin-bottom:6px;word-break:break-all">{{ o.lien }}</div>
+        <div class="log-link">{{ o.lien }}</div>
         {% if o.statut != 'refuse' %}
-        <div class="prog-wrap"><div class="prog-lbl"><span>Progression</span><span>{{ o.progression or 0 }}%</span></div><div class="prog-bar"><div class="prog-fill" style="width:{{ o.progression or 0 }}%"></div></div></div>
+        <div class="prog-bar"><div class="prog-fill" style="width:{{ o.progression or 0 }}%"></div></div>
         {% endif %}
-        {% if o.note_admin and not o.note_admin.startswith('BOOSTCI') and not o.note_admin.startswith('❌') and not o.note_admin.startswith('⚠️') and not o.note_admin.startswith('✅ BOOSTCI') %}<div style="margin-top:8px;font-size:.78rem;color:var(--mid);background:var(--light-g);padding:8px 10px;border-radius:8px">{{ o.note_admin }}</div>{% endif %}
+        {% if o.note_admin and not o.note_admin.startswith('BOOSTCI') and not o.note_admin.startswith('❌') and not o.note_admin.startswith('⚠️') and not o.note_admin.startswith('✅ BOOSTCI') and not o.note_admin.startswith('API') %}<div class="note-line">{{ o.note_admin }}</div>{% endif %}
       </div>
       {% endfor %}
     {% else %}
@@ -174,7 +242,7 @@ document.addEventListener('click',function(e){var dd=document.getElementById('dr
 function closeMenu(){document.getElementById('dropdown').classList.remove('open')}
 
 function selectNet(card){
-  document.querySelectorAll('.net-card').forEach(c=>c.classList.remove('sel'));
+  document.querySelectorAll('.chan').forEach(c=>c.classList.remove('sel'));
   card.classList.add('sel');
   document.getElementById('selNet').value=card.dataset.net;
   onNetChange();
@@ -197,7 +265,7 @@ function onNetChange(){
     sel.appendChild(opt);
   });
   sel.disabled=false;
-  document.querySelectorAll('.net-card').forEach(c=>c.classList.toggle('sel',c.dataset.net===net));
+  document.querySelectorAll('.chan').forEach(c=>c.classList.toggle('sel',c.dataset.net===net));
 }
 
 function resetCustomFields(){
