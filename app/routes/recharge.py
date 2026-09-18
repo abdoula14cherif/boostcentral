@@ -1,15 +1,16 @@
 import logging
 import os
 import uuid
-from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request, session, jsonify
+import json
+from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request, session
 from app.models.security import login_required, get_current_user
-from app.models.database import get_profile, get_user_recharges, create_recharge, update_recharge
+from app.models.database import get_profile, get_user_recharges, create_recharge, update_recharge, get_recharge_by_hash
 
 logger = logging.getLogger(__name__)
 
 recharge_bp = Blueprint("recharge", __name__)
 
-# Cle marchand SoleasPay (Button v4) - definie sur Vercel (Project Settings -> Environment Variables)
+# Cle marchand SoleasPay - definie sur Vercel (Project Settings -> Environment Variables)
 # Nom de la variable : SOLEASPAY_API_KEY
 SOLEASPAY_API_KEY = os.environ.get("SOLEASPAY_API_KEY", "")
 
@@ -29,7 +30,7 @@ def index():
 @recharge_bp.route("/initier", methods=["POST"])
 @login_required
 def initier():
-    """Enregistre la recharge EN ATTENTE avant de lancer le paiement."""
+    """Enregistre la recharge EN ATTENTE, puis redirige vers Checkout v4 SoleasPay."""
     user = get_current_user()
     montant = request.form.get("montant", "0").strip()
 
@@ -44,11 +45,11 @@ def initier():
         return redirect(url_for("recharge.index"))
 
     # Reference unique qui servira a retrouver cette recharge quand
-    # SoleasPay appellera le webhook (invoice_reference = cette valeur).
-    # Format UUID standard : valide que hash_tx soit type "uuid" ou "text" en base.
+    # SoleasPay redirigera vers receivePayment / appellera le webhook
+    # (invoice_reference = cette valeur). Format UUID standard.
     order_ref = str(uuid.uuid4())
 
-    payload = {
+    result = create_recharge({
         "user_id": user["id"],
         "user_email": user["email"],
         "montant_fcfa": montant_fcfa,
@@ -56,56 +57,58 @@ def initier():
         "hash_tx": order_ref,
         "capture_url": None,
         "statut": "en_attente"
-    }
+    })
 
-    # --- BLOC DE DEBUG TEMPORAIRE : affiche l'erreur Supabase exacte sur la page ---
-    import requests as _debug_req
-    _debug_url = current_app.config["SUPABASE_URL"] + "/rest/v1/recharges"
-    _debug_key = current_app.config["SUPABASE_SERVICE_KEY"]
-    _debug_headers = {"apikey": _debug_key, "Authorization": f"Bearer {_debug_key}",
-                       "Content-Type": "application/json", "Prefer": "return=representation"}
-    try:
-        _debug_r = _debug_req.post(_debug_url, json=payload, headers=_debug_headers)
-        if _debug_r.status_code not in (200, 201):
-            flash(f"DEBUG Supabase ({_debug_r.status_code}) : {_debug_r.text}", "error")
-            return redirect(url_for("recharge.index"))
-        result = _debug_r.json()
-        result = result[0] if isinstance(result, list) and result else None
-    except Exception as _debug_e:
-        flash(f"DEBUG exception : {_debug_e}", "error")
-        return redirect(url_for("recharge.index"))
-    # --- FIN BLOC DE DEBUG ---
-
-    if result:
-        recharge_id = result.get("id", "")
-        logger.info(f"Recharge {recharge_id} creee en attente ({order_ref}): {user['email']} - {montant_fcfa} FCFA")
-        session["pending_recharge_id"] = recharge_id
-        session["pending_recharge_amount"] = montant_fcfa
-        flash(f"Paiement de {montant_fcfa:,.0f} FCFA initie. Completez le paiement.", "info")
-    else:
+    if not result:
         flash("Erreur lors de l'enregistrement.", "error")
         return redirect(url_for("recharge.index"))
+
+    recharge_id = result.get("id", "")
+    logger.info(f"Recharge {recharge_id} creee en attente ({order_ref}): {user['email']} - {montant_fcfa} FCFA")
+    session["pending_recharge_id"] = recharge_id
 
     return redirect(url_for("recharge.index") + f"?payer=1&montant={int(montant_fcfa)}&order={order_ref}")
 
 
-@recharge_bp.route("/success", methods=["POST"])
+@recharge_bp.route("/receivePayment")
 @login_required
-def success():
+def receive_payment():
     """
-    Appele par le plugin SoleasPay (cote client) juste apres le paiement,
-    pour affichage immediat. Le CREDIT REEL du solde se fait uniquement via
-    le webhook serveur-a-serveur (/recharge/webhook-soleaspay), jamais ici -
-    cet appel client n'est pas fiable a lui seul pour crediter de l'argent.
+    URL de retour apres un paiement REUSSI via Checkout v4 SoleasPay.
+    Affichage/confirmation cote client uniquement - le CREDIT REEL du solde
+    se fait via le webhook serveur-a-serveur (/recharge/webhook-soleaspay).
     """
-    payment_id = request.form.get("payment_id", "")
-    recharge_id = session.get("pending_recharge_id", "")
+    raw = request.args.get("soleaspay_data", "")
+    data = {}
+    if raw:
+        try:
+            data = json.loads(raw)
+        except Exception as e:
+            logger.error(f"receive_payment: erreur parsing soleaspay_data: {e}")
 
-    if recharge_id and payment_id:
-        update_recharge(recharge_id, {"capture_url": payment_id})
-        logger.info(f"Confirmation client SoleasPay: {payment_id} pour recharge {recharge_id}")
+    invoice_reference = data.get("invoice_reference", "")
+    status = data.get("status", "")
+    transaction_reference = data.get("transaction_reference", "")
+
+    if invoice_reference:
+        recharge = get_recharge_by_hash(invoice_reference)
+        if recharge and transaction_reference:
+            update_recharge(recharge["id"], {"capture_url": transaction_reference})
 
     session.pop("pending_recharge_id", None)
-    session.pop("pending_recharge_amount", None)
-    flash("Paiement soumis ! Votre solde sera credite automatiquement des confirmation.", "success")
+
+    if status in ("SUCCESS", "COMPLETED"):
+        flash("Paiement soumis ! Votre solde sera credite automatiquement des confirmation.", "success")
+    else:
+        flash("Paiement non confirme. Si le montant a ete debite, contactez le support.", "error")
+
+    return redirect(url_for("recharge.index"))
+
+
+@recharge_bp.route("/paymentFailed")
+@login_required
+def payment_failed():
+    """URL de retour apres un paiement ECHOUE ou ANNULE via Checkout v4 SoleasPay."""
+    session.pop("pending_recharge_id", None)
+    flash("Paiement annule ou echoue. Vous pouvez reessayer.", "error")
     return redirect(url_for("recharge.index"))
