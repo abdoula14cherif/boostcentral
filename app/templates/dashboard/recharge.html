@@ -37,6 +37,8 @@ main{padding:20px;max-width:680px;margin:0 auto}
 <div id="soleaspay_btn_V4_1"></div>
 <script id="SBScript" type="text/javascript" data-lang="fr" data-apikey="{{ soleaspay_pk }}" src="https://btn.soleaspay.com/main.js"></script>
 
+<div id="debugStatus" style="display:none;background:#FFF8E6;border:2px solid #D97706;border-radius:12px;padding:14px;margin:16px 20px;font-size:.82rem;color:#92610a;word-break:break-word"></div>
+
 <form id="successForm" method="POST" action="{{ url_for('recharge.success') }}" style="display:none">
 <input type="hidden" name="payment_id" id="hiddenPaymentId">
 <input type="hidden" name="montant" id="hiddenMontant">
