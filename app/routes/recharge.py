@@ -1,6 +1,6 @@
 import logging
 import os
-import secrets
+import uuid
 from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request, session, jsonify
 from app.models.security import login_required, get_current_user
 from app.models.database import get_profile, get_user_recharges, create_recharge, update_recharge
@@ -44,8 +44,9 @@ def initier():
         return redirect(url_for("recharge.index"))
 
     # Reference unique qui servira a retrouver cette recharge quand
-    # SoleasPay appellera le webhook (invoice_reference = cette valeur)
-    order_ref = "BC" + secrets.token_hex(6).upper()
+    # SoleasPay appellera le webhook (invoice_reference = cette valeur).
+    # Format UUID standard : valide que hash_tx soit type "uuid" ou "text" en base.
+    order_ref = str(uuid.uuid4())
 
     result = create_recharge({
         "user_id": user["id"],
