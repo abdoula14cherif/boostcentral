@@ -6,7 +6,6 @@ from app.models.database import (get_profile, get_active_services, get_user_orde
     get_service_by_id, create_order, debit_balance, update_order, set_api_key)
 from app.models.forms import OrderForm
 from app.models.boostci import add_order as boostci_add, get_balance as boostci_balance
-from app.models.cheapsmmglobal import add_order as cheapsmm_add, get_balance as cheapsmm_balance
 from app.models.mailer import email_commande_passee, email_admin_nouvelle_commande, email_solde_insuffisant
 
 logger = logging.getLogger(__name__)
@@ -246,4 +245,3 @@ def api_services(network):
         "description": s.get("description", ""),
         "custom_comments": s.get("custom_comments", False)
     } for s in services])
-
