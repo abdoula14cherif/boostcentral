@@ -48,7 +48,7 @@ def initier():
     # Format UUID standard : valide que hash_tx soit type "uuid" ou "text" en base.
     order_ref = str(uuid.uuid4())
 
-    result = create_recharge({
+    payload = {
         "user_id": user["id"],
         "user_email": user["email"],
         "montant_fcfa": montant_fcfa,
@@ -56,7 +56,25 @@ def initier():
         "hash_tx": order_ref,
         "capture_url": None,
         "statut": "en_attente"
-    })
+    }
+
+    # --- BLOC DE DEBUG TEMPORAIRE : affiche l'erreur Supabase exacte sur la page ---
+    import requests as _debug_req
+    _debug_url = current_app.config["SUPABASE_URL"] + "/rest/v1/recharges"
+    _debug_key = current_app.config["SUPABASE_SERVICE_KEY"]
+    _debug_headers = {"apikey": _debug_key, "Authorization": f"Bearer {_debug_key}",
+                       "Content-Type": "application/json", "Prefer": "return=representation"}
+    try:
+        _debug_r = _debug_req.post(_debug_url, json=payload, headers=_debug_headers)
+        if _debug_r.status_code not in (200, 201):
+            flash(f"DEBUG Supabase ({_debug_r.status_code}) : {_debug_r.text}", "error")
+            return redirect(url_for("recharge.index"))
+        result = _debug_r.json()
+        result = result[0] if isinstance(result, list) and result else None
+    except Exception as _debug_e:
+        flash(f"DEBUG exception : {_debug_e}", "error")
+        return redirect(url_for("recharge.index"))
+    # --- FIN BLOC DE DEBUG ---
 
     if result:
         recharge_id = result.get("id", "")
