@@ -196,6 +196,19 @@ def get_all_recharges(limit=50):
         return []
 
 
+def get_recharge_by_hash(hash_tx):
+    """Retrouve une recharge via sa reference (utilise par le webhook SoleasPay pour matcher invoice_reference)."""
+    try:
+        r = requests.get(_url(f"recharges?hash_tx=eq.{hash_tx}&limit=1"), headers=_headers(True))
+        data = r.json()
+        if isinstance(data, list) and len(data) > 0:
+            return data[0]
+        return None
+    except Exception as e:
+        logger.error(f"get_recharge_by_hash: {e}")
+        return None
+
+
 def update_recharge(recharge_id, data):
     try:
         r = requests.patch(_url(f"recharges?id=eq.{recharge_id}"), json=data, headers=_headers(True))
