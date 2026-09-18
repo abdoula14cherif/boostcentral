@@ -1,178 +1,111 @@
-{% extends "base.html" %}
-{% block title %}Recharger — Boost Central{% endblock %}
-{% block extra_css %}
-header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 2px 8px rgba(0,0,0,.04);position:sticky;top:0;z-index:10}
-.back-btn{background:var(--blue-l);border:none;color:var(--blue);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none}
-.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
-main{padding:20px;max-width:680px;margin:0 auto}
-.bal-box{background:var(--white);border-radius:16px;padding:20px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
-.bal-val{font-size:2rem;font-weight:900;color:var(--orange)}
-.pay-card{background:var(--white);border-radius:16px;padding:24px;border:2px solid var(--blue-l);box-shadow:0 4px 14px rgba(0,102,255,.08);margin-bottom:20px}
-.pay-title{font-size:1.1rem;font-weight:800;color:var(--dark);margin-bottom:8px;text-align:center}
-.pay-sub{font-size:.88rem;color:var(--mid);margin-bottom:20px;line-height:1.6;text-align:center}
-.montant-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
-.montant-btn{padding:12px;border:2px solid var(--gray);border-radius:12px;background:var(--white);font-size:.92rem;font-weight:700;color:var(--dark);cursor:pointer;transition:all .22s;text-align:center}
-.montant-btn:hover,.montant-btn.sel{border-color:var(--blue);background:var(--blue-l);color:var(--blue)}
-.fg{margin-bottom:14px}
-.fg label{display:block;font-size:.82rem;font-weight:600;color:var(--dark);margin-bottom:5px}
-.inp{width:100%;padding:12px 14px;border:2px solid var(--gray);border-radius:12px;font-size:.92rem;color:var(--dark);outline:none;transition:border-color .22s;background:var(--white)}
-.inp:focus{border-color:var(--blue)}
-.btn-pay{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:#fff;padding:16px;border:none;border-radius:14px;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 7px 20px rgba(255,102,0,.28);transition:all .28s;margin-top:10px}
-.btn-pay:hover{transform:translateY(-3px)}
-.info-box{background:var(--blue-l);border-radius:12px;padding:14px;margin-top:16px;font-size:.84rem;color:var(--blue-d);line-height:1.6;border:1px solid rgba(0,102,255,.2)}
-.hist-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:12px;margin-top:24px}
-.hist-item{background:var(--white);border:1px solid var(--gray);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
-.hn{font-size:.88rem;font-weight:700;color:var(--dark)}
-.hd{font-size:.74rem;color:var(--light)}
-.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:18px;font-size:.73rem;font-weight:700}
-.s-wait{background:#FFF8E6;color:#D97706}.s-ok{background:#EDFFF5;color:var(--green)}.s-ref{background:#fee2e2;color:var(--red)}
-{% endblock %}
-{% block nav %}
-<header>
-<a href="{{ url_for('dashboard.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
-<div class="logo">BOOST CENTRAL</div>
-</header>
-{% endblock %}
-{% block content %}
-<div id="soleaspay_btn_V4_1"></div>
-<script id="SBScript" type="text/javascript" data-lang="fr" data-apikey="{{ soleaspay_pk }}" src="https://btn.soleaspay.com/main.js"></script>
+import logging
+import os
+import uuid
+from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request, session, jsonify
+from app.models.security import login_required, get_current_user
+from app.models.database import get_profile, get_user_recharges, create_recharge, update_recharge
 
-<form id="successForm" method="POST" action="{{ url_for('recharge.success') }}" style="display:none">
-<input type="hidden" name="payment_id" id="hiddenPaymentId">
-<input type="hidden" name="montant" id="hiddenMontant">
-</form>
+logger = logging.getLogger(__name__)
 
-<main>
-<div class="bal-box">
-<div>
-<div style="font-size:.82rem;color:var(--mid);margin-bottom:4px">Solde actuel</div>
-<div class="bal-val">{{ "{:,.0f}".format(profile.balance or 0) if profile else '0' }}</div>
-<div style="font-size:.82rem;color:var(--mid)">FCFA</div>
-</div>
-<i class="fas fa-wallet" style="font-size:2rem;color:var(--blue-l)"></i>
-</div>
+recharge_bp = Blueprint("recharge", __name__)
 
-<div class="pay-card">
-<div style="font-size:2rem;text-align:center;margin-bottom:12px">💳</div>
-<div class="pay-title">Recharger mon solde</div>
-<div class="pay-sub">Choisissez un montant. Votre demande sera enregistree avant le paiement.</div>
+# Cle marchand SoleasPay (Button v4) - definie sur Vercel (Project Settings -> Environment Variables)
+# Nom de la variable : SOLEASPAY_API_KEY
+SOLEASPAY_API_KEY = os.environ.get("SOLEASPAY_API_KEY", "")
 
-<form id="initierForm" method="POST" action="{{ url_for('recharge.initier') }}">
-<input type="hidden" name="montant" id="montantHidden" value="0">
 
-<div class="montant-grid">
-<button type="button" class="montant-btn" onclick="setMontant(1000,this)">1 000 F</button>
-<button type="button" class="montant-btn" onclick="setMontant(2000,this)">2 000 F</button>
-<button type="button" class="montant-btn" onclick="setMontant(5000,this)">5 000 F</button>
-<button type="button" class="montant-btn" onclick="setMontant(10000,this)">10 000 F</button>
-<button type="button" class="montant-btn" onclick="setMontant(20000,this)">20 000 F</button>
-<button type="button" class="montant-btn" onclick="setMontant(50000,this)">50 000 F</button>
-</div>
+@recharge_bp.route("/")
+@login_required
+def index():
+    user = get_current_user()
+    profile = get_profile(user["id"])
+    history = get_user_recharges(user["id"], limit=10)
+    return render_template("dashboard/recharge.html",
+        user=user, profile=profile, history=history,
+        soleaspay_pk=SOLEASPAY_API_KEY,
+        whatsapp=current_app.config["WHATSAPP_NUMBER"])
 
-<div class="fg">
-<label>Montant personnalise (FCFA)</label>
-<input type="number" class="inp" id="montantInp" placeholder="Ex : 3000" min="100" oninput="montantSelectionne=parseInt(this.value)||0">
-</div>
 
-<button type="button" class="btn-pay" onclick="lancerPaiement()">
-<i class="fas fa-credit-card"></i> Payer maintenant
-</button>
-</form>
+@recharge_bp.route("/initier", methods=["POST"])
+@login_required
+def initier():
+    """Enregistre la recharge EN ATTENTE avant de lancer le paiement."""
+    user = get_current_user()
+    montant = request.form.get("montant", "0").strip()
 
-<div class="info-box">
-<i class="fas fa-info-circle"></i>
-<strong>Methodes :</strong> Orange Money, MTN MoMo, Wave, Carte Visa/Mastercard
-</div>
-</div>
+    try:
+        montant_fcfa = float(montant)
+    except:
+        flash("Montant invalide.", "error")
+        return redirect(url_for("recharge.index"))
 
-<div class="hist-title"><i class="fas fa-history" style="color:var(--blue)"></i> Historique</div>
-{% set ml={'mtn':'MTN','orange':'Orange','crypto_btc':'Bitcoin','crypto_bnb':'BNB','crypto_sol':'Solana','soinapay':'LeekPay','leekpay':'LeekPay','soleaspay':'SoleasPay'} %}
-{% if history %}
-{% for r in history %}
-{% set bmap={'en_attente':('s-wait','⏳ En attente'),'valide':('s-ok','✅ Validee'),'refuse':('s-ref','❌ Refusee')} %}
-{% set bc,bt=bmap.get(r.statut,('s-wait','En attente')) %}
-<div class="hist-item">
-<div>
-<div class="hn">{{ ml.get(r.methode,r.methode) }} — {{ "{:,.0f}".format(r.montant_fcfa) }} FCFA</div>
-<div class="hd">{{ r.created_at[:10] if r.created_at else '' }}</div>
-</div>
-<span class="badge {{ bc }}">{{ bt }}</span>
-</div>
-{% endfor %}
-{% else %}
-<p style="font-size:.84rem;color:var(--light)">Aucune recharge pour l instant.</p>
-{% endif %}
-</main>
-{% endblock %}
-{% block extra_js %}
-<script>
-var montantSelectionne = 0;
-var USER_EMAIL = "{{ session.user_email }}";
+    if montant_fcfa < 100:
+        flash("Montant minimum : 100 FCFA.", "error")
+        return redirect(url_for("recharge.index"))
 
-{% if request.args.get('payer') == '1' %}
-var autoMontant = {{ request.args.get('montant', 0) }};
-var autoOrderRef = "{{ request.args.get('order', '') }}";
-if(autoMontant > 0 && autoOrderRef) {
-  montantSelectionne = autoMontant;
-  document.getElementById('montantInp').value = autoMontant;
-  var sbScript = document.getElementById('SBScript');
-  function tryLaunch(){
-    if(typeof SopayButton !== 'undefined'){
-      lancerSoleasPay(autoMontant, autoOrderRef);
-    } else {
-      setTimeout(tryLaunch, 300);
+    # Reference unique qui servira a retrouver cette recharge quand
+    # SoleasPay appellera le webhook (invoice_reference = cette valeur).
+    # Format UUID standard : valide que hash_tx soit type "uuid" ou "text" en base.
+    order_ref = str(uuid.uuid4())
+
+    payload = {
+        "user_id": user["id"],
+        "user_email": user["email"],
+        "montant_fcfa": montant_fcfa,
+        "methode": "soleaspay",
+        "hash_tx": order_ref,
+        "capture_url": None,
+        "statut": "en_attente"
     }
-  }
-  sbScript.addEventListener('load', tryLaunch);
-  // Filet de securite si le script est deja en cache (evenement load deja passe)
-  setTimeout(tryLaunch, 800);
-}
-{% endif %}
 
-function setMontant(val, btn) {
-  montantSelectionne = val;
-  document.getElementById('montantInp').value = val;
-  document.getElementById('montantHidden').value = val;
-  document.querySelectorAll('.montant-btn').forEach(function(b){b.classList.remove('sel')});
-  btn.classList.add('sel');
-}
+    # --- BLOC DE DEBUG TEMPORAIRE : affiche l'erreur Supabase exacte sur la page ---
+    import requests as _debug_req
+    _debug_url = current_app.config["SUPABASE_URL"] + "/rest/v1/recharges"
+    _debug_key = current_app.config["SUPABASE_SERVICE_KEY"]
+    _debug_headers = {"apikey": _debug_key, "Authorization": f"Bearer {_debug_key}",
+                       "Content-Type": "application/json", "Prefer": "return=representation"}
+    try:
+        _debug_r = _debug_req.post(_debug_url, json=payload, headers=_debug_headers)
+        if _debug_r.status_code not in (200, 201):
+            flash(f"DEBUG Supabase ({_debug_r.status_code}) : {_debug_r.text}", "error")
+            return redirect(url_for("recharge.index"))
+        result = _debug_r.json()
+        result = result[0] if isinstance(result, list) and result else None
+    except Exception as _debug_e:
+        flash(f"DEBUG exception : {_debug_e}", "error")
+        return redirect(url_for("recharge.index"))
+    # --- FIN BLOC DE DEBUG ---
 
-function lancerPaiement() {
-  var montant = parseInt(document.getElementById('montantInp').value) || montantSelectionne;
-  if (!montant || montant < 100) {
-    alert('Veuillez choisir un montant minimum de 100 FCFA.');
-    return;
-  }
-  document.getElementById('montantHidden').value = montant;
-  montantSelectionne = montant;
-  // Soumettre le formulaire initier pour enregistrer en BDD d'abord
-  document.getElementById('initierForm').submit();
-}
+    if result:
+        recharge_id = result.get("id", "")
+        logger.info(f"Recharge {recharge_id} creee en attente ({order_ref}): {user['email']} - {montant_fcfa} FCFA")
+        session["pending_recharge_id"] = recharge_id
+        session["pending_recharge_amount"] = montant_fcfa
+        flash(f"Paiement de {montant_fcfa:,.0f} FCFA initie. Completez le paiement.", "info")
+    else:
+        flash("Erreur lors de l'enregistrement.", "error")
+        return redirect(url_for("recharge.index"))
 
-function lancerSoleasPay(montant, orderRef) {
-  var options = {
-    btnTitle: "Payer",
-    amount: montant,
-    currency: "XAF",
-    orderId: orderRef,
-    description: "Recharge Boost Central",
-    businessName: "Boost Central",
-    loadInvoice: true,
-    successUrl: window.location.origin + "{{ url_for('recharge.index') }}",
-    mode: "BILLING"
-  };
+    return redirect(url_for("recharge.index") + f"?payer=1&montant={int(montant_fcfa)}&order={order_ref}")
 
-  SopayButton.pay(options)
-    .then(function(res){
-      if(res && res.success && (res.status === 'SUCCESS' || res.status === 'COMPLETED')){
-        document.getElementById('hiddenPaymentId').value = (res.data && res.data.transaction_reference) || '';
-        document.getElementById('hiddenMontant').value = montant;
-        document.getElementById('successForm').submit();
-      }
-    })
-    .catch(function(err){
-      console.log('Paiement annule ou echoue - recharge reste en attente', err);
-    });
-}
-</script>
-{% endblock %}
+
+@recharge_bp.route("/success", methods=["POST"])
+@login_required
+def success():
+    """
+    Appele par le plugin SoleasPay (cote client) juste apres le paiement,
+    pour affichage immediat. Le CREDIT REEL du solde se fait uniquement via
+    le webhook serveur-a-serveur (/recharge/webhook-soleaspay), jamais ici -
+    cet appel client n'est pas fiable a lui seul pour crediter de l'argent.
+    """
+    payment_id = request.form.get("payment_id", "")
+    recharge_id = session.get("pending_recharge_id", "")
+
+    if recharge_id and payment_id:
+        update_recharge(recharge_id, {"capture_url": payment_id})
+        logger.info(f"Confirmation client SoleasPay: {payment_id} pour recharge {recharge_id}")
+
+    session.pop("pending_recharge_id", None)
+    session.pop("pending_recharge_amount", None)
+    flash("Paiement soumis ! Votre solde sera credite automatiquement des confirmation.", "success")
+    return redirect(url_for("recharge.index"))
