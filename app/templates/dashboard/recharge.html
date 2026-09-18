@@ -39,6 +39,14 @@ main{padding:20px;max-width:680px;margin:0 auto}
 
 <div id="debugStatus" style="display:none;background:#FFF8E6;border:2px solid #D97706;border-radius:12px;padding:14px;margin:16px 20px;font-size:.82rem;color:#92610a;word-break:break-word"></div>
 
+{% if request.args.get('payer') == '1' %}
+<div id="payBtnBox" style="margin:16px 20px;text-align:center">
+  <button id="realPayBtn" class="btn-pay" style="display:none;max-width:400px;margin:0 auto" onclick="lancerSoleasPayClic()">
+    <i class="fas fa-credit-card"></i> Cliquez ici pour payer {{ request.args.get('montant', 0) }} FCFA
+  </button>
+</div>
+{% endif %}
+
 <form id="successForm" method="POST" action="{{ url_for('recharge.success') }}" style="display:none">
 <input type="hidden" name="payment_id" id="hiddenPaymentId">
 <input type="hidden" name="montant" id="hiddenMontant">
@@ -127,7 +135,6 @@ function debugShow(msg){
 
 {% if request.args.get('payer') == '1' %}
 try {
-alert("DEBUG: script de paiement demarre");
 var autoMontant = {{ request.args.get('montant', 0) }};
 var autoOrderRef = "{{ request.args.get('order', '') }}";
 if(autoMontant > 0 && autoOrderRef) {
@@ -144,8 +151,9 @@ if(autoMontant > 0 && autoOrderRef) {
     function tryLaunch(){
       tries++;
       if(typeof SopayButton !== 'undefined'){
-        debugShow("DEBUG: module charge, ouverture du paiement...");
-        lancerSoleasPay(autoMontant, autoOrderRef);
+        debugShow("Module de paiement pret. Clique sur le bouton ci-dessus pour payer.");
+        var btn = document.getElementById('realPayBtn');
+        if(btn) btn.style.display = 'flex';
       } else if(tries < 15){
         setTimeout(tryLaunch, 400);
       } else {
@@ -209,6 +217,13 @@ function lancerSoleasPay(montant, orderRef) {
     .catch(function(err){
       debugShow("DEBUG erreur paiement: " + JSON.stringify(err));
     });
+}
+
+function lancerSoleasPayClic() {
+  var montant = {{ request.args.get('montant', 0) }};
+  var orderRef = "{{ request.args.get('order', '') }}";
+  debugShow("Ouverture du paiement...");
+  lancerSoleasPay(montant, orderRef);
 }
 </script>
 {% endblock %}
