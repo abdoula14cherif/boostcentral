@@ -1,6 +1,6 @@
 import logging
 from flask import Blueprint, request, jsonify, current_app
-from app.models.database import credit_balance, create_recharge
+from app.models.database import credit_balance, create_recharge, get_recharge_by_hash, update_recharge
 from app.routes.parrainage import crediter_commission_recharge
 
 logger = logging.getLogger(__name__)
@@ -10,6 +10,7 @@ webhook_bp = Blueprint("webhook", __name__)
 
 @webhook_bp.route("/webhook", methods=["POST"])
 def soina_webhook():
+    """Ancien webhook (LeekPay / SoinaPay) - conserve pour compatibilite, plus utilise activement."""
     try:
         data = request.get_json()
         logger.info(f"Webhook recu: {data}")
@@ -32,7 +33,6 @@ def soina_webhook():
         credit_balance(user_id, amount_fcfa)
         create_recharge({"user_id": user_id, "user_email": user_email, "montant_fcfa": amount_fcfa, "methode": "soinapay", "hash_tx": payment.get("id", ""), "capture_url": None, "statut": "valide"})
 
-        # Commission de parrainage : uniquement sur de l'argent reellement recu.
         try:
             crediter_commission_recharge(user_id, amount_fcfa)
         except Exception as e:
@@ -43,3 +43,61 @@ def soina_webhook():
     except Exception as e:
         logger.error(f"Webhook erreur: {e}")
         return jsonify({"error": str(e)}), 500
+
+
+@webhook_bp.route("/webhook-soleaspay", methods=["POST"])
+def soleaspay_webhook():
+    """
+    Webhook serveur-a-serveur SoleasPay. C'est LUI qui credite reellement le
+    solde - jamais la confirmation cote client (recharge.success). URL a
+    configurer sur le dashboard marchand SoleasPay :
+    https://<ton-domaine>/recharge/webhook-soleaspay
+    """
+    try:
+        data = request.get_json(force=True, silent=True) or {}
+        logger.info(f"Webhook SoleasPay recu: {data}")
+
+        status = data.get("status", "")
+        invoice_reference = data.get("invoice_reference", "")
+        transaction_reference = data.get("transaction_reference", "")
+
+        try:
+            amount = float(data.get("amount", 0))
+        except:
+            amount = 0
+
+        # Toujours repondre 200 rapidement, meme si on ignore l'evenement -
+        # SoleasPay rejoue les webhooks non confirmes.
+        if status not in ("COMPLETED", "SUCCESS") or not invoice_reference or amount <= 0:
+            return jsonify({"received": True}), 200
+
+        recharge = get_recharge_by_hash(invoice_reference)
+        if not recharge:
+            logger.warning(f"Webhook SoleasPay: aucune recharge trouvee pour la reference {invoice_reference}")
+            return jsonify({"received": True}), 200
+
+        # Idempotence : si deja validee (webhook rejoue), on ne credite pas deux fois
+        if recharge.get("statut") == "valide":
+            return jsonify({"received": True}), 200
+
+        user_id = recharge["user_id"]
+        montant_fcfa = recharge.get("montant_fcfa") or amount
+
+        credit_balance(user_id, montant_fcfa)
+        update_recharge(recharge["id"], {
+            "statut": "valide",
+            "capture_url": transaction_reference
+        })
+
+        try:
+            crediter_commission_recharge(user_id, montant_fcfa)
+        except Exception as e:
+            logger.error(f"commission parrainage webhook soleaspay: {e}")
+
+        logger.info(f"SoleasPay credite: {montant_fcfa} FCFA -> user {user_id} (ref {invoice_reference})")
+        return jsonify({"received": True}), 200
+    except Exception as e:
+        logger.error(f"Webhook SoleasPay erreur: {e}")
+        # On repond quand meme 200 pour eviter un rejeu en boucle sur une erreur
+        # de notre cote ; l'erreur est loggee pour investigation manuelle.
+        return jsonify({"received": True}), 200
