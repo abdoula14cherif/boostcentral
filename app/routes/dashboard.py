@@ -136,10 +136,6 @@ def place_order():
             pass
         return redirect(url_for("dashboard.index"))
 
-    # Fournisseur associe au service (boostci par defaut si non renseigne)
-    fournisseur = service.get("fournisseur") or "boostci"
-
-    # Creer la commande en BDD
     order = create_order({
         "user_id": user["id"],
         "user_email": user["email"],
@@ -153,8 +149,7 @@ def place_order():
         "prix_total": total_price,
         "statut": "en_attente",
         "progression": 0,
-        "note_admin": "",
-        "fournisseur": fournisseur
+        "note_admin": ""
     })
 
     if not order:
@@ -167,27 +162,20 @@ def place_order():
         flash("Erreur lors du debit.", "error")
         return redirect(url_for("dashboard.index"))
 
-    # Envoyer chez le bon fournisseur si service lie
+    # Envoyer chez BOOSTCI si service lie
     provider_id = service.get("boostci_service_id")
     if provider_id:
         try:
-            if fournisseur == "cheapsmmglobal":
-                add_fn = cheapsmm_add
-                solde = cheapsmm_balance()
-                nom_fournisseur = "CHEAPSMMGLOBAL"
-            else:
-                add_fn = boostci_add
-                solde = boostci_balance()
-                nom_fournisseur = "BOOSTCI"
+            solde = boostci_balance()
 
             if solde < 0.05:
-                note = f"⚠️ SOLDE {nom_fournisseur} INSUFFISANT ({solde}$) - Traiter manuellement"
+                note = f"⚠️ SOLDE BOOSTCI INSUFFISANT ({solde}$) - Traiter manuellement"
                 update_order(order["id"], {"statut": "en_attente", "note_admin": note})
                 logger.warning(note)
                 flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
                 return redirect(url_for("dashboard.index") + "?commande=ok")
 
-            result = add_fn(
+            result = boostci_add(
                 service_id=int(provider_id),
                 link=link,
                 quantity=quantity,
@@ -199,23 +187,23 @@ def place_order():
                 update_order(order["id"], {
                     "statut": "en_cours",
                     "progression": 0,
-                    "note_admin": f"✅ {nom_fournisseur} order ID: {provider_order_id}"
+                    "note_admin": f"✅ BOOSTCI order ID: {provider_order_id}"
                 })
-                logger.info(f"{nom_fournisseur} OK: order={provider_order_id} user={user['email']}")
+                logger.info(f"BOOSTCI OK: order={provider_order_id} user={user['email']}")
                 flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
             else:
                 error = result.get("error", "Erreur inconnue")
-                note = f"❌ {nom_fournisseur} ECHEC: {error} - Traiter manuellement"
+                note = f"❌ BOOSTCI ECHEC: {error} - Traiter manuellement"
                 update_order(order["id"], {
                     "statut": "en_attente",
                     "note_admin": note
                 })
-                logger.error(f"{nom_fournisseur} erreur: {error} pour {user['email']}")
+                logger.error(f"BOOSTCI erreur: {error} pour {user['email']}")
                 flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
         except Exception as e:
-            note = f"❌ EXCEPTION FOURNISSEUR: {str(e)} - Traiter manuellement"
+            note = f"❌ EXCEPTION BOOSTCI: {str(e)} - Traiter manuellement"
             update_order(order["id"], {"note_admin": note})
-            logger.error(f"fournisseur exception: {e}")
+            logger.error(f"boostci exception: {e}")
             flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
     else:
         flash(f"Commande passee ! ✅ {total_price:,.0f} FCFA debites. Notre equipe traite votre commande.", "success")
