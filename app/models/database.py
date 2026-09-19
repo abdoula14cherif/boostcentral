@@ -249,3 +249,26 @@ def set_api_key(user_id, api_key):
     except Exception as e:
         logger.error(f"set_api_key: {e}")
         return False
+
+
+def get_total_recharged(user_id):
+    """Somme des recharges VALIDEES (argent reellement recu) - base du programme VIP."""
+    try:
+        r = requests.get(_url(f"recharges?user_id=eq.{user_id}&statut=eq.valide&select=montant_fcfa"), headers=_headers(True))
+        data = r.json()
+        if isinstance(data, list):
+            return sum(row.get("montant_fcfa", 0) or 0 for row in data)
+        return 0
+    except Exception as e:
+        logger.error(f"get_total_recharged: {e}")
+        return 0
+
+
+def update_profile(user_id, data):
+    """Mise a jour generique d'un profil (champs divers : vip_tier_vu, etc.)."""
+    try:
+        r = requests.patch(_url(f"profiles?id=eq.{user_id}"), json=data, headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"update_profile: {e}")
+        return False
