@@ -43,3 +43,27 @@ def rang(tier_key):
         return ORDRE.index(tier_key)
     except ValueError:
         return 0
+
+
+VOLUME_PALIERS = [
+    {"seuil": 10000, "remise": 0.05},
+    {"seuil": 5000, "remise": 0.03},
+    {"seuil": 1000, "remise": 0.01},
+]
+
+REMISE_MAX_TOTALE = 0.20  # plafond de protection de marge
+
+
+def get_volume_discount(quantite):
+    """Remise selon la quantite d'UNE commande (independante du palier VIP)."""
+    for p in VOLUME_PALIERS:
+        if quantite >= p["seuil"]:
+            return p["remise"]
+    return 0.0
+
+
+def calculer_remise_totale(vip_remise, quantite):
+    """Remise de base (-1%) + VIP + volume, plafonnee pour proteger la marge."""
+    remise_volume = get_volume_discount(quantite)
+    total = 0.01 + vip_remise + remise_volume
+    return min(total, REMISE_MAX_TOTALE)
