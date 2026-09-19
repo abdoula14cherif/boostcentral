@@ -2,6 +2,8 @@ import logging
 from flask import Blueprint, request, jsonify, current_app
 from app.models.database import credit_balance, create_recharge, get_recharge_by_hash, update_recharge
 from app.routes.parrainage import crediter_commission_recharge
+from app.models.promo import valider_code
+from app.models.database import enregistrer_utilisation_code
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +53,7 @@ def soleaspay_webhook():
     Webhook serveur-a-serveur SoleasPay. C'est LUI qui credite reellement le
     solde - jamais la confirmation cote client (recharge.success). URL a
     configurer sur le dashboard marchand SoleasPay :
-    https://boost central.vercel.app/recharge/webhook-soleaspay
+    https://<ton-domaine>/recharge/webhook-soleaspay
     """
     try:
         data = request.get_json(force=True, silent=True) or {}
@@ -82,8 +84,20 @@ def soleaspay_webhook():
 
         user_id = recharge["user_id"]
         montant_fcfa = recharge.get("montant_fcfa") or amount
+        montant_credite = montant_fcfa
+        promo_code = recharge.get("promo_code")
 
-        credit_balance(user_id, montant_fcfa)
+        if promo_code:
+            ok, message, promo = valider_code(promo_code, user_id)
+            if ok:
+                bonus = round(montant_fcfa * promo["bonus_pct"])
+                montant_credite = montant_fcfa + bonus
+                enregistrer_utilisation_code(promo["id"], user_id, recharge["id"])
+                logger.info(f"Bonus promo {promo_code} applique: +{bonus} FCFA pour user {user_id}")
+            else:
+                logger.warning(f"Code promo {promo_code} devenu invalide au moment du credit: {message}")
+
+        credit_balance(user_id, montant_credite)
         update_recharge(recharge["id"], {
             "statut": "valide",
             "capture_url": transaction_reference
@@ -94,7 +108,7 @@ def soleaspay_webhook():
         except Exception as e:
             logger.error(f"commission parrainage webhook soleaspay: {e}")
 
-        logger.info(f"SoleasPay credite: {montant_fcfa} FCFA -> user {user_id} (ref {invoice_reference})")
+        logger.info(f"SoleasPay credite: {montant_credite} FCFA -> user {user_id} (ref {invoice_reference})")
         return jsonify({"received": True}), 200
     except Exception as e:
         logger.error(f"Webhook SoleasPay erreur: {e}")
