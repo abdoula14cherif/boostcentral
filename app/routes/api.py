@@ -1,8 +1,10 @@
 import logging
 from flask import Blueprint, request, jsonify
 from app.models.database import (get_profile_by_api_key, get_active_services, get_service_by_id,
-    create_order, debit_balance, update_order, get_order_by_id_for_user)
+    create_order, debit_balance, update_order, get_order_by_id_for_user, get_total_recharged)
 from app.models.boostci import add_order as boostci_add
+from app.models.cheapsmmglobal import add_order as cheapsmm_add
+from app.models.vip import get_vip_tier, calculer_remise_totale
 
 logger = logging.getLogger(__name__)
 
@@ -73,11 +75,15 @@ def handle():
             return jsonify({"error": f"quantity doit etre entre {service['min_qte']} et {service['max_qte']}."}), 400
 
         unit_price = float(service["prix_fcfa"])
-        total_price = round(unit_price * quantity * 0.99)
+        remise_vip = get_vip_tier(get_total_recharged(user_id))["remise"]
+        remise_totale = calculer_remise_totale(remise_vip, quantity)
+        total_price = round(unit_price * quantity * (1 - remise_totale))
 
         balance = profile.get("balance", 0) or 0
         if balance < total_price:
             return jsonify({"error": "Solde insuffisant."}), 402
+
+        fournisseur = service.get("fournisseur") or "boostci"
 
         order = create_order({
             "user_id": user_id,
@@ -92,7 +98,8 @@ def handle():
             "prix_total": total_price,
             "statut": "en_attente",
             "progression": 0,
-            "note_admin": "Commande via API"
+            "note_admin": "Commande via API",
+            "fournisseur": fournisseur
         })
         if not order:
             return jsonify({"error": "Erreur lors de la creation de la commande."}), 500
@@ -101,20 +108,21 @@ def handle():
         if new_balance is None:
             return jsonify({"error": "Erreur lors du debit du solde."}), 500
 
-        boostci_id = service.get("boostci_service_id")
-        if boostci_id:
+        provider_id = service.get("boostci_service_id")
+        if provider_id:
             try:
-                result = boostci_add(
-                    service_id=int(boostci_id), link=link, quantity=quantity,
+                add_fn = cheapsmm_add if fournisseur == "cheapsmmglobal" else boostci_add
+                result = add_fn(
+                    service_id=int(provider_id), link=link, quantity=quantity,
                     comments="\n".join(comments_list) if is_custom else None
                 )
                 if "order" in result:
-                    update_order(order["id"], {"statut": "en_cours", "note_admin": f"API - BOOSTCI order ID: {result['order']}"})
+                    update_order(order["id"], {"statut": "en_cours", "note_admin": f"API - {fournisseur} order ID: {result['order']}"})
                 else:
-                    update_order(order["id"], {"note_admin": f"API - BOOSTCI echec: {result.get('error','?')}"})
+                    update_order(order["id"], {"note_admin": f"API - {fournisseur} echec: {result.get('error','?')}"})
             except Exception as e:
-                logger.error(f"API add BOOSTCI exception: {e}")
-                update_order(order["id"], {"note_admin": f"API - exception BOOSTCI: {e}"})
+                logger.error(f"API add fournisseur exception: {e}")
+                update_order(order["id"], {"note_admin": f"API - exception fournisseur: {e}"})
 
         return jsonify({"order": order["id"]})
 
