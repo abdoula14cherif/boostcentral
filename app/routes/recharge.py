@@ -2,9 +2,10 @@ import logging
 import os
 import uuid
 import json
-from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request, session
+from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request, session, jsonify
 from app.models.security import login_required, get_current_user
 from app.models.database import get_profile, get_user_recharges, create_recharge, update_recharge, get_recharge_by_hash
+from app.models.promo import valider_code
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +28,23 @@ def index():
         whatsapp=current_app.config["WHATSAPP_NUMBER"])
 
 
+@recharge_bp.route("/verifier-code", methods=["POST"])
+@login_required
+def verifier_code():
+    """Verification AJAX d'un code promo pendant la saisie (avant paiement)."""
+    user = get_current_user()
+    code = request.form.get("code", "").strip()
+    ok, message, promo = valider_code(code, user["id"])
+    return jsonify({"ok": ok, "message": message, "bonus_pct": promo["bonus_pct"] if promo else 0})
+
+
 @recharge_bp.route("/initier", methods=["POST"])
 @login_required
 def initier():
     """Enregistre la recharge EN ATTENTE, puis redirige vers Checkout v4 SoleasPay."""
     user = get_current_user()
     montant = request.form.get("montant", "0").strip()
+    code_promo = request.form.get("code_promo", "").strip().upper()
 
     try:
         montant_fcfa = float(montant)
@@ -43,6 +55,15 @@ def initier():
     if montant_fcfa < 100:
         flash("Montant minimum : 100 FCFA.", "error")
         return redirect(url_for("recharge.index"))
+
+    # Revalidation cote serveur du code promo (ne jamais faire confiance au JS seul)
+    promo_valide = None
+    if code_promo:
+        ok, message, promo = valider_code(code_promo, user["id"])
+        if ok:
+            promo_valide = code_promo
+        else:
+            flash(f"Code promo ignore : {message}", "warning")
 
     # Reference unique qui servira a retrouver cette recharge quand
     # SoleasPay redirigera vers receivePayment / appellera le webhook
@@ -56,7 +77,8 @@ def initier():
         "methode": "soleaspay",
         "hash_tx": order_ref,
         "capture_url": None,
-        "statut": "en_attente"
+        "statut": "en_attente",
+        "promo_code": promo_valide
     })
 
     if not result:
@@ -64,7 +86,7 @@ def initier():
         return redirect(url_for("recharge.index"))
 
     recharge_id = result.get("id", "")
-    logger.info(f"Recharge {recharge_id} creee en attente ({order_ref}): {user['email']} - {montant_fcfa} FCFA")
+    logger.info(f"Recharge {recharge_id} creee en attente ({order_ref}): {user['email']} - {montant_fcfa} FCFA" + (f" [promo {promo_valide}]" if promo_valide else ""))
     session["pending_recharge_id"] = recharge_id
 
     return redirect(url_for("recharge.index") + f"?payer=1&montant={int(montant_fcfa)}&order={order_ref}")
