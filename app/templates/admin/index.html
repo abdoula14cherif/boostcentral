@@ -27,10 +27,12 @@ tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--off)}
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.71rem;font-weight:700;white-space:nowrap}
 .b-wait{background:#FFF8E6;color:var(--yellow)}.b-run{background:var(--blue-l);color:var(--blue)}.b-ok{background:#EDFFF5;color:var(--green)}.b-ref{background:#fee2e2;color:var(--red)}
+.b-key{background:#EDFFF5;color:var(--green)}.b-nokey{background:var(--light-g);color:var(--light)}
 .btn-sm{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border:none;border-radius:8px;font-size:.76rem;font-weight:700;cursor:pointer;transition:.22s}
 .btn-g{background:#EDFFF5;color:var(--green)}.btn-g:hover{background:var(--green);color:#fff}
 .btn-b{background:var(--blue-l);color:var(--blue)}.btn-b:hover{background:var(--blue);color:#fff}
 .btn-o{background:var(--orange-l,#FFE6CC);color:var(--orange)}.btn-o:hover{background:var(--orange);color:#fff}
+.btn-r{background:#fee2e2;color:var(--red)}.btn-r:hover{background:var(--red);color:#fff}
 .prog-wrap{display:flex;align-items:center;gap:8px}
 .prog-bar{flex:1;height:6px;background:var(--gray);border-radius:6px;overflow:hidden;min-width:50px}
 .prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--orange));border-radius:6px}
@@ -55,6 +57,7 @@ tr:hover td{background:var(--off)}
 .svc-val{font-size:.88rem;font-weight:700;color:var(--dark)}
 .no-data{text-align:center;padding:32px;color:var(--light)}
 .no-data i{font-size:2rem;display:block;margin-bottom:10px;color:var(--gray)}
+.mono{font-family:monospace;font-size:.76rem}
 {% endblock %}
 {% block nav %}
 <header>
@@ -71,6 +74,7 @@ tr:hover td{background:var(--off)}
 <button class="tab-btn" onclick="showTab('commandes',this)"><i class="fas fa-rocket"></i> Commandes <span class="cnt">{{ stats.pending_orders }}</span></button>
 <button class="tab-btn" onclick="showTab('services',this)"><i class="fas fa-cog"></i> Services</button>
 <button class="tab-btn" onclick="showTab('users',this)"><i class="fas fa-users"></i> Utilisateurs</button>
+<button class="tab-btn" onclick="showTab('api',this)"><i class="fas fa-code"></i> API</button>
 </div>
 <div class="panel active" id="panel-recharges">
 <div class="stats-row">
@@ -84,7 +88,7 @@ tr:hover td{background:var(--off)}
 <thead><tr><th>Email</th><th>Montant</th><th>Methode</th><th>TXID/Tel</th><th>Date</th><th>Statut</th><th>Action</th></tr></thead>
 <tbody>
 {% for r in recharges %}
-{% set ml={'mtn':'MTN','orange':'Orange','crypto_btc':'Bitcoin','crypto_bnb':'BNB','crypto_sol':'Solana'} %}
+{% set ml={'mtn':'MTN','orange':'Orange','crypto_btc':'Bitcoin','crypto_bnb':'BNB','crypto_sol':'Solana','leekpay':'LeekPay','soinapay':'LeekPay','soleaspay':'SoleasPay'} %}
 {% set bmap={'en_attente':('b-wait','En attente'),'valide':('b-ok','Validee'),'refuse':('b-ref','Refusee')} %}
 {% set bc,bt=bmap.get(r.statut,('b-wait','En attente')) %}
 <tr>
@@ -111,7 +115,7 @@ tr:hover td{background:var(--off)}
 {% set bmap={'en_attente':('b-wait','En attente'),'en_cours':('b-run','En cours'),'termine':('b-ok','Termine'),'refuse':('b-ref','Refuse')} %}
 {% set bc,bt=bmap.get(o.statut,('b-wait','En attente')) %}
 <tr>
-<td style="font-size:.78rem">{{ o.user_email or '' }}</td>
+<td style="font-size:.78rem">{{ o.user_email or '' }}{% if (o.note_admin or '').startswith('API') %} <span class="badge b-key" style="margin-left:4px">API</span>{% endif %}</td>
 <td><div style="font-size:.82rem;font-weight:700;color:var(--dark)">{{ o.service }}</div><div style="font-size:.72rem;color:var(--mid)">{{ o.reseau }}</div></td>
 <td>{{ "{:,}".format(o.quantite) }}</td>
 <td><strong>{{ "{:,.0f}".format(o.prix_total) }} F</strong></td>
@@ -162,6 +166,48 @@ tr:hover td{background:var(--off)}
 </table></div>
 </div>
 </div>
+
+<div class="panel" id="panel-api">
+<div class="stats-row">
+<div class="stat-box"><div class="sl">Cles actives</div><div class="sv" style="color:var(--green)">{{ stats.users_avec_cle }}</div></div>
+<div class="stat-box"><div class="sl">Commandes via API</div><div class="sv" style="color:var(--blue)">{{ stats.commandes_api }}</div></div>
+<div class="stat-box"><div class="sl">Facture via API</div><div class="sv" style="color:var(--orange)">{{ "{:,.0f}".format(stats.total_facture_api) }} F</div></div>
+</div>
+<div class="tbl-box">
+<div class="tbl-hd"><h3><i class="fas fa-code" style="color:var(--blue)"></i> Cles API par utilisateur</h3></div>
+<div class="ow"><table>
+<thead><tr><th>Email</th><th>Cle API</th><th>Statut</th><th>Action</th></tr></thead>
+<tbody>
+{% for u in users %}
+<tr>
+<td style="font-size:.8rem">{{ u.email or '' }}</td>
+<td class="mono">{% if u.api_key %}{{ u.api_key[:10] }}...{{ u.api_key[-4:] }}{% else %}—{% endif %}</td>
+<td>{% if u.api_key %}<span class="badge b-key">Active</span>{% else %}<span class="badge b-nokey">Aucune</span>{% endif %}</td>
+<td style="display:flex;gap:6px;flex-wrap:wrap">
+<form method="POST" action="{{ url_for('admin.manage_api_key') }}" style="display:inline" onsubmit="return confirm('{% if u.api_key %}Regenerer la cle de {{ u.email }} ? L ancienne cle cessera de fonctionner immediatement.{% else %}Generer une cle API pour {{ u.email }} ?{% endif %}')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="user_id" value="{{ u.id }}">
+<input type="hidden" name="user_email" value="{{ u.email }}">
+<input type="hidden" name="action" value="generer">
+<button type="submit" class="btn-sm btn-g"><i class="fas fa-rotate"></i> {% if u.api_key %}Regenerer{% else %}Generer{% endif %}</button>
+</form>
+{% if u.api_key %}
+<form method="POST" action="{{ url_for('admin.manage_api_key') }}" style="display:inline" onsubmit="return confirm('Revoquer la cle API de {{ u.email }} ? Elle cessera de fonctionner immediatement.')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="user_id" value="{{ u.id }}">
+<input type="hidden" name="user_email" value="{{ u.email }}">
+<input type="hidden" name="action" value="revoquer">
+<button type="submit" class="btn-sm btn-r"><i class="fas fa-ban"></i> Revoquer</button>
+</form>
+{% endif %}
+</td>
+</tr>
+{% else %}<tr><td colspan="4"><div class="no-data"><i class="fas fa-code"></i><p>Aucun utilisateur</p></div></td></tr>{% endfor %}
+</tbody>
+</table></div>
+</div>
+</div>
+
 <div class="modal-bg" id="modal-r">
 <div class="modal">
 <button class="modal-close" onclick="closeModal('modal-r')">X</button>
@@ -214,29 +260,4 @@ tr:hover td{background:var(--off)}
 <form method="POST" action="{{ url_for('admin.update_user_balance') }}">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <input type="hidden" name="user_id" id="b-uid">
-<div class="fg"><label>Nouveau solde (FCFA)</label><input class="inp" type="number" name="new_balance" id="b-val" min="0"></div>
-<button type="submit" class="btn-full btn-full-b"><i class="fas fa-save"></i> Enregistrer</button>
-</form>
-</div>
-</div>
-{% endblock %}
-{% block extra_js %}
-<script>
-function showTab(name,btn){
-document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-document.getElementById('panel-'+name).classList.add('active');
-btn.classList.add('active');
-history.replaceState(null,'','#'+name);
-}
-function openModal(id){document.getElementById(id).classList.add('open')}
-function closeModal(id){document.getElementById(id).classList.remove('open')}
-function openModalR(id,email,montant){document.getElementById('r-id').value=id;document.getElementById('modal-r-title').textContent='Recharge '+Math.round(montant).toLocaleString()+' FCFA — '+email;openModal('modal-r')}
-function openModalC(id,status,prog,note){document.getElementById('c-id').value=id;document.getElementById('c-status').value=status;document.getElementById('c-prog').value=prog;document.getElementById('c-note').value=note;openModal('modal-c')}
-function openModalS(id,prix,min,max,desc,actif,cat){document.getElementById('s-id').value=id;document.getElementById('s-prix').value=prix;document.getElementById('s-min').value=min;document.getElementById('s-max').value=max;document.getElementById('s-desc').value=desc;document.getElementById('s-actif').checked=actif;document.getElementById('modal-s-title').textContent='Modifier : '+cat;openModal('modal-s')}
-function openModalB(uid,email,balance){document.getElementById('b-uid').value=uid;document.getElementById('b-val').value=balance;document.getElementById('b-email').textContent=email;openModal('modal-b')}
-var hash=window.location.hash.replace('#','');
-var tabMap={recharges:0,commandes:1,services:2,users:3};
-if(hash in tabMap){var btns=document.querySelectorAll('.tab-btn');showTab(hash,btns[tabMap[hash]])}
-</script>
-{% endblock %}
+<div class="fg"><label>Nouveau solde (FCFA)</label><input class="inp" type="number" name="new_balance" id="b-
