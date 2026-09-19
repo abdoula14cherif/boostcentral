@@ -3,10 +3,12 @@ import secrets
 from flask import Blueprint, render_template, redirect, url_for, flash, session, jsonify, current_app, request
 from app.models.security import login_required, get_current_user
 from app.models.database import (get_profile, get_active_services, get_user_orders,
-    get_service_by_id, create_order, debit_balance, update_order, set_api_key)
+    get_service_by_id, create_order, debit_balance, update_order, set_api_key,
+    get_total_recharged, update_profile)
 from app.models.forms import OrderForm
 from app.models.boostci import add_order as boostci_add, get_balance as boostci_balance
 from app.models.mailer import email_commande_passee, email_admin_nouvelle_commande, email_solde_insuffisant
+from app.models.vip import get_vip_tier, rang, calculer_remise_totale
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +23,15 @@ def index():
     services = get_active_services()
     orders = get_user_orders(user["id"], limit=20)
 
+    total_recharge = get_total_recharged(user["id"])
+    vip = get_vip_tier(total_recharge)
+
+    # Detecter un passage de palier depuis la derniere visite (pour le popup de felicitations)
+    tier_vu = profile.get("vip_tier_vu", "bronze") if profile else "bronze"
+    vip_popup = rang(vip["key"]) > rang(tier_vu)
+    if vip_popup:
+        update_profile(user["id"], {"vip_tier_vu": vip["key"]})
+
     services_by_network = {}
     for svc in services:
         net = svc["reseau"]
@@ -34,6 +45,7 @@ def index():
         user=user, profile=profile,
         services_by_network=services_by_network,
         orders=orders, form=form,
+        vip=vip, vip_popup=vip_popup,
         whatsapp=current_app.config["WHATSAPP_NUMBER"],
         currency=session.get("currency", "FCFA"))
 
@@ -123,7 +135,9 @@ def place_order():
         return redirect(url_for("dashboard.index"))
 
     unit_price = float(service["prix_fcfa"])
-    total_price = round(unit_price * quantity * 0.99)
+    remise_vip = get_vip_tier(get_total_recharged(user["id"]))["remise"]
+    remise_totale = calculer_remise_totale(remise_vip, quantity)
+    total_price = round(unit_price * quantity * (1 - remise_totale))
 
     profile = get_profile(user["id"])
     balance = profile.get("balance", 0) if profile else 0
