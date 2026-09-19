@@ -3,7 +3,7 @@ import secrets
 import requests
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from app.models.security import admin_required
-from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key
+from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key, get_all_promo_codes, create_promo_code, update_promo_code
 
 logger = logging.getLogger(__name__)
 admin_bp = Blueprint("admin", __name__)
@@ -48,7 +48,8 @@ def index():
         "commandes_api": len(orders_api),
         "total_facture_api": round(total_facture_api)
     }
-    return render_template("admin/index.html", recharges=recharges, orders=orders, services=services, users=users, stats=stats, whatsapp=current_app.config["WHATSAPP_NUMBER"])
+    promo_codes = get_all_promo_codes()
+    return render_template("admin/index.html", recharges=recharges, orders=orders, services=services, users=users, stats=stats, promo_codes=promo_codes, whatsapp=current_app.config["WHATSAPP_NUMBER"])
 
 @admin_bp.route("/recharge/process", methods=["POST"])
 @admin_required
@@ -171,3 +172,54 @@ def manage_api_key():
             flash("Erreur lors de la generation.", "error")
 
     return redirect(url_for("admin.index") + "#api")
+
+
+@admin_bp.route("/promo/create", methods=["POST"])
+@admin_required
+def create_promo():
+    code = request.form.get("code", "").strip().upper()
+    try:
+        bonus_pct = float(request.form.get("bonus_pct", 0)) / 100
+    except:
+        flash("Pourcentage invalide.", "error")
+        return redirect(url_for("admin.index") + "#promo")
+
+    max_util = request.form.get("max_utilisations", "").strip()
+    max_util = int(max_util) if max_util else None
+
+    date_exp = request.form.get("date_expiration", "").strip()
+    date_exp = date_exp if date_exp else None
+
+    if not code or bonus_pct <= 0:
+        flash("Code et pourcentage requis.", "error")
+        return redirect(url_for("admin.index") + "#promo")
+
+    result = create_promo_code({
+        "code": code,
+        "bonus_pct": bonus_pct,
+        "actif": True,
+        "max_utilisations": max_util,
+        "date_expiration": date_exp
+    })
+    if result:
+        flash(f"Code promo {code} cree ({round(bonus_pct*100)}%).", "success")
+    else:
+        flash("Erreur lors de la creation (code deja existant ?).", "error")
+
+    return redirect(url_for("admin.index") + "#promo")
+
+
+@admin_bp.route("/promo/toggle", methods=["POST"])
+@admin_required
+def toggle_promo():
+    code_id = request.form.get("code_id", "")
+    actif = request.form.get("actif") == "1"
+    if not code_id:
+        flash("ID manquant.", "error")
+        return redirect(url_for("admin.index") + "#promo")
+    ok = update_promo_code(code_id, {"actif": not actif})
+    if ok:
+        flash("Code promo mis a jour.", "success")
+    else:
+        flash("Erreur mise a jour.", "error")
+    return redirect(url_for("admin.index") + "#promo")
