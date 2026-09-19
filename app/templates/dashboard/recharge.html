@@ -20,6 +20,13 @@ main{padding:20px;max-width:680px;margin:0 auto}
 .btn-pay{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:#fff;padding:16px;border:none;border-radius:14px;font-size:1.05rem;font-weight:800;cursor:pointer;box-shadow:0 7px 20px rgba(255,102,0,.28);transition:all .28s;margin-top:10px}
 .btn-pay:hover{transform:translateY(-3px)}
 .info-box{background:var(--blue-l);border-radius:12px;padding:14px;margin-top:16px;font-size:.84rem;color:var(--blue-d);line-height:1.6;border:1px solid rgba(0,102,255,.2)}
+.btn-verif{background:var(--dark);color:#fff;border:none;padding:0 18px;border-radius:12px;font-weight:700;font-size:.84rem;cursor:pointer;white-space:nowrap}
+.btn-verif:disabled{opacity:.6;cursor:not-allowed}
+#promoResult{margin-top:8px;padding:10px 12px;border-radius:10px;font-size:.82rem;font-weight:700;animation:promoIn .3s ease}
+#promoResult.ok{background:#EDFFF5;color:var(--green)}
+#promoResult.bad{background:#fee2e2;color:var(--red)}
+@keyframes promoIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){#promoResult{animation:none}}
 .hist-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:12px;margin-top:24px}
 .hist-item{background:var(--white);border:1px solid var(--gray);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .hn{font-size:.88rem;font-weight:700;color:var(--dark)}
@@ -77,6 +84,15 @@ main{padding:20px;max-width:680px;margin:0 auto}
 <div class="fg">
 <label>Montant personnalise (FCFA)</label>
 <input type="number" class="inp" id="montantInp" placeholder="Ex : 3000" min="100" oninput="montantSelectionne=parseInt(this.value)||0">
+</div>
+
+<div class="fg">
+<label>Code promo (optionnel)</label>
+<div style="display:flex;gap:8px">
+<input type="text" class="inp" id="codePromoInp" name="code_promo" placeholder="Ex : BIENVENUE10" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase();clearPromoResult()">
+<button type="button" class="btn-verif" onclick="verifierCode()" id="btnVerifCode">Verifier</button>
+</div>
+<div id="promoResult" style="display:none"></div>
 </div>
 
 <button type="button" class="btn-pay" onclick="lancerPaiement()">
@@ -140,6 +156,43 @@ function lancerPaiement() {
   document.getElementById('montantHidden').value = montant;
   montantSelectionne = montant;
   document.getElementById('initierForm').submit();
+}
+
+function clearPromoResult(){
+  var el = document.getElementById('promoResult');
+  el.style.display = 'none';
+  el.className = '';
+}
+
+function verifierCode(){
+  var code = document.getElementById('codePromoInp').value.trim();
+  var btn = document.getElementById('btnVerifCode');
+  var el = document.getElementById('promoResult');
+  if(!code){
+    clearPromoResult();
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  var fd = new FormData();
+  fd.append('code', code);
+  fetch("{{ url_for('recharge.verifier_code') }}", {method:'POST', body:fd, credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(data){
+      el.style.display = 'block';
+      el.className = data.ok ? 'ok' : 'bad';
+      el.innerHTML = (data.ok ? '<i class="fas fa-check-circle"></i> ' : '<i class="fas fa-times-circle"></i> ') + data.message;
+    })
+    .catch(function(){
+      el.style.display = 'block';
+      el.className = 'bad';
+      el.textContent = 'Erreur de verification.';
+    })
+    .finally(function(){
+      btn.disabled = false;
+      btn.textContent = 'Verifier';
+    });
 }
 </script>
 {% endblock %}
