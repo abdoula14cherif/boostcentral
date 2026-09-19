@@ -70,6 +70,8 @@ textarea.inp{resize:vertical;appearance:auto}
 .price-val{font-size:1.3rem;font-weight:900;color:var(--orange)}
 .btn-boost{width:100%;padding:16px;margin-top:14px;border:none;border-radius:13px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:#fff;font-size:1.05rem;font-weight:900;cursor:pointer;text-transform:uppercase;letter-spacing:.8px;box-shadow:0 7px 20px rgba(255,102,0,.28);transition:all .28s}
 .btn-boost:hover{transform:translateY(-3px)}
+@keyframes remiseIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){#remiseNote{animation:none}}
 
 /* ===== Modal de confirmation de commande ===== */
 #successOverlay{position:fixed;inset:0;background:rgba(15,20,30,.55);backdrop-filter:blur(4px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
@@ -87,6 +89,28 @@ textarea.inp{resize:vertical;appearance:auto}
 .btn-check{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:#fff;font-size:.92rem;font-weight:800;cursor:pointer;margin-bottom:10px;text-decoration:none}
 .btn-new{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border:2px solid var(--gray);border-radius:12px;background:var(--white);color:var(--mid);font-size:.9rem;font-weight:700;cursor:pointer}
 .btn-new:hover{border-color:var(--blue);color:var(--blue)}
+
+/* ===== Badge VIP ===== */
+.vip-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.25);padding:7px 14px;border-radius:20px;margin-top:10px}
+.vip-badge i{font-size:1rem}
+.vip-badge .vn{font-size:.82rem;font-weight:800;color:#fff}
+.vip-badge .vr{font-size:.72rem;color:rgba(255,255,255,.8)}
+.vip-progress-wrap{margin-top:10px}
+.vip-progress-lbl{font-size:.74rem;color:var(--mid);margin-bottom:5px}
+.vip-progress-bar{height:6px;background:var(--gray);border-radius:6px;overflow:hidden}
+.vip-progress-fill{height:100%;border-radius:6px;transition:width .8s ease}
+
+/* ===== Popup de passage de palier VIP ===== */
+#vipOverlay{position:fixed;inset:0;background:rgba(15,20,30,.6);backdrop-filter:blur(4px);z-index:2100;display:none;align-items:center;justify-content:center;padding:20px}
+#vipOverlay.open{display:flex}
+.vip-card{background:var(--white);border-radius:22px;padding:34px 26px;max-width:360px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.28);animation:cardPop .45s cubic-bezier(.2,.9,.3,1.2)}
+@media(prefers-reduced-motion:reduce){.vip-card{animation:none}}
+.vip-trophy{width:92px;height:92px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:2.4rem;color:#fff;animation:trophyBounce 1.1s ease .1s}
+@keyframes trophyBounce{0%{transform:scale(.4) rotate(-15deg);opacity:0}55%{transform:scale(1.15) rotate(8deg);opacity:1}75%{transform:scale(.94) rotate(-4deg)}100%{transform:scale(1) rotate(0)}}
+@media(prefers-reduced-motion:reduce){.vip-trophy{animation:none}}
+.vip-card h3{font-size:1.2rem;font-weight:800;color:var(--dark);margin-bottom:8px}
+.vip-card p{font-size:.87rem;color:var(--mid);line-height:1.6;margin-bottom:22px}
+.btn-vip-ok{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border:none;border-radius:12px;color:#fff;font-size:.92rem;font-weight:800;cursor:pointer}
 {% endblock %}
 {% block nav %}
 <header>
@@ -119,6 +143,15 @@ textarea.inp{resize:vertical;appearance:auto}
   </div>
 </div>
 
+<div id="vipOverlay">
+  <div class="vip-card">
+    <div class="vip-trophy" style="background:linear-gradient(135deg,{{ vip.couleur }},{{ vip.couleur }}cc)"><i class="fas {{ vip.icone }}"></i></div>
+    <h3>Vous êtes passé au niveau {{ vip.nom }} !</h3>
+    <p>Vous bénéficiez maintenant de <strong>-{{ (vip.remise*100)|round|int }}%</strong> sur toutes vos commandes, en plus de la remise habituelle.</p>
+    <button type="button" class="btn-vip-ok" style="background:linear-gradient(90deg,{{ vip.couleur }},{{ vip.couleur }}cc)" onclick="closeVip()"><i class="fas fa-check"></i> Super, merci !</button>
+  </div>
+</div>
+
 <div class="glow g1"></div><div class="glow g2"></div>
 <main>
   <div class="grid2">
@@ -133,6 +166,23 @@ textarea.inp{resize:vertical;appearance:auto}
       <a href="{{ url_for('recharge.index') }}" class="btn-recharge"><i class="fas fa-plus-circle"></i> Recharger</a>
     </div>
   </div>
+
+  <div class="card">
+    <div class="vip-badge" style="background:{{ vip.couleur }}22;border-color:{{ vip.couleur }}44">
+      <i class="fas {{ vip.icone }}" style="color:{{ vip.couleur }}"></i>
+      <span class="vn" style="color:{{ vip.couleur }}">Niveau {{ vip.nom }}</span>
+      {% if vip.remise > 0 %}<span class="vr" style="color:{{ vip.couleur }}">-{{ (vip.remise*100)|round|int }}% sur vos commandes</span>{% endif %}
+    </div>
+    {% if vip.suivant_nom %}
+    <div class="vip-progress-wrap">
+      <div class="vip-progress-lbl">Encore {{ "{:,.0f}".format(vip.restant) }} FCFA de recharge pour <strong>{{ vip.suivant_nom }}</strong> (-{{ (vip.suivant_remise*100)|round|int }}%)</div>
+      <div class="vip-progress-bar"><div class="vip-progress-fill" style="width:{{ vip.progression }}%;background:{{ vip.couleur }}"></div></div>
+    </div>
+    {% else %}
+    <div class="vip-progress-lbl" style="margin-top:8px">🎉 Vous avez atteint le niveau maximum !</div>
+    {% endif %}
+  </div>
+
 
   <div class="card">
     <div class="sec-title"><i class="fas fa-share-alt"></i> Reseaux supportes</div>
@@ -166,8 +216,9 @@ textarea.inp{resize:vertical;appearance:auto}
       <div class="desc-box" id="descBox">Selectionnez un reseau et un service.</div>
       <div class="price-row">
         <div class="price-col"><div class="price-lbl">Prix unitaire</div><div class="price-val" id="pUnit">0 FCFA</div></div>
-        <div class="price-col"><div class="price-lbl">Total (-1%)</div><div class="price-val" id="pTotal">0 FCFA</div></div>
+        <div class="price-col"><div class="price-lbl">Total</div><div class="price-val" id="pTotal">0 FCFA</div></div>
       </div>
+      <div id="remiseNote" style="display:none;text-align:center;font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:10px;animation:remiseIn .35s ease"></div>
       <button type="submit" class="btn-boost"><i class="fas fa-bolt"></i> BOOSTER MAINTENANT</button>
     </form>
   </div>
@@ -211,76 +262,4 @@ function onNetChange(){
     sel.appendChild(opt);
   });
   sel.disabled=false;
-  document.querySelectorAll('.net-card').forEach(c=>c.classList.toggle('sel',c.dataset.net===net));
-}
-
-function resetCustomFields(){
-  document.getElementById('fgQty').style.display='';
-  document.getElementById('fgComments').style.display='none';
-  document.getElementById('inpComments').value='';
-  document.getElementById('cCount').textContent='0';
-}
-
-function onSvcChange(){
-  var opt=document.getElementById('selSvc').selectedOptions[0];
-  if(!opt||!opt.value){resetCustomFields();calcPrice();return;}
-
-  var isCustom=opt.dataset.custom==='1';
-
-  if(isCustom){
-    document.getElementById('fgQty').style.display='none';
-    document.getElementById('fgComments').style.display='';
-  }else{
-    document.getElementById('fgQty').style.display='';
-    document.getElementById('fgComments').style.display='none';
-    document.getElementById('minQty').textContent=Number(opt.dataset.min).toLocaleString();
-    document.getElementById('inpQty').min=opt.dataset.min;
-    if(parseInt(document.getElementById('inpQty').value)<parseInt(opt.dataset.min))document.getElementById('inpQty').value=opt.dataset.min;
-  }
-
-  document.getElementById('descBox').textContent=opt.dataset.desc||opt.textContent;
-  calcPrice();
-}
-
-document.getElementById('inpQty').addEventListener('input',calcPrice);
-
-document.getElementById('inpComments').addEventListener('input',function(){
-  var lines=this.value.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
-  document.getElementById('cCount').textContent=lines.length;
-  document.getElementById('inpQty').value=lines.length;
-  calcPrice();
-});
-
-function calcPrice(){
-  var opt=document.getElementById('selSvc').selectedOptions[0];
-  var qty=parseInt(document.getElementById('inpQty').value)||0;
-  if(!opt||!opt.value){document.getElementById('pUnit').textContent='0 FCFA';document.getElementById('pTotal').textContent='0 FCFA';return;}
-  var prix=parseFloat(opt.dataset.prix);
-  var total=prix*qty*0.99;
-  document.getElementById('pUnit').textContent=prix%1===0?prix+' FCFA':prix.toFixed(1)+' FCFA';
-  document.getElementById('pTotal').textContent=Math.round(total).toLocaleString()+' FCFA';
-}
-
-document.getElementById('orderForm').addEventListener('submit',function(e){
-  var opt=document.getElementById('selSvc').selectedOptions[0];
-  if(opt&&opt.value&&opt.dataset.custom==='1'){
-    var lines=document.getElementById('inpComments').value.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
-    if(lines.length===0){
-      e.preventDefault();
-      alert('Veuillez entrer au moins un commentaire.');
-    }
-  }
-});
-
-function closeSuccess(){
-  document.getElementById('successOverlay').classList.remove('open');
-  var url = new URL(window.location.href);
-  url.searchParams.delete('commande');
-  window.history.replaceState({}, '', url.toString());
-}
-
-{% if request.args.get('commande') == 'ok' %}
-document.getElementById('successOverlay').classList.add('open');
-{% endif %}
-</script>
-{% endblock %}
+  document.querySelectorAll('.net-card').forE
