@@ -272,3 +272,73 @@ def update_profile(user_id, data):
     except Exception as e:
         logger.error(f"update_profile: {e}")
         return False
+
+
+def get_promo_code(code):
+    """Recupere un code promo par son code (insensible a la casse cote appelant)."""
+    try:
+        r = requests.get(_url(f"promo_codes?code=eq.{code}&limit=1"), headers=_headers(True))
+        data = r.json()
+        if isinstance(data, list) and data:
+            return data[0]
+        return None
+    except Exception as e:
+        logger.error(f"get_promo_code: {e}")
+        return None
+
+
+def get_all_promo_codes():
+    try:
+        r = requests.get(_url("promo_codes?order=created_at.desc"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_all_promo_codes: {e}")
+        return []
+
+
+def create_promo_code(data):
+    try:
+        r = requests.post(_url("promo_codes"), json=data, headers=_headers(True))
+        result = r.json()
+        if isinstance(result, list) and result:
+            return result[0]
+        return None
+    except Exception as e:
+        logger.error(f"create_promo_code: {e}")
+        return None
+
+
+def update_promo_code(code_id, data):
+    try:
+        r = requests.patch(_url(f"promo_codes?id=eq.{code_id}"), json=data, headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"update_promo_code: {e}")
+        return False
+
+
+def has_user_used_code(user_id, code_id):
+    try:
+        r = requests.get(_url(f"promo_utilisations?user_id=eq.{user_id}&code_id=eq.{code_id}&limit=1"), headers=_headers(True))
+        data = r.json()
+        return isinstance(data, list) and len(data) > 0
+    except Exception as e:
+        logger.error(f"has_user_used_code: {e}")
+        return True  # par securite, on bloque en cas d'erreur plutot que de laisser abuser
+
+
+def enregistrer_utilisation_code(code_id, user_id, recharge_id):
+    try:
+        requests.post(_url("promo_utilisations"), json={
+            "code_id": code_id, "user_id": user_id, "recharge_id": recharge_id
+        }, headers=_headers(True))
+        # Incrementer le compteur d'utilisations
+        code = requests.get(_url(f"promo_codes?id=eq.{code_id}&limit=1"), headers=_headers(True)).json()
+        if code:
+            current = code[0].get("utilisations_count", 0) or 0
+            update_promo_code(code_id, {"utilisations_count": current + 1})
+        return True
+    except Exception as e:
+        logger.error(f"enregistrer_utilisation_code: {e}")
+        return False
