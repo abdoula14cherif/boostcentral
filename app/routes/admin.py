@@ -1,8 +1,9 @@
 import logging
+import secrets
 import requests
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from app.models.security import admin_required
-from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance
+from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key
 
 logger = logging.getLogger(__name__)
 admin_bp = Blueprint("admin", __name__)
@@ -28,10 +29,25 @@ def index():
     except Exception as e:
         logger.error(f"services admin: {e}")
         services = []
+
     pending_recharges = sum(1 for r in recharges if r.get("statut") == "en_attente")
     pending_orders = sum(1 for o in orders if o.get("statut") == "en_attente")
     total_credited = sum(r.get("montant_fcfa", 0) for r in recharges if r.get("statut") == "valide")
-    stats = {"pending_recharges": pending_recharges, "pending_orders": pending_orders, "total_users": len(users), "total_credited": round(total_credited)}
+
+    # Stats API : commandes passees via /api/v1 sont taguees "API..." dans note_admin
+    orders_api = [o for o in orders if (o.get("note_admin") or "").startswith("API")]
+    users_avec_cle = sum(1 for u in users if u.get("api_key"))
+    total_facture_api = sum(o.get("prix_total", 0) for o in orders_api)
+
+    stats = {
+        "pending_recharges": pending_recharges,
+        "pending_orders": pending_orders,
+        "total_users": len(users),
+        "total_credited": round(total_credited),
+        "users_avec_cle": users_avec_cle,
+        "commandes_api": len(orders_api),
+        "total_facture_api": round(total_facture_api)
+    }
     return render_template("admin/index.html", recharges=recharges, orders=orders, services=services, users=users, stats=stats, whatsapp=current_app.config["WHATSAPP_NUMBER"])
 
 @admin_bp.route("/recharge/process", methods=["POST"])
@@ -127,3 +143,31 @@ def update_user_balance():
     else:
         flash("Erreur mise a jour solde.", "error")
     return redirect(url_for("admin.index") + "#users")
+
+@admin_bp.route("/user/api-key", methods=["POST"])
+@admin_required
+def manage_api_key():
+    """Genere/regenere ou revoque la cle API d'un utilisateur, depuis l'admin."""
+    user_id = request.form.get("user_id", "")
+    action = request.form.get("action", "")
+    user_email = request.form.get("user_email", "")
+
+    if not user_id or action not in ("generer", "revoquer"):
+        flash("Donnees invalides.", "error")
+        return redirect(url_for("admin.index") + "#api")
+
+    if action == "revoquer":
+        ok = set_api_key(user_id, None)
+        if ok:
+            flash(f"Cle API revoquee pour {user_email}.", "success")
+        else:
+            flash("Erreur lors de la revocation.", "error")
+    else:
+        new_key = "bc_" + secrets.token_hex(20)
+        ok = set_api_key(user_id, new_key)
+        if ok:
+            flash(f"Nouvelle cle API generee pour {user_email}.", "success")
+        else:
+            flash("Erreur lors de la generation.", "error")
+
+    return redirect(url_for("admin.index") + "#api")
