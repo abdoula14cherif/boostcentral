@@ -252,6 +252,22 @@ tr:hover td{background:var(--off)}
 </form>
 </div>
 </div>
+<div class="modal-bg" id="modal-s">
+<div class="modal">
+<button class="modal-close" onclick="closeModal('modal-s')">X</button>
+<h3 id="modal-s-title">Modifier le service</h3>
+<form method="POST" action="{{ url_for('admin.update_service') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="service_id" id="s-id">
+<div class="fg"><label>Prix FCFA / unite</label><input class="inp" type="number" name="prix_fcfa" id="s-prix" step="0.1" min="0.1"></div>
+<div class="fg"><label>Quantite minimum</label><input class="inp" type="number" name="min_qte" id="s-min" min="1"></div>
+<div class="fg"><label>Quantite maximum</label><input class="inp" type="number" name="max_qte" id="s-max" min="1"></div>
+<div class="fg"><label>Description</label><input class="inp" type="text" name="description" id="s-desc"></div>
+<div class="fg" style="display:flex;align-items:center;gap:10px"><label style="margin:0">Actif</label><input type="checkbox" name="actif" id="s-actif" style="width:18px;height:18px"></div>
+<button type="submit" class="btn-full btn-full-b" style="margin-top:12px"><i class="fas fa-save"></i> Enregistrer</button>
+</form>
+</div>
+</div>
 <div class="modal-bg" id="modal-b">
 <div class="modal">
 <button class="modal-close" onclick="closeModal('modal-b')">X</button>
@@ -260,4 +276,29 @@ tr:hover td{background:var(--off)}
 <form method="POST" action="{{ url_for('admin.update_user_balance') }}">
 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 <input type="hidden" name="user_id" id="b-uid">
-<div class="fg"><label>Nouveau solde (FCFA)</label><input class="inp" type="number" name="new_balance" id="b-
+<div class="fg"><label>Nouveau solde (FCFA)</label><input class="inp" type="number" name="new_balance" id="b-val" min="0"></div>
+<button type="submit" class="btn-full btn-full-b"><i class="fas fa-save"></i> Enregistrer</button>
+</form>
+</div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function showTab(name,btn){
+document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+document.getElementById('panel-'+name).classList.add('active');
+btn.classList.add('active');
+history.replaceState(null,'','#'+name);
+}
+function openModal(id){document.getElementById(id).classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+function openModalR(id,email,montant){document.getElementById('r-id').value=id;document.getElementById('modal-r-title').textContent='Recharge '+Math.round(montant).toLocaleString()+' FCFA — '+email;openModal('modal-r')}
+function openModalC(id,status,prog,note){document.getElementById('c-id').value=id;document.getElementById('c-status').value=status;document.getElementById('c-prog').value=prog;document.getElementById('c-note').value=note;openModal('modal-c')}
+function openModalS(id,prix,min,max,desc,actif,cat){document.getElementById('s-id').value=id;document.getElementById('s-prix').value=prix;document.getElementById('s-min').value=min;document.getElementById('s-max').value=max;document.getElementById('s-desc').value=desc;document.getElementById('s-actif').checked=actif;document.getElementById('modal-s-title').textContent='Modifier : '+cat;openModal('modal-s')}
+function openModalB(uid,email,balance){document.getElementById('b-uid').value=uid;document.getElementById('b-val').value=balance;document.getElementById('b-email').textContent=email;openModal('modal-b')}
+var hash=window.location.hash.replace('#','');
+var tabMap={recharges:0,commandes:1,services:2,users:3,api:4};
+if(hash in tabMap){var btns=document.querySelectorAll('.tab-btn');showTab(hash,btns[tabMap[hash]])}
+</script>
+{% endblock %}
