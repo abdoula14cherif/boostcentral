@@ -61,6 +61,45 @@ def commandes():
         user=user, profile=profile, orders=orders)
 
 
+@dashboard_bp.route("/mes-stats")
+@login_required
+def stats():
+    user = get_current_user()
+    profile = get_profile(user["id"])
+    orders = get_user_orders(user["id"], limit=500)
+
+    nb_commandes = len(orders)
+    total_depense = sum(o.get("prix_total", 0) or 0 for o in orders)
+    economies = sum(
+        max(0, (o.get("prix_unitaire", 0) or 0) * (o.get("quantite", 0) or 0) - (o.get("prix_total", 0) or 0))
+        for o in orders
+    )
+
+    repartition = {}
+    for o in orders:
+        net = o.get("reseau", "autre")
+        if net not in repartition:
+            repartition[net] = {"count": 0, "total": 0}
+        repartition[net]["count"] += 1
+        repartition[net]["total"] += o.get("prix_total", 0) or 0
+
+    max_total = max([v["total"] for v in repartition.values()], default=1) or 1
+    repartition_liste = sorted(
+        [{"reseau": k, "count": v["count"], "total": v["total"], "pct": round(v["total"] / max_total * 100)} for k, v in repartition.items()],
+        key=lambda x: x["total"], reverse=True
+    )
+
+    total_recharge = get_total_recharged(user["id"])
+    vip = get_vip_tier(total_recharge)
+    points = profile.get("points", 0) if profile else 0
+
+    return render_template("dashboard/stats.html",
+        user=user, profile=profile,
+        nb_commandes=nb_commandes, total_depense=total_depense, economies=economies,
+        repartition=repartition_liste, total_recharge=total_recharge,
+        vip=vip, points=points)
+
+
 @dashboard_bp.route("/api")
 @login_required
 def api_page():
