@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}{{ ticket.sujet }} — Support{% endblock %}
+{% block extra_css %}
+header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 2px 8px rgba(0,0,0,.04);position:sticky;top:0;z-index:10}
+.back-btn{background:var(--blue-l);border:none;color:var(--blue);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none}
+.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+main{padding:20px;max-width:680px;margin:0 auto}
+.t-header{background:var(--white);border-radius:16px;padding:18px 20px;border:1px solid var(--gray);margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.t-header h2{font-size:1.05rem;font-weight:800;color:var(--dark)}
+.badge{display:inline-flex;padding:4px 12px;border-radius:16px;font-size:.72rem;font-weight:700}
+.b-ouvert{background:#FFF8E6;color:#D97706}.b-repondu{background:#EDFFF5;color:var(--green)}.b-ferme{background:var(--light-g);color:var(--light)}
+.msg{max-width:82%;margin-bottom:14px;opacity:0;transform:translateY(8px);animation:mIn .35s ease forwards}
+@keyframes mIn{to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.msg{animation:none;opacity:1;transform:none}}
+.msg.client{margin-left:auto}
+.msg-bubble{padding:12px 15px;border-radius:16px;font-size:.87rem;line-height:1.55;white-space:pre-line}
+.msg.client .msg-bubble{background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;border-bottom-right-radius:4px}
+.msg.admin .msg-bubble{background:var(--white);border:1px solid var(--gray);color:var(--dark);border-bottom-left-radius:4px}
+.msg-meta{font-size:.68rem;color:var(--light);margin-top:4px}
+.msg.client .msg-meta{text-align:right}
+.reply-box{position:sticky;bottom:0;background:var(--white);border-radius:16px;padding:14px;border:1px solid var(--gray);margin-top:18px;box-shadow:0 -4px 14px rgba(0,0,0,.04)}
+.reply-box textarea{width:100%;padding:12px;border:2px solid var(--gray);border-radius:11px;font-size:.88rem;resize:vertical;outline:none;font-family:inherit;margin-bottom:10px}
+.reply-box textarea:focus{border-color:var(--blue)}
+.btn-reply{width:100%;padding:13px;border:none;border-radius:11px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.closed-note{text-align:center;padding:16px;color:var(--light);font-size:.85rem;background:var(--light-g);border-radius:12px;margin-top:18px}
+{% endblock %}
+{% block nav %}
+<header>
+<a href="{{ url_for('support.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Mes tickets</a>
+<div class="logo">BOOST CENTRAL</div>
+</header>
+{% endblock %}
+{% block content %}
+<main>
+  {% set bmap={'ouvert':('b-ouvert','En attente'),'repondu':('b-repondu','Repondu'),'ferme':('b-ferme','Ferme')} %}
+  {% set bc,bt=bmap.get(ticket.statut,('b-ouvert','En attente')) %}
+  <div class="t-header">
+    <h2>{{ ticket.sujet }}</h2>
+    <span class="badge {{ bc }}">{{ bt }}</span>
+  </div>
+
+  {% for m in messages %}
+  <div class="msg {{ 'client' if m.auteur == 'client' else 'admin' }}" style="animation-delay:{{ loop.index0 * 0.06 }}s">
+    <div class="msg-bubble">{{ m.message }}</div>
+    <div class="msg-meta">{{ 'Vous' if m.auteur == 'client' else 'Support' }} — {{ m.created_at[:16].replace('T',' ') if m.created_at else '' }}</div>
+  </div>
+  {% endfor %}
+
+  {% if ticket.statut != 'ferme' %}
+  <div class="reply-box">
+    <form method="POST" action="{{ url_for('support.repondre', ticket_id=ticket.id) }}">
+      <textarea name="message" rows="3" placeholder="Ecrivez votre message..." required></textarea>
+      <button type="submit" class="btn-reply"><i class="fas fa-paper-plane"></i> Envoyer</button>
+    </form>
+  </div>
+  {% else %}
+  <div class="closed-note"><i class="fas fa-lock"></i> Ce ticket est ferme. Ouvrez-en un nouveau si besoin.</div>
+  {% endif %}
+</main>
+{% endblock %}
