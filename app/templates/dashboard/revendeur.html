@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Devenir revendeur — Boost Central{% endblock %}
+{% block extra_css %}
+header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 2px 8px rgba(0,0,0,.04);position:sticky;top:0;z-index:10}
+.back-btn{background:var(--blue-l);border:none;color:var(--blue);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none}
+.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+main{padding:20px;max-width:680px;margin:0 auto}
+.hero-rev{background:linear-gradient(135deg,#7C3AED,#4C1D95);border-radius:22px;padding:32px 26px;margin-bottom:22px;text-align:center;color:#fff}
+.hero-rev .emoji{font-size:2.6rem;margin-bottom:10px}
+.hero-rev h2{font-size:1.3rem;font-weight:900;margin-bottom:8px}
+.hero-rev p{font-size:.88rem;opacity:.85;line-height:1.6}
+.prix-badge{display:inline-block;background:rgba(255,255,255,.18);padding:8px 20px;border-radius:20px;font-weight:800;font-size:1.1rem;margin-top:14px}
+.card{background:var(--white);border-radius:18px;padding:22px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px}
+.card-title{font-size:1rem;font-weight:800;color:var(--dark);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:.82rem;font-weight:600;color:var(--dark);margin-bottom:6px}
+.inp{width:100%;padding:12px 14px;border:2px solid var(--gray);border-radius:12px;font-size:.9rem;color:var(--dark);outline:none;transition:border-color .2s}
+.inp:focus{border-color:var(--blue)}
+.slug-preview{font-size:.78rem;color:var(--mid);margin-top:6px}
+.modele-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px}
+@media(max-width:480px){.modele-grid{grid-template-columns:1fr}}
+.modele-card{border:2px solid var(--gray);border-radius:14px;padding:16px;cursor:pointer;transition:all .22s;position:relative}
+.modele-card:hover{border-color:#7C3AED}
+.modele-card.sel{border-color:#7C3AED;background:#F5F3FF}
+.modele-card input{position:absolute;opacity:0}
+.modele-icon{font-size:1.3rem;margin-bottom:6px}
+.modele-title{font-size:.88rem;font-weight:800;color:var(--dark);margin-bottom:4px}
+.modele-desc{font-size:.76rem;color:var(--mid);line-height:1.5}
+.btn-activer{width:100%;padding:16px;margin-top:8px;border:none;border-radius:14px;background:linear-gradient(90deg,#7C3AED,#6D28D9);color:#fff;font-size:1rem;font-weight:800;cursor:pointer;box-shadow:0 7px 20px rgba(124,58,237,.28);transition:all .25s}
+.btn-activer:hover{transform:translateY(-2px)}
+.btn-activer:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+.actif-badge{display:flex;align-items:center;gap:10px;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:14px;padding:16px}
+.actif-badge i{font-size:1.5rem;color:#7C3AED}
+
+#confettiOverlay{position:fixed;inset:0;background:rgba(15,20,30,.6);backdrop-filter:blur(4px);z-index:2200;display:none;align-items:center;justify-content:center;padding:20px}
+#confettiOverlay.open{display:flex}
+.confetti-card{background:var(--white);border-radius:22px;padding:34px 26px;max-width:360px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.28);animation:cardPop .45s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes cardPop{from{opacity:0;transform:scale(.9) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@media(prefers-reduced-motion:reduce){.confetti-card{animation:none}}
+.confetti-card .em{font-size:3rem;margin-bottom:14px}
+.confetti-card h3{font-size:1.2rem;font-weight:800;color:var(--dark);margin-bottom:10px}
+.confetti-card p{font-size:.87rem;color:var(--mid);line-height:1.6;margin-bottom:22px}
+.btn-ok-conf{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(90deg,#7C3AED,#6D28D9);color:#fff;font-weight:800;cursor:pointer}
+{% endblock %}
+{% block nav %}
+<header>
+<a href="{{ url_for('dashboard.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
+<div class="logo">BOOST CENTRAL</div>
+</header>
+{% endblock %}
+{% block content %}
+<main>
+  {% if profile and profile.est_revendeur %}
+    <div class="hero-rev">
+      <div class="emoji">🏪</div>
+      <h2>Vous etes revendeur !</h2>
+      <p>Votre espace : <strong>boostcentral.app/r/{{ profile.revendeur_slug }}</strong></p>
+    </div>
+    <div class="card">
+      <div class="actif-badge">
+        <i class="fas fa-check-circle"></i>
+        <div>
+          <div style="font-weight:700;color:var(--dark)">Modele choisi : {{ 'Vos propres prix (marge)' if profile.revendeur_modele == 'marge' else 'Commission de ' ~ (profile.revendeur_commission_pct*100)|round|int ~ '%' }}</div>
+          <div style="font-size:.8rem;color:var(--mid);margin-top:2px">La gestion de vos clients et de vos tarifs arrive tres bientot ici.</div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="hero-rev">
+      <div class="emoji">🏪</div>
+      <h2>Devenez revendeur Boost Central</h2>
+      <p>Creez votre propre espace de vente, fixez vos prix ou touchez une commission — votre solde reste chez toi, votre activite grandit.</p>
+      <div class="prix-badge">{{ "{:,.0f}".format(prix_activation) }} FCFA</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-store" style="color:#7C3AED"></i> Votre identifiant</div>
+      <form method="POST" action="{{ url_for('revendeur.activer') }}" id="formRevendeur">
+        <div class="fg">
+          <label>Nom de votre espace</label>
+          <input type="text" class="inp" name="slug" id="slugInp" placeholder="ex: jean-boost" pattern="[a-z0-9][a-z0-9-]{2,28}[a-z0-9]" required oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'');majSlug();verifierForm()">
+          <div class="slug-preview">Votre lien : boostcentral.app/r/<strong id="slugPreview">...</strong></div>
+        </div>
+
+        <div class="card-title" style="margin-top:6px"><i class="fas fa-coins" style="color:#7C3AED"></i> Comment voulez-vous gagner ?</div>
+        <div class="modele-grid">
+          <label class="modele-card" id="cardMarge" onclick="choisirModele('marge')">
+            <input type="radio" name="modele" value="marge">
+            <div class="modele-icon">💰</div>
+            <div class="modele-title">Mes propres prix</div>
+            <div class="modele-desc">Vous fixez le prix de vente a vos clients et gardez toute la difference avec le tarif Boost Central.</div>
+          </label>
+          <label class="modele-card" id="cardCommission" onclick="choisirModele('commission')">
+            <input type="radio" name="modele" value="commission">
+            <div class="modele-icon">📊</div>
+            <div class="modele-title">Commission fixe</div>
+            <div class="modele-desc">Vous vendez au tarif Boost Central et touchez automatiquement 10% de commission sur chaque vente.</div>
+          </label>
+        </div>
+
+        <button type="submit" class="btn-activer" id="btnActiver" disabled><i class="fas fa-rocket"></i> Activer pour {{ "{:,.0f}".format(prix_activation) }} FCFA</button>
+      </form>
+    </div>
+  {% endif %}
+</main>
+
+<div id="confettiOverlay">
+  <div class="confetti-card">
+    <div class="em">🎉</div>
+    <h3>Bienvenue revendeur !</h3>
+    <p>Votre espace est actif. La gestion complete de vos clients et de vos tarifs arrive tres bientot.</p>
+    <button type="button" class="btn-ok-conf" onclick="document.getElementById('confettiOverlay').classList.remove('open')">Super !</button>
+  </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function majSlug(){
+  var v = document.getElementById('slugInp').value || '...';
+  document.getElementById('slugPreview').textContent = v;
+}
+
+function choisirModele(m){
+  document.querySelectorAll('.modele-card').forEach(function(c){c.classList.remove('sel')});
+  document.querySelector('input[value="'+m+'"]').checked = true;
+  document.getElementById(m === 'marge' ? 'cardMarge' : 'cardCommission').classList.add('sel');
+  verifierForm();
+}
+
+function verifierForm(){
+  var slug = document.getElementById('slugInp') ? document.getElementById('slugInp').value : '';
+  var modele = document.querySelector('input[name="modele"]:checked');
+  document.getElementById('btnActiver').disabled = !(slug.length >= 3 && modele);
+}
+
+{% if request.args.get('active') == '1' %}
+document.getElementById('confettiOverlay').classList.add('open');
+{% endif %}
+</script>
+{% endblock %}
