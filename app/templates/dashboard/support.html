@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Support — Boost Central{% endblock %}
+{% block extra_css %}
+header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 2px 8px rgba(0,0,0,.04);position:sticky;top:0;z-index:10}
+.back-btn{background:var(--blue-l);border:none;color:var(--blue);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none}
+.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+main{padding:20px;max-width:680px;margin:0 auto}
+.hero-support{background:linear-gradient(135deg,var(--blue),var(--blue-d));border-radius:20px;padding:26px 24px;margin-bottom:20px;text-align:center;color:#fff}
+.hero-support .emoji{font-size:2.2rem;margin-bottom:8px}
+.hero-support h2{font-size:1.15rem;font-weight:800;margin-bottom:6px}
+.hero-support p{font-size:.85rem;opacity:.85}
+.btn-nouveau{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:15px;margin-top:16px;border:none;border-radius:13px;background:#fff;color:var(--blue);font-size:.95rem;font-weight:800;cursor:pointer;transition:transform .22s}
+.btn-nouveau:hover{transform:translateY(-2px)}
+.list-title{font-size:1rem;font-weight:700;color:var(--dark);margin:20px 0 12px;display:flex;align-items:center;gap:8px}
+.ticket-item{display:block;background:var(--white);border:1px solid var(--gray);border-radius:14px;padding:16px;margin-bottom:10px;text-decoration:none;transition:all .22s;opacity:0;transform:translateY(8px);animation:tIn .4s ease forwards}
+@keyframes tIn{to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.ticket-item{animation:none;opacity:1;transform:none}}
+.ticket-item:hover{border-color:var(--blue);box-shadow:0 6px 18px rgba(0,102,255,.1)}
+.t-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.t-sujet{font-size:.9rem;font-weight:700;color:var(--dark)}
+.t-date{font-size:.72rem;color:var(--light)}
+.badge{display:inline-flex;padding:3px 10px;border-radius:16px;font-size:.7rem;font-weight:700}
+.b-ouvert{background:#FFF8E6;color:#D97706}.b-repondu{background:#EDFFF5;color:var(--green)}.b-ferme{background:var(--light-g);color:var(--light)}
+.no-tickets{text-align:center;padding:36px 20px;color:var(--light)}
+.no-tickets i{font-size:2.2rem;display:block;margin-bottom:10px;color:var(--gray)}
+
+#modalNouveau{position:fixed;inset:0;background:rgba(15,20,30,.55);backdrop-filter:blur(4px);z-index:2000;display:none;align-items:center;justify-content:center;padding:20px}
+#modalNouveau.open{display:flex}
+.modal-card{background:var(--white);border-radius:20px;padding:26px;max-width:420px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.25);animation:cardPop .35s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes cardPop{from{opacity:0;transform:scale(.92) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@media(prefers-reduced-motion:reduce){.modal-card{animation:none}}
+.modal-card h3{font-size:1.05rem;font-weight:800;color:var(--dark);margin-bottom:16px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.8rem;font-weight:600;color:var(--dark);margin-bottom:5px}
+.inp,textarea.inp{width:100%;padding:12px 13px;border:2px solid var(--gray);border-radius:11px;font-size:.9rem;color:var(--dark);outline:none;transition:border-color .2s;font-family:inherit}
+.inp:focus{border-color:var(--blue)}
+.modal-actions{display:flex;gap:8px;margin-top:6px}
+.btn-cancel{flex:1;padding:12px;border:2px solid var(--gray);border-radius:11px;background:var(--white);color:var(--mid);font-weight:700;cursor:pointer}
+.btn-send{flex:2;padding:12px;border:none;border-radius:11px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;font-weight:800;cursor:pointer}
+{% endblock %}
+{% block nav %}
+<header>
+<a href="{{ url_for('dashboard.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
+<div class="logo">BOOST CENTRAL</div>
+</header>
+{% endblock %}
+{% block content %}
+<main>
+  <div class="hero-support">
+    <div class="emoji">💬</div>
+    <h2>Besoin d aide ?</h2>
+    <p>Ouvrez un ticket, notre equipe vous repond directement ici.</p>
+    <button type="button" class="btn-nouveau" onclick="document.getElementById('modalNouveau').classList.add('open')"><i class="fas fa-plus"></i> Nouveau ticket</button>
+  </div>
+
+  <div class="list-title"><i class="fas fa-inbox" style="color:var(--blue)"></i> Mes tickets</div>
+  {% if tickets %}
+    {% for t in tickets %}
+    {% set bmap={'ouvert':('b-ouvert','En attente'),'repondu':('b-repondu','Repondu'),'ferme':('b-ferme','Ferme')} %}
+    {% set bc,bt=bmap.get(t.statut,('b-ouvert','En attente')) %}
+    <a href="{{ url_for('support.detail', ticket_id=t.id) }}" class="ticket-item" style="animation-delay:{{ loop.index0 * 0.05 }}s">
+      <div class="t-top">
+        <span class="t-sujet">{{ t.sujet }}</span>
+        <span class="badge {{ bc }}">{{ bt }}</span>
+      </div>
+      <div class="t-date">{{ t.updated_at[:10] if t.updated_at else t.created_at[:10] }}</div>
+    </a>
+    {% endfor %}
+  {% else %}
+    <div class="no-tickets"><i class="fas fa-inbox"></i><p>Aucun ticket pour l instant.</p></div>
+  {% endif %}
+</main>
+
+<div id="modalNouveau">
+  <div class="modal-card">
+    <h3><i class="fas fa-comment-dots" style="color:var(--blue)"></i> Nouveau ticket</h3>
+    <form method="POST" action="{{ url_for('support.nouveau') }}">
+      <div class="fg"><label>Sujet</label><input class="inp" type="text" name="sujet" placeholder="Ex : Probleme avec ma commande" required></div>
+      <div class="fg"><label>Message</label><textarea class="inp" name="message" rows="5" placeholder="Decrivez votre probleme..." required></textarea></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="document.getElementById('modalNouveau').classList.remove('open')">Annuler</button>
+        <button type="submit" class="btn-send"><i class="fas fa-paper-plane"></i> Envoyer</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
