@@ -47,6 +47,8 @@ main{padding:20px;max-width:1100px;margin:0 auto;position:relative;z-index:1}
       <a href="{{ url_for('dashboard.index') }}" class="dd-item"><i class="fas fa-house"></i> Accueil</a>
       <a href="{{ url_for('recharge.index') }}" class="dd-item"><i class="fas fa-wallet"></i> Recharger mon solde</a>
       <a href="{{ url_for('dashboard.commandes') }}" class="dd-item"><i class="fas fa-shopping-cart"></i> Mes commandes</a>
+      <a href="{{ url_for('dashboard.stats') }}" class="dd-item"><i class="fas fa-chart-pie" style="color:#0EA5E9"></i> Mes stats</a>
+      <a href="{{ url_for('dashboard.api_page') }}" class="dd-item"><i class="fas fa-code" style="color:#059669"></i> API</a>
       <a href="/gagner/" class="dd-item"><i class="fas fa-coins" style="color:#D97706"></i> Gagner des points</a>
       <a href="/parrainage/" class="dd-item"><i class="fas fa-gift" style="color:#7C3AED"></i> Parrainage</a>
       <div class="dd-div"></div>
@@ -85,7 +87,7 @@ main{padding:20px;max-width:1100px;margin:0 auto;position:relative;z-index:1}
         {% if o.statut != 'refuse' %}
         <div class="prog-wrap"><div class="prog-lbl"><span>Progression</span><span>{{ o.progression or 0 }}%</span></div><div class="prog-bar"><div class="prog-fill" style="width:{{ o.progression or 0 }}%"></div></div></div>
         {% endif %}
-        {% if o.note_admin and not o.note_admin.startswith('BOOSTCI') and not o.note_admin.startswith('❌') and not o.note_admin.startswith('⚠️') and not o.note_admin.startswith('✅ BOOSTCI') %}<div style="margin-top:8px;font-size:.78rem;color:var(--mid);background:var(--light-g);padding:8px 10px;border-radius:8px">{{ o.note_admin }}</div>{% endif %}
+        {% if o.note_admin and not o.note_admin.startswith('BOOSTCI') and not o.note_admin.startswith('❌') and not o.note_admin.startswith('⚠️') and not o.note_admin.startswith('✅ BOOSTCI') and not o.note_admin.startswith('API') %}<div style="margin-top:8px;font-size:.78rem;color:var(--mid);background:var(--light-g);padding:8px 10px;border-radius:8px">{{ o.note_admin }}</div>{% endif %}
       </div>
       {% endfor %}
     {% else %}
