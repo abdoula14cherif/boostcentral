@@ -33,6 +33,7 @@ def create_app(config_name="production"):
     from app.routes.parrainage import parrainage_bp
     from app.routes.admin_users import admin_users_bp
     from app.routes.api import api_bp
+    from app.routes.relance import relance_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
@@ -46,9 +47,11 @@ def create_app(config_name="production"):
     app.register_blueprint(parrainage_bp, url_prefix="/parrainage")
     app.register_blueprint(admin_users_bp, url_prefix="/admin/users")
     app.register_blueprint(api_bp, url_prefix="/api/v1")
+    app.register_blueprint(relance_bp, url_prefix="/cron")
 
     csrf.exempt(webhook_bp)
     csrf.exempt(api_bp)
+    csrf.exempt(relance_bp)
 
     @app.route("/")
     def index():
