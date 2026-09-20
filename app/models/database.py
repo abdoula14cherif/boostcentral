@@ -368,3 +368,92 @@ def enregistrer_utilisation_code(code_id, user_id, recharge_id):
     except Exception as e:
         logger.error(f"enregistrer_utilisation_code: {e}")
         return False
+
+
+def create_ticket(data):
+    try:
+        r = requests.post(_url("tickets"), json=data, headers=_headers(True))
+        result = r.json()
+        if isinstance(result, list) and result:
+            return result[0]
+        return None
+    except Exception as e:
+        logger.error(f"create_ticket: {e}")
+        return None
+
+
+def get_user_tickets(user_id):
+    try:
+        r = requests.get(_url(f"tickets?user_id=eq.{user_id}&order=updated_at.desc"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_user_tickets: {e}")
+        return []
+
+
+def get_all_tickets():
+    try:
+        r = requests.get(_url("tickets?order=updated_at.desc"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_all_tickets: {e}")
+        return []
+
+
+def get_ticket_by_id(ticket_id):
+    try:
+        r = requests.get(_url(f"tickets?id=eq.{ticket_id}&limit=1"), headers=_headers(True))
+        data = r.json()
+        if isinstance(data, list) and data:
+            return data[0]
+        return None
+    except Exception as e:
+        logger.error(f"get_ticket_by_id: {e}")
+        return None
+
+
+def get_ticket_by_id_for_user(ticket_id, user_id):
+    try:
+        r = requests.get(_url(f"tickets?id=eq.{ticket_id}&user_id=eq.{user_id}&limit=1"), headers=_headers(True))
+        data = r.json()
+        if isinstance(data, list) and data:
+            return data[0]
+        return None
+    except Exception as e:
+        logger.error(f"get_ticket_by_id_for_user: {e}")
+        return None
+
+
+def update_ticket(ticket_id, data):
+    try:
+        r = requests.patch(_url(f"tickets?id=eq.{ticket_id}"), json=data, headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"update_ticket: {e}")
+        return False
+
+
+def get_ticket_messages(ticket_id):
+    try:
+        r = requests.get(_url(f"ticket_messages?ticket_id=eq.{ticket_id}&order=created_at.asc"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_ticket_messages: {e}")
+        return []
+
+
+def add_ticket_message(ticket_id, auteur, message):
+    try:
+        from datetime import datetime, timezone
+        r = requests.post(_url("ticket_messages"), json={
+            "ticket_id": ticket_id, "auteur": auteur, "message": message
+        }, headers=_headers(True))
+        update_ticket(ticket_id, {"updated_at": datetime.now(timezone.utc).isoformat()})
+        result = r.json()
+        return result[0] if isinstance(result, list) and result else None
+    except Exception as e:
+        logger.error(f"add_ticket_message: {e}")
+        return None
