@@ -3,7 +3,7 @@ import secrets
 import requests
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from app.models.security import admin_required
-from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key, get_all_promo_codes, create_promo_code, update_promo_code, get_order_by_id
+from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key, get_all_promo_codes, create_promo_code, update_promo_code, get_order_by_id, get_all_tickets, get_ticket_messages, add_ticket_message, update_ticket
 from app.models.mailer import email_commande_livree
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,10 @@ def index():
         "total_facture_api": round(total_facture_api)
     }
     promo_codes = get_all_promo_codes()
-    return render_template("admin/index.html", recharges=recharges, orders=orders, services=services, users=users, stats=stats, promo_codes=promo_codes, whatsapp=current_app.config["WHATSAPP_NUMBER"])
+    tickets = get_all_tickets()
+    nb_tickets_ouverts = sum(1 for t in tickets if t.get("statut") == "ouvert")
+    stats["tickets_ouverts"] = nb_tickets_ouverts
+    return render_template("admin/index.html", recharges=recharges, orders=orders, services=services, users=users, stats=stats, promo_codes=promo_codes, tickets=tickets, whatsapp=current_app.config["WHATSAPP_NUMBER"])
 
 @admin_bp.route("/recharge/process", methods=["POST"])
 @admin_required
@@ -240,3 +243,44 @@ def toggle_promo():
     else:
         flash("Erreur mise a jour.", "error")
     return redirect(url_for("admin.index") + "#promo")
+
+
+@admin_bp.route("/ticket/<ticket_id>")
+@admin_required
+def ticket_detail(ticket_id):
+    from flask import jsonify
+    ticket = None
+    for t in get_all_tickets():
+        if str(t.get("id")) == str(ticket_id):
+            ticket = t
+            break
+    messages = get_ticket_messages(ticket_id)
+    return jsonify({"ticket": ticket, "messages": messages})
+
+
+@admin_bp.route("/ticket/repondre", methods=["POST"])
+@admin_required
+def ticket_repondre():
+    ticket_id = request.form.get("ticket_id", "")
+    message = request.form.get("message", "").strip()
+    if not ticket_id or not message:
+        flash("Donnees manquantes.", "error")
+        return redirect(url_for("admin.index") + "#support")
+
+    add_ticket_message(ticket_id, "admin", message)
+    update_ticket(ticket_id, {"statut": "repondu"})
+    flash("Reponse envoyee.", "success")
+    return redirect(url_for("admin.index") + "#support")
+
+
+@admin_bp.route("/ticket/statut", methods=["POST"])
+@admin_required
+def ticket_statut():
+    ticket_id = request.form.get("ticket_id", "")
+    statut = request.form.get("statut", "")
+    if not ticket_id or statut not in ("ouvert", "repondu", "ferme"):
+        flash("Donnees invalides.", "error")
+        return redirect(url_for("admin.index") + "#support")
+    update_ticket(ticket_id, {"statut": statut})
+    flash("Statut mis a jour.", "success")
+    return redirect(url_for("admin.index") + "#support")
