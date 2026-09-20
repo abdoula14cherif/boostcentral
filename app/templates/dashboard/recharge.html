@@ -33,6 +33,8 @@ main{padding:20px;max-width:680px;margin:0 auto}
 .hd{font-size:.74rem;color:var(--light)}
 .badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:18px;font-size:.73rem;font-weight:700}
 .s-wait{background:#FFF8E6;color:#D97706}.s-ok{background:#EDFFF5;color:var(--green)}.s-ref{background:#fee2e2;color:var(--red)}
+.btn-facture{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:var(--blue-l);color:var(--blue);text-decoration:none;font-size:.82rem;transition:all .2s}
+.btn-facture:hover{background:var(--blue);color:#fff}
 {% endblock %}
 {% block nav %}
 <header>
@@ -117,7 +119,12 @@ main{padding:20px;max-width:680px;margin:0 auto}
 <div class="hn">{{ ml.get(r.methode,r.methode) }} — {{ "{:,.0f}".format(r.montant_fcfa) }} FCFA</div>
 <div class="hd">{{ r.created_at[:10] if r.created_at else '' }}</div>
 </div>
+<div style="display:flex;align-items:center;gap:8px">
 <span class="badge {{ bc }}">{{ bt }}</span>
+{% if r.statut == 'valide' %}
+<a href="{{ url_for('recharge.facture', recharge_id=r.id) }}" class="btn-facture" title="Telecharger la facture"><i class="fas fa-file-invoice"></i></a>
+{% endif %}
+</div>
 </div>
 {% endfor %}
 {% else %}
