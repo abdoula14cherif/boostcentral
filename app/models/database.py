@@ -222,6 +222,19 @@ def get_recharge_by_hash(hash_tx):
         return None
 
 
+def get_recharge_by_id_for_user(recharge_id, user_id):
+    """Recupere une recharge par id, en verifiant qu'elle appartient bien a l'utilisateur (securite facture PDF)."""
+    try:
+        r = requests.get(_url(f"recharges?id=eq.{recharge_id}&user_id=eq.{user_id}&limit=1"), headers=_headers(True))
+        data = r.json()
+        if isinstance(data, list) and len(data) > 0:
+            return data[0]
+        return None
+    except Exception as e:
+        logger.error(f"get_recharge_by_id_for_user: {e}")
+        return None
+
+
 def update_recharge(recharge_id, data):
     try:
         r = requests.patch(_url(f"recharges?id=eq.{recharge_id}"), json=data, headers=_headers(True))
