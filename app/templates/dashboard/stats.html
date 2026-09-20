@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Mes statistiques — Boost Central{% endblock %}
+{% block extra_css %}
+header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 2px 8px rgba(0,0,0,.04);position:sticky;top:0;z-index:10}
+.back-btn{background:var(--blue-l);border:none;color:var(--blue);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none}
+.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+main{padding:20px;max-width:680px;margin:0 auto}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.stat-card{background:var(--white);border-radius:16px;padding:18px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);opacity:0;transform:translateY(10px);animation:statIn .5s ease forwards}
+@keyframes statIn{to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.stat-card{animation:none;opacity:1;transform:none}}
+.stat-icon{font-size:1.3rem;margin-bottom:8px}
+.stat-val{font-size:1.5rem;font-weight:900;color:var(--dark)}
+.stat-lbl{font-size:.76rem;color:var(--mid);margin-top:2px}
+.vip-mini{background:linear-gradient(135deg,var(--vipcolor,#666),var(--vipcolor,#666));border-radius:16px;padding:20px;margin-bottom:20px;color:#fff;text-align:center}
+.card{background:var(--white);border-radius:16px;padding:20px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px}
+.card-title{font-size:.95rem;font-weight:800;color:var(--dark);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.net-row{margin-bottom:14px}
+.net-row:last-child{margin-bottom:0}
+.net-top{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:5px}
+.net-name{font-weight:700;color:var(--dark);text-transform:capitalize}
+.net-val{color:var(--mid)}
+.net-bar-bg{height:9px;background:var(--light-g);border-radius:6px;overflow:hidden}
+.net-bar-fill{height:100%;border-radius:6px;width:0;transition:width 1s ease}
+.no-data{text-align:center;padding:30px;color:var(--light)}
+.no-data i{font-size:2rem;display:block;margin-bottom:10px;color:var(--gray)}
+{% endblock %}
+{% block nav %}
+<header>
+<a href="{{ url_for('dashboard.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
+<div class="logo">BOOST CENTRAL</div>
+</header>
+{% endblock %}
+{% block content %}
+<main>
+  <div class="vip-mini" style="--vipcolor:{{ vip.couleur }}">
+    <i class="fas {{ vip.icone }}" style="font-size:1.6rem;margin-bottom:6px;display:block"></i>
+    <div style="font-size:1.1rem;font-weight:800">Niveau {{ vip.nom }}</div>
+    {% if vip.remise > 0 %}<div style="font-size:.82rem;opacity:.9">-{{ (vip.remise*100)|round|int }}% sur toutes vos commandes</div>{% endif %}
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card" style="animation-delay:.05s">
+      <div class="stat-icon">🛒</div>
+      <div class="stat-val">{{ nb_commandes }}</div>
+      <div class="stat-lbl">Commandes passees</div>
+    </div>
+    <div class="stat-card" style="animation-delay:.1s">
+      <div class="stat-icon">💳</div>
+      <div class="stat-val">{{ "{:,.0f}".format(total_depense) }}</div>
+      <div class="stat-lbl">FCFA depenses</div>
+    </div>
+    <div class="stat-card" style="animation-delay:.15s">
+      <div class="stat-icon">🎉</div>
+      <div class="stat-val" style="color:var(--green)">{{ "{:,.0f}".format(economies) }}</div>
+      <div class="stat-lbl">FCFA economises</div>
+    </div>
+    <div class="stat-card" style="animation-delay:.2s">
+      <div class="stat-icon">🏆</div>
+      <div class="stat-val" style="color:#7C3AED">{{ points }}</div>
+      <div class="stat-lbl">Points cumules</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="fas fa-chart-pie" style="color:var(--blue)"></i> Repartition par reseau</div>
+    {% if repartition %}
+      {% for r in repartition %}
+      {% set colors=['var(--blue)','var(--orange)','#7C3AED','var(--green)','#D97706','#EC4899','#0EA5E9','#64748B'] %}
+      <div class="net-row">
+        <div class="net-top"><span class="net-name">{{ r.reseau }}</span><span class="net-val">{{ r.count }} commande{{ 's' if r.count > 1 else '' }} — {{ "{:,.0f}".format(r.total) }} F</span></div>
+        <div class="net-bar-bg"><div class="net-bar-fill js-bar" data-pct="{{ r.pct }}" style="background:{{ colors[loop.index0 % colors|length] }}"></div></div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="no-data"><i class="fas fa-chart-pie"></i><p>Aucune commande pour l instant.</p></div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="fas fa-wallet" style="color:var(--orange)"></i> Total recharge a vie</div>
+    <div class="stat-val" style="font-size:1.8rem">{{ "{:,.0f}".format(total_recharge) }} FCFA</div>
+  </div>
+</main>
+{% endblock %}
+{% block extra_js %}
+<script>
+window.addEventListener('load', function(){
+  document.querySelectorAll('.js-bar').forEach(function(el, i){
+    setTimeout(function(){
+      el.style.width = el.dataset.pct + '%';
+    }, 100 + i * 80);
+  });
+});
+</script>
+{% endblock %}
