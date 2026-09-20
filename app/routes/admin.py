@@ -3,7 +3,8 @@ import secrets
 import requests
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from app.models.security import admin_required
-from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key, get_all_promo_codes, create_promo_code, update_promo_code
+from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key, get_all_promo_codes, create_promo_code, update_promo_code, get_order_by_id
+from app.models.mailer import email_commande_livree
 
 logger = logging.getLogger(__name__)
 admin_bp = Blueprint("admin", __name__)
@@ -102,7 +103,23 @@ def update_order_route():
         progression = 100
     elif status == "refuse":
         progression = 0
+
+    order_avant = get_order_by_id(order_id)
+    deja_termine = order_avant and order_avant.get("statut") == "termine"
+
     ok = update_order(order_id, {"statut": status, "progression": progression, "note_admin": admin_note})
+
+    if ok and status == "termine" and not deja_termine and order_avant:
+        try:
+            email_commande_livree(
+                order_avant.get("user_email"),
+                (order_avant.get("user_email") or "").split("@")[0],
+                order_avant.get("service"),
+                order_avant.get("quantite", 0)
+            )
+        except Exception as e:
+            logger.error(f"email_commande_livree: {e}")
+
     if ok:
         flash("Commande mise a jour.", "success")
     else:
