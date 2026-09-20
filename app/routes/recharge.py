@@ -2,9 +2,10 @@ import logging
 import os
 import uuid
 import json
-from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request, session, jsonify
+import io
+from flask import Blueprint, render_template, redirect, url_for, flash, current_app, request, session, jsonify, send_file
 from app.models.security import login_required, get_current_user
-from app.models.database import get_profile, get_user_recharges, create_recharge, update_recharge, get_recharge_by_hash
+from app.models.database import get_profile, get_user_recharges, create_recharge, update_recharge, get_recharge_by_hash, get_recharge_by_id_for_user
 from app.models.promo import valider_code
 
 logger = logging.getLogger(__name__)
@@ -134,3 +135,114 @@ def payment_failed():
     session.pop("pending_recharge_id", None)
     flash("Paiement annule ou echoue. Vous pouvez reessayer.", "error")
     return redirect(url_for("recharge.index"))
+
+
+@recharge_bp.route("/facture/<recharge_id>")
+@login_required
+def facture(recharge_id):
+    """Genere et telecharge la facture PDF d'une recharge validee."""
+    user = get_current_user()
+    rch = get_recharge_by_id_for_user(recharge_id, user["id"])
+
+    if not rch:
+        flash("Facture introuvable.", "error")
+        return redirect(url_for("recharge.index"))
+
+    if rch.get("statut") != "valide":
+        flash("Cette recharge n'est pas encore validee.", "warning")
+        return redirect(url_for("recharge.index"))
+
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.pdfgen import canvas as pdfcanvas
+
+    buf = io.BytesIO()
+    c = pdfcanvas.Canvas(buf, pagesize=A4)
+    width, height = A4
+
+    bleu = colors.HexColor("#0066FF")
+    orange = colors.HexColor("#FF6600")
+    gris = colors.HexColor("#64748B")
+    fond = colors.HexColor("#F1F5F9")
+
+    # En-tete
+    c.setFillColor(bleu)
+    c.rect(0, height - 32 * mm, width, 32 * mm, fill=1, stroke=0)
+    c.setFillColor(colors.white)
+    c.setFont("Helvetica-Bold", 20)
+    c.drawString(20 * mm, height - 18 * mm, "BOOST CENTRAL")
+    c.setFont("Helvetica", 9)
+    c.drawString(20 * mm, height - 25 * mm, "Facture de recharge")
+
+    c.setFont("Helvetica-Bold", 11)
+    c.drawRightString(width - 20 * mm, height - 18 * mm, f"N° {str(rch.get('id'))[:10]}")
+    date_str = (rch.get("created_at") or "")[:10]
+    c.setFont("Helvetica", 9)
+    c.drawRightString(width - 20 * mm, height - 25 * mm, f"Date : {date_str}")
+
+    y = height - 45 * mm
+
+    # Bloc client
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(20 * mm, y, "Facture etablie pour")
+    c.setFont("Helvetica", 10)
+    c.setFillColor(gris)
+    c.drawString(20 * mm, y - 6 * mm, rch.get("user_email", ""))
+
+    y -= 20 * mm
+
+    # Tableau
+    c.setFillColor(fond)
+    c.rect(20 * mm, y - 8 * mm, width - 40 * mm, 8 * mm, fill=1, stroke=0)
+    c.setFillColor(colors.black)
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(23 * mm, y - 5.5 * mm, "Description")
+    c.drawRightString(width - 23 * mm, y - 5.5 * mm, "Montant")
+
+    y -= 8 * mm
+    ml = {"mtn": "MTN Mobile Money", "orange": "Orange Money", "leekpay": "LeekPay",
+          "soinapay": "LeekPay", "soleaspay": "SoleasPay", "crypto_btc": "Bitcoin",
+          "crypto_bnb": "BNB", "crypto_sol": "Solana"}
+    methode = ml.get(rch.get("methode"), rch.get("methode", ""))
+    montant = rch.get("montant_fcfa", 0) or 0
+
+    c.setFont("Helvetica", 9)
+    y -= 8 * mm
+    c.drawString(23 * mm, y, f"Recharge de solde — {methode}")
+    c.drawRightString(width - 23 * mm, y, f"{montant:,.0f} FCFA")
+
+    if rch.get("promo_code"):
+        y -= 7 * mm
+        c.setFillColor(gris)
+        c.drawString(23 * mm, y, f"Code promo applique : {rch.get('promo_code')}")
+        c.setFillColor(colors.black)
+
+    y -= 5 * mm
+    c.setStrokeColor(colors.HexColor("#E2E8F0"))
+    c.line(20 * mm, y, width - 20 * mm, y)
+
+    y -= 10 * mm
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(23 * mm, y, "Total credite")
+    c.setFillColor(orange)
+    c.drawRightString(width - 23 * mm, y, f"{montant:,.0f} FCFA")
+
+    y -= 8 * mm
+    c.setFillColor(colors.HexColor("#059669"))
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(23 * mm, y, "STATUT : VALIDEE")
+
+    # Pied de page
+    c.setFillColor(gris)
+    c.setFont("Helvetica", 8)
+    c.drawCentredString(width / 2, 15 * mm, "Boost Central — Cette facture confirme le credit de votre solde interne.")
+    c.drawCentredString(width / 2, 11 * mm, "Support WhatsApp : https://wa.me/237689011185")
+
+    c.showPage()
+    c.save()
+    buf.seek(0)
+
+    return send_file(buf, mimetype="application/pdf", as_attachment=True,
+                      download_name=f"facture-boostcentral-{str(rch.get('id'))[:8]}.pdf")
