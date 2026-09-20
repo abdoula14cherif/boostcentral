@@ -457,3 +457,55 @@ def add_ticket_message(ticket_id, auteur, message):
     except Exception as e:
         logger.error(f"add_ticket_message: {e}")
         return None
+
+
+def get_profile_by_slug(slug):
+    """Retrouve un revendeur par son slug (utilise sur la page revendeur et pour le futur sous-domaine)."""
+    try:
+        r = requests.get(_url(f"profiles?revendeur_slug=eq.{slug}&est_revendeur=eq.true&limit=1"), headers=_headers(True))
+        data = r.json()
+        return data[0] if isinstance(data, list) and data else None
+    except Exception as e:
+        logger.error(f"get_profile_by_slug: {e}")
+        return None
+
+
+def slug_deja_pris(slug):
+    try:
+        r = requests.get(_url(f"profiles?revendeur_slug=eq.{slug}&limit=1"), headers=_headers(True))
+        data = r.json()
+        return isinstance(data, list) and len(data) > 0
+    except Exception as e:
+        logger.error(f"slug_deja_pris: {e}")
+        return True  # par securite
+
+
+def activer_revendeur(user_id, slug, modele, commission_pct=0.10):
+    return update_profile(user_id, {
+        "est_revendeur": True,
+        "revendeur_slug": slug,
+        "revendeur_modele": modele,
+        "revendeur_commission_pct": commission_pct
+    })
+
+
+def get_revendeur_clients(revendeur_id):
+    try:
+        r = requests.get(_url(f"revendeur_clients?revendeur_id=eq.{revendeur_id}"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_revendeur_clients: {e}")
+        return []
+
+
+def rattacher_client_revendeur(revendeur_id, client_id):
+    try:
+        exist = requests.get(_url(f"revendeur_clients?revendeur_id=eq.{revendeur_id}&client_id=eq.{client_id}&limit=1"), headers=_headers(True)).json()
+        if exist:
+            return True
+        r = requests.post(_url("revendeur_clients"), json={"revendeur_id": revendeur_id, "client_id": client_id}, headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"rattacher_client_revendeur: {e}")
+        return False
