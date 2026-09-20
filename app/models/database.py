@@ -139,6 +139,19 @@ def get_order_by_id_for_user(order_id, user_id):
         return None
 
 
+def get_order_by_id(order_id):
+    """Recupere une commande par son id, sans filtrer par utilisateur (usage admin)."""
+    try:
+        r = requests.get(_url(f"commandes?id=eq.{order_id}&limit=1"), headers=_headers(True))
+        data = r.json()
+        if isinstance(data, list) and len(data) > 0:
+            return data[0]
+        return None
+    except Exception as e:
+        logger.error(f"get_order_by_id: {e}")
+        return None
+
+
 def get_all_orders(limit=100):
     try:
         r = requests.get(_url(f"commandes?order=created_at.desc&limit={limit}"), headers=_headers(True))
