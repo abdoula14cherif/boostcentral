@@ -70,6 +70,15 @@ textarea.inp{resize:vertical;appearance:auto}
 .price-val{font-size:1.3rem;font-weight:900;color:var(--orange)}
 .btn-boost{width:100%;padding:16px;margin-top:14px;border:none;border-radius:13px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:#fff;font-size:1.05rem;font-weight:900;cursor:pointer;text-transform:uppercase;letter-spacing:.8px;box-shadow:0 7px 20px rgba(255,102,0,.28);transition:all .28s}
 .btn-boost:hover{transform:translateY(-3px)}
+.commande-ligne{position:relative;background:var(--light-g);border-radius:14px;padding:16px 16px 10px;margin-bottom:14px;border:1px solid var(--gray);opacity:0;transform:translateY(8px);animation:ligneIn .35s ease forwards}
+@keyframes ligneIn{to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.commande-ligne{animation:none;opacity:1;transform:none}}
+.btn-del-ligne{position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:50%;border:none;background:#fee2e2;color:var(--red);cursor:pointer;display:none;align-items:center;justify-content:center;font-size:.78rem}
+.commande-ligne:not(:first-child) .btn-del-ligne{display:flex}
+.ligne-price{text-align:right;font-size:.8rem;color:var(--mid);margin-top:4px}
+.ligne-price strong{color:var(--orange)}
+.btn-add-ligne{width:100%;padding:12px;margin-bottom:16px;border:2px dashed var(--blue-l);border-radius:12px;background:var(--white);color:var(--blue);font-weight:700;font-size:.86rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .22s}
+.btn-add-ligne:hover{background:var(--blue-l)}
 @keyframes remiseIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){ #remiseNote{animation:none}}
 
@@ -197,33 +206,42 @@ textarea.inp{resize:vertical;appearance:auto}
 
   <div class="card">
     <div class="sec-title"><i class="fas fa-rocket"></i> Nouvelle commande</div>
-    <form method="POST" action="{{ url_for('dashboard.place_order') }}" id="orderForm">
+    <form method="POST" action="{{ url_for('dashboard.place_order_groupe') }}" id="orderForm">
       {{ form.hidden_tag() }}
-      <div class="form-row">
-        <div class="fg"><label>Reseau social</label><div class="sw"><select id="selNet" name="network" onchange="onNetChange()"><option value="">Selectionnez</option>{% for net_id,icon,label in [('facebook','','Facebook'),('tiktok','','TikTok'),('instagram','','Instagram'),('youtube','','YouTube'),('twitter','','Twitter'),('telegram','','Telegram'),('spotify','','Spotify'),('whatsapp','','WhatsApp')] %}<option value="{{ net_id }}">{{ label }}</option>{% endfor %}</select></div></div>
-        <div class="fg"><label>Service</label><div class="sw"><select id="selSvc" name="service_id" onchange="onSvcChange()" disabled><option value="">Choisissez un reseau</option></select></div></div>
-      </div>
-      <div class="fg"><label>Lien du compte / video</label><input type="text" class="inp" name="link" id="inpLink" placeholder="https://..."></div>
+      <div id="lignesWrap"></div>
 
-      <div class="fg" id="fgQty">
-        <label>Quantite (minimum : <span id="minQty">100</span>)</label>
-        <input type="number" class="inp" name="quantity" id="inpQty" value="1000" min="1">
-      </div>
+      <button type="button" class="btn-add-ligne" onclick="ajouterLigne()"><i class="fas fa-plus"></i> Ajouter un service</button>
 
-      <div class="fg" id="fgComments" style="display:none">
-        <label>Commentaires (1 par ligne — <span id="cCount">0</span> commentaire(s))</label>
-        <textarea class="inp" name="comments" id="inpComments" rows="6" placeholder="Super produit !&#10;Trop bien&#10;J'adore ca"></textarea>
-      </div>
-
-      <div class="desc-box" id="descBox">Selectionnez un reseau et un service.</div>
+      <div class="desc-box" id="descBoxGlobal">Selectionnez un reseau et un service.</div>
       <div class="price-row">
-        <div class="price-col"><div class="price-lbl">Prix unitaire</div><div class="price-val" id="pUnit">0 FCFA</div></div>
+        <div class="price-col"><div class="price-lbl">Nombre de services</div><div class="price-val" id="pCount">0</div></div>
         <div class="price-col"><div class="price-lbl">Total</div><div class="price-val" id="pTotal">0 FCFA</div></div>
       </div>
       <div id="remiseNote" style="display:none;text-align:center;font-size:.78rem;font-weight:700;color:var(--green);margin-bottom:10px;animation:remiseIn .35s ease"></div>
       <button type="submit" class="btn-boost"><i class="fas fa-bolt"></i> BOOSTER MAINTENANT</button>
     </form>
   </div>
+
+  <template id="ligneTemplate">
+    <div class="commande-ligne">
+      <button type="button" class="btn-del-ligne" onclick="supprimerLigne(this)" title="Retirer ce service"><i class="fas fa-times"></i></button>
+      <div class="form-row">
+        <div class="fg"><label>Reseau social</label><div class="sw"><select class="selNet" name="network[]" onchange="onNetChange(this)"><option value="">Selectionnez</option>{% for net_id,icon,label in [('facebook','','Facebook'),('tiktok','','TikTok'),('instagram','','Instagram'),('youtube','','YouTube'),('twitter','','Twitter'),('telegram','','Telegram'),('spotify','','Spotify'),('whatsapp','','WhatsApp')] %}<option value="{{ net_id }}">{{ label }}</option>{% endfor %}</select></div></div>
+        <div class="fg"><label>Service</label><div class="sw"><select class="selSvc" name="service_id[]" onchange="onSvcChange(this)" disabled><option value="">Choisissez un reseau</option></select></div></div>
+      </div>
+      <div class="fg"><label>Lien du compte / video</label><input type="text" class="inp inpLink" name="link[]" placeholder="https://..."></div>
+      <div class="fg fgQty">
+        <label>Quantite (minimum : <span class="minQty">100</span>)</label>
+        <input type="number" class="inp inpQty" name="quantity[]" value="1000" min="1">
+      </div>
+      <div class="fg fgComments" style="display:none">
+        <label>Commentaires (1 par ligne — <span class="cCount">0</span> commentaire(s))</label>
+        <textarea class="inp inpComments" name="comments[]" rows="6" placeholder="Super produit !&#10;Trop bien&#10;J'adore ca"></textarea>
+      </div>
+      <div class="desc-box descBox">Selectionnez un reseau et un service.</div>
+      <div class="ligne-price">Sous-total : <strong class="ligneTotal">0 FCFA</strong></div>
+    </div>
+  </template>
 </main>
 {% endblock %}
 {% block extra_js %}
@@ -243,31 +261,70 @@ function closeMenu(){document.getElementById('dropdown').classList.remove('open'
 function selectNet(card){
   document.querySelectorAll('.net-card').forEach(c=>c.classList.remove('sel'));
   card.classList.add('sel');
-  document.getElementById('selNet').value=card.dataset.net;
-  onNetChange();
+  var premiereLigne=document.querySelector('.commande-ligne');
+  if(premiereLigne){
+    premiereLigne.querySelector('.selNet').value=card.dataset.net;
+    onNetChange(premiereLigne.querySelector('.selNet'));
+  }
 }
 
-function onNetChange(){
-  var net=document.getElementById('selNet').value;
-  var sel=document.getElementById('selSvc');
+function onNetChange(selEl){
+  var ligne=selEl.closest('.commande-ligne');
+  var net=selEl.value;
+  var sel=ligne.querySelector('.selSvc');
   sel.innerHTML='<option value="">Selectionnez un service</option>';
   sel.disabled=!net;
-  document.getElementById('descBox').textContent=opt.dataset.desc||opt.textContent;
-  calcPrice();
+  ligne.querySelector('.descBox').textContent='Selectionnez un service.';
+  resetCustomFields(ligne);
+  calcTout();
+  if(!net||!svcData[net])return;
+  svcData[net].forEach(function(s){
+    var opt=document.createElement('option');
+    opt.value=s.id;opt.textContent=s.categorie;
+    opt.dataset.prix=s.prix_fcfa;opt.dataset.min=s.min_qte;opt.dataset.max=s.max_qte;opt.dataset.desc=s.description||'';
+    opt.dataset.custom=s.custom_comments?'1':'0';
+    sel.appendChild(opt);
+  });
+  sel.disabled=false;
+  if(ligne===document.querySelector('.commande-ligne')){
+    document.querySelectorAll('.net-card').forEach(c=>c.classList.toggle('sel',c.dataset.net===net));
+  }
 }
 
-document.getElementById('inpQty').addEventListener('input',calcPrice);
+function resetCustomFields(ligne){
+  ligne.querySelector('.fgQty').style.display='';
+  ligne.querySelector('.fgComments').style.display='none';
+  ligne.querySelector('.inpComments').value='';
+  ligne.querySelector('.cCount').textContent='0';
+}
 
-document.getElementById('inpComments').addEventListener('input',function(){
-  var lines=this.value.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
-  document.getElementById('cCount').textContent=lines.length;
-  document.getElementById('inpQty').value=lines.length;
-  calcPrice();
-});
+function onSvcChange(selEl){
+  var ligne=selEl.closest('.commande-ligne');
+  var opt=selEl.selectedOptions[0];
+  if(!opt||!opt.value){resetCustomFields(ligne);calcTout();return;}
+
+  var isCustom=opt.dataset.custom==='1';
+  var inpQty=ligne.querySelector('.inpQty');
+
+  if(isCustom){
+    ligne.querySelector('.fgQty').style.display='none';
+    ligne.querySelector('.fgComments').style.display='';
+  }else{
+    ligne.querySelector('.fgQty').style.display='';
+    ligne.querySelector('.fgComments').style.display='none';
+    ligne.querySelector('.minQty').textContent=Number(opt.dataset.min).toLocaleString();
+    inpQty.min=opt.dataset.min;
+    if(parseInt(inpQty.value)<parseInt(opt.dataset.min))inpQty.value=opt.dataset.min;
+  }
+
+  ligne.querySelector('.descBox').textContent=opt.dataset.desc||opt.textContent;
+  calcTout();
+}
 
 const REMISE_VIP = {{ vip.remise }};
 const PALIERS_VOLUME = [{seuil:10000,remise:0.05},{seuil:5000,remise:0.03},{seuil:1000,remise:0.01}];
 const REMISE_MAX = 0.20;
+let ligneCompteur = 0;
 
 function remiseVolume(qty){
   for(var i=0;i<PALIERS_VOLUME.length;i++){
@@ -276,34 +333,101 @@ function remiseVolume(qty){
   return 0;
 }
 
-function calcPrice(){
-  var opt=document.getElementById('selSvc').selectedOptions[0];
-  var qty=parseInt(document.getElementById('inpQty').value)||0;
-  if(!opt||!opt.value){document.getElementById('pUnit').textContent='0 FCFA';document.getElementById('pTotal').textContent='0 FCFA';return;}
+function calcLigne(ligne){
+  var sel=ligne.querySelector('.selSvc');
+  var opt=sel.selectedOptions[0];
+  var qty=parseInt(ligne.querySelector('.inpQty').value)||0;
+  var totalEl=ligne.querySelector('.ligneTotal');
+  if(!opt||!opt.value){totalEl.textContent='0 FCFA';return 0;}
   var prix=parseFloat(opt.dataset.prix);
   var rv=remiseVolume(qty);
   var remiseTotale=Math.min(0.01+REMISE_VIP+rv,REMISE_MAX);
-  var total=prix*qty*(1-remiseTotale);
-  document.getElementById('pUnit').textContent=prix%1===0?prix+' FCFA':prix.toFixed(1)+' FCFA';
-  document.getElementById('pTotal').textContent=Math.round(total).toLocaleString()+' FCFA';
+  var total=Math.round(prix*qty*(1-remiseTotale));
+  totalEl.textContent=total.toLocaleString()+' FCFA';
+  return total;
+}
+
+function calcTout(){
+  var lignes=document.querySelectorAll('.commande-ligne');
+  var totalGeneral=0;
+  var nbValides=0;
+  lignes.forEach(function(l){
+    var t=calcLigne(l);
+    if(t>0){totalGeneral+=t;nbValides++;}
+  });
+  document.getElementById('pCount').textContent=nbValides;
+  document.getElementById('pTotal').textContent=totalGeneral.toLocaleString()+' FCFA';
+
   var noteEl=document.getElementById('remiseNote');
   if(noteEl){
-    if(remiseTotale>0.01){
+    var remiseVisible=REMISE_VIP>0||nbValides>0;
+    if(REMISE_VIP>0){
       noteEl.style.display='block';
-      noteEl.textContent='Remise appliquee : -'+Math.round(remiseTotale*100)+'% (VIP + volume)';
+      noteEl.textContent='Remise VIP + volume appliquee automatiquement sur chaque service.';
     }else{
       noteEl.style.display='none';
     }
   }
 }
 
+function creerLigneDOM(){
+  ligneCompteur++;
+  var tpl=document.getElementById('ligneTemplate');
+  var clone=tpl.content.cloneNode(true);
+  var ligne=clone.querySelector('.commande-ligne');
+  document.getElementById('lignesWrap').appendChild(clone);
+  var inserted=document.getElementById('lignesWrap').lastElementChild;
+
+  inserted.querySelector('.inpQty').addEventListener('input',calcTout);
+  inserted.querySelector('.inpComments').addEventListener('input',function(){
+    var lines=this.value.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+    inserted.querySelector('.cCount').textContent=lines.length;
+    inserted.querySelector('.inpQty').value=lines.length;
+    calcTout();
+  });
+  return inserted;
+}
+
+function ajouterLigne(){
+  creerLigneDOM();
+  calcTout();
+}
+
+function supprimerLigne(btn){
+  var ligne=btn.closest('.commande-ligne');
+  ligne.remove();
+  calcTout();
+}
+
+// Premiere ligne au chargement
+document.addEventListener('DOMContentLoaded', function(){
+  creerLigneDOM();
+  calcTout();
+});
+
 document.getElementById('orderForm').addEventListener('submit',function(e){
-  var opt=document.getElementById('selSvc').selectedOptions[0];
-  if(opt&&opt.value&&opt.dataset.custom==='1'){
-    var lines=document.getElementById('inpComments').value.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
-    if(lines.length===0){
+  var lignes=document.querySelectorAll('.commande-ligne');
+  if(lignes.length===0){
+    e.preventDefault();
+    alert('Ajoutez au moins un service.');
+    return;
+  }
+  for(var i=0;i<lignes.length;i++){
+    var ligne=lignes[i];
+    var sel=ligne.querySelector('.selSvc');
+    var opt=sel.selectedOptions[0];
+    if(!opt||!opt.value){
       e.preventDefault();
-      alert('Veuillez entrer au moins un commentaire.');
+      alert('Ligne '+(i+1)+' : selectionnez un service.');
+      return;
+    }
+    if(opt.dataset.custom==='1'){
+      var lines=ligne.querySelector('.inpComments').value.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>0;});
+      if(lines.length===0){
+        e.preventDefault();
+        alert('Ligne '+(i+1)+' : entrez au moins un commentaire.');
+        return;
+      }
     }
   }
 });
