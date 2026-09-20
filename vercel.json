@@ -11,5 +11,11 @@
       "src": "/(.*)",
       "dest": "run.py"
     }
+  ],
+  "crons": [
+    {
+      "path": "/cron/inactifs",
+      "schedule": "0 8 * * *"
+    }
   ]
 }
