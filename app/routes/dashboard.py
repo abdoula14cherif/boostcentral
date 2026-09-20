@@ -124,6 +124,142 @@ def generer_api_key():
     return redirect(url_for("dashboard.api_page"))
 
 
+def _valider_ligne_commande(user, network, service_id_raw, link, quantity_raw, comments_raw):
+    """
+    Valide une ligne de commande (utilise par place_order ET place_order_groupe).
+    Retourne (ok, message_erreur, donnees) ou (True, None, donnees) si valide.
+    donnees contient : service, quantity, comments_list, is_custom, unit_price, total_price
+    """
+    link = (link or "").strip()
+    comments_raw = (comments_raw or "").strip()
+
+    if not network or not service_id_raw or not link:
+        return False, "Tous les champs sont requis.", None
+    try:
+        quantity = int(quantity_raw)
+        service_id = int(service_id_raw)
+    except:
+        return False, "Donnees invalides.", None
+    if not link.startswith("http"):
+        return False, "Le lien doit commencer par http.", None
+
+    service = get_service_by_id(service_id)
+    if not service or not service.get("actif"):
+        return False, "Service invalide.", None
+
+    is_custom = bool(service.get("custom_comments"))
+    comments_list = []
+    if is_custom:
+        comments_list = [l.strip() for l in comments_raw.splitlines() if l.strip()]
+        if not comments_list:
+            return False, "Veuillez entrer au moins un commentaire pour un service de ce type.", None
+        quantity = len(comments_list)
+
+    if quantity < service["min_qte"]:
+        return False, f"Quantite minimum pour {service['categorie']} : {service['min_qte']:,}.", None
+    if quantity > service["max_qte"]:
+        return False, f"Quantite maximum pour {service['categorie']} : {service['max_qte']:,}.", None
+
+    unit_price = float(service["prix_fcfa"])
+    remise_vip = get_vip_tier(get_total_recharged(user["id"]))["remise"]
+    remise_totale = calculer_remise_totale(remise_vip, quantity)
+    total_price = round(unit_price * quantity * (1 - remise_totale))
+
+    return True, None, {
+        "service": service, "quantity": quantity, "comments_list": comments_list,
+        "is_custom": is_custom, "unit_price": unit_price, "total_price": total_price, "link": link
+    }
+
+
+def _creer_et_dispatcher(user, donnees):
+    """Cree la commande en BDD et la transmet a BOOSTCI si un service lie existe."""
+    service = donnees["service"]
+    order = create_order({
+        "user_id": user["id"],
+        "user_email": user["email"],
+        "reseau": service["reseau"],
+        "service": service["categorie"],
+        "service_id": service["id"],
+        "quantite": donnees["quantity"],
+        "lien": donnees["link"],
+        "commentaires": "\n".join(donnees["comments_list"]) if donnees["is_custom"] else None,
+        "prix_unitaire": donnees["unit_price"],
+        "prix_total": donnees["total_price"],
+        "statut": "en_attente",
+        "progression": 0,
+        "note_admin": ""
+    })
+    if not order:
+        return None
+
+    provider_id = service.get("boostci_service_id")
+    if provider_id:
+        try:
+            solde = boostci_balance()
+            if solde < 0.05:
+                update_order(order["id"], {"note_admin": f"⚠️ SOLDE BOOSTCI INSUFFISANT ({solde}$) - Traiter manuellement"})
+                return order
+            result = boostci_add(
+                service_id=int(provider_id), link=donnees["link"], quantity=donnees["quantity"],
+                comments="\n".join(donnees["comments_list"]) if donnees["is_custom"] else None
+            )
+            if "order" in result:
+                update_order(order["id"], {"statut": "en_cours", "progression": 0, "note_admin": f"✅ BOOSTCI order ID: {result['order']}"})
+            else:
+                update_order(order["id"], {"note_admin": f"❌ BOOSTCI ECHEC: {result.get('error','?')} - Traiter manuellement"})
+        except Exception as e:
+            logger.error(f"BOOSTCI exception (groupe): {e}")
+            update_order(order["id"], {"note_admin": f"❌ EXCEPTION BOOSTCI: {e}"})
+    return order
+
+
+@dashboard_bp.route("/order/groupe", methods=["POST"])
+@login_required
+def place_order_groupe():
+    user = get_current_user()
+    networks = request.form.getlist("network[]")
+    service_ids = request.form.getlist("service_id[]")
+    links = request.form.getlist("link[]")
+    quantities = request.form.getlist("quantity[]")
+    comments = request.form.getlist("comments[]")
+
+    n = len(service_ids)
+    if n == 0:
+        flash("Aucune ligne de commande.", "error")
+        return redirect(url_for("dashboard.index"))
+
+    lignes_valides = []
+    for i in range(n):
+        network = networks[i] if i < len(networks) else ""
+        link = links[i] if i < len(links) else ""
+        quantity_raw = quantities[i] if i < len(quantities) else "0"
+        comments_raw = comments[i] if i < len(comments) else ""
+        ok, err, donnees = _valider_ligne_commande(user, network, service_ids[i], link, quantity_raw, comments_raw)
+        if not ok:
+            flash(f"Ligne {i+1} : {err}", "error")
+            return redirect(url_for("dashboard.index"))
+        lignes_valides.append(donnees)
+
+    total_general = sum(d["total_price"] for d in lignes_valides)
+
+    profile = get_profile(user["id"])
+    balance = profile.get("balance", 0) if profile else 0
+    if balance < total_general:
+        flash(f"Solde insuffisant pour ces {n} commandes. Solde : {balance:,.0f} FCFA — Requis : {total_general:,.0f} FCFA.", "error")
+        return redirect(url_for("dashboard.index"))
+
+    new_balance = debit_balance(user["id"], total_general)
+    if new_balance is None:
+        flash("Erreur lors du debit.", "error")
+        return redirect(url_for("dashboard.index"))
+
+    for donnees in lignes_valides:
+        _creer_et_dispatcher(user, donnees)
+
+    flash(f"✅ {n} commandes passees ! {total_general:,.0f} FCFA debites au total.", "success")
+    return redirect(url_for("dashboard.index") + "?commande=ok")
+
+
 @dashboard_bp.route("/order", methods=["POST"])
 @login_required
 def place_order():
