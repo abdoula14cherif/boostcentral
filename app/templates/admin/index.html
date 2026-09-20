@@ -76,6 +76,7 @@ tr:hover td{background:var(--off)}
 <button class="tab-btn" onclick="showTab('users',this)"><i class="fas fa-users"></i> Utilisateurs</button>
 <button class="tab-btn" onclick="showTab('api',this)"><i class="fas fa-code"></i> API</button>
 <button class="tab-btn" onclick="showTab('promo',this)"><i class="fas fa-tags"></i> Codes promo</button>
+<button class="tab-btn" onclick="showTab('support',this)"><i class="fas fa-headset"></i> Support <span class="cnt">{{ stats.tickets_ouverts }}</span></button>
 </div>
 <div class="panel active" id="panel-recharges">
 <div class="stats-row">
@@ -248,6 +249,48 @@ tr:hover td{background:var(--off)}
 </div>
 </div>
 
+<div class="panel" id="panel-support">
+<div class="tbl-box">
+<div class="tbl-hd"><h3><i class="fas fa-headset" style="color:var(--blue)"></i> Tickets de support</h3></div>
+<div class="ow"><table>
+<thead><tr><th>Client</th><th>Sujet</th><th>Date</th><th>Statut</th><th>Action</th></tr></thead>
+<tbody>
+{% for t in tickets %}
+{% set bmap={'ouvert':('b-wait','En attente'),'repondu':('b-ok','Repondu'),'ferme':('b-nokey','Ferme')} %}
+{% set bc,bt=bmap.get(t.statut,('b-wait','En attente')) %}
+<tr>
+<td style="font-size:.8rem">{{ t.user_email }}</td>
+<td style="font-weight:700">{{ t.sujet }}</td>
+<td style="font-size:.74rem">{{ t.updated_at[:10] if t.updated_at else t.created_at[:10] }}</td>
+<td><span class="badge {{ bc }}">{{ bt }}</span></td>
+<td><button class="btn-sm btn-b" onclick="openTicket('{{ t.id }}','{{ (t.sujet)|e }}','{{ t.user_email }}')"><i class="fas fa-eye"></i> Voir</button></td>
+</tr>
+{% else %}<tr><td colspan="5"><div class="no-data"><i class="fas fa-headset"></i><p>Aucun ticket</p></div></td></tr>{% endfor %}
+</tbody>
+</table></div>
+</div>
+</div>
+
+<div class="modal-bg" id="modal-t">
+<div class="modal" style="max-width:520px">
+<button class="modal-close" onclick="closeModal('modal-t')">X</button>
+<h3 id="modal-t-title">Ticket</h3>
+<div id="modal-t-thread" style="max-height:280px;overflow-y:auto;background:var(--off);border-radius:12px;padding:12px;margin-bottom:14px;font-size:.85rem"></div>
+<form method="POST" action="{{ url_for('admin.ticket_repondre') }}" style="margin-bottom:10px">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="ticket_id" id="t-id-reply">
+<textarea class="inp" name="message" rows="3" placeholder="Votre reponse..." required style="margin-bottom:8px"></textarea>
+<button type="submit" class="btn-full btn-full-b"><i class="fas fa-paper-plane"></i> Repondre</button>
+</form>
+<form method="POST" action="{{ url_for('admin.ticket_statut') }}" style="display:flex;gap:6px">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<input type="hidden" name="ticket_id" id="t-id-statut">
+<button type="submit" name="statut" value="ferme" class="btn-sm btn-r" style="flex:1"><i class="fas fa-lock"></i> Fermer le ticket</button>
+<button type="submit" name="statut" value="ouvert" class="btn-sm btn-g" style="flex:1"><i class="fas fa-lock-open"></i> Reouvrir</button>
+</form>
+</div>
+</div>
+
 <div class="modal-bg" id="modal-r">
 <div class="modal">
 <button class="modal-close" onclick="closeModal('modal-r')">X</button>
@@ -321,8 +364,26 @@ function openModalR(id,email,montant){document.getElementById('r-id').value=id;d
 function openModalC(id,status,prog,note){document.getElementById('c-id').value=id;document.getElementById('c-status').value=status;document.getElementById('c-prog').value=prog;document.getElementById('c-note').value=note;openModal('modal-c')}
 function openModalS(id,prix,min,max,desc,actif,cat){document.getElementById('s-id').value=id;document.getElementById('s-prix').value=prix;document.getElementById('s-min').value=min;document.getElementById('s-max').value=max;document.getElementById('s-desc').value=desc;document.getElementById('s-actif').checked=actif;document.getElementById('modal-s-title').textContent='Modifier : '+cat;openModal('modal-s')}
 function openModalB(uid,email,balance){document.getElementById('b-uid').value=uid;document.getElementById('b-val').value=balance;document.getElementById('b-email').textContent=email;openModal('modal-b')}
+function openTicket(id,sujet,email){
+  document.getElementById('modal-t-title').textContent = sujet + ' — ' + email;
+  document.getElementById('t-id-reply').value = id;
+  document.getElementById('t-id-statut').value = id;
+  document.getElementById('modal-t-thread').innerHTML = 'Chargement...';
+  openModal('modal-t');
+  fetch('/admin/ticket/'+id)
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var html = '';
+      (data.messages||[]).forEach(function(m){
+        var qui = m.auteur === 'client' ? email : 'Vous (support)';
+        html += '<div style="margin-bottom:10px"><strong style="font-size:.78rem;color:var(--blue)">'+qui+'</strong><div style="margin-top:2px">'+m.message.replace(/</g,'&lt;')+'</div></div>';
+      });
+      document.getElementById('modal-t-thread').innerHTML = html || 'Aucun message.';
+    })
+    .catch(function(){document.getElementById('modal-t-thread').innerHTML = 'Erreur de chargement.';});
+}
 var hash=window.location.hash.replace('#','');
-var tabMap={recharges:0,commandes:1,services:2,users:3,api:4,promo:5};
+var tabMap={recharges:0,commandes:1,services:2,users:3,api:4,promo:5,support:6};
 if(hash in tabMap){var btns=document.querySelectorAll('.tab-btn');showTab(hash,btns[tabMap[hash]])}
 </script>
 {% endblock %}
