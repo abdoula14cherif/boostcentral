@@ -28,8 +28,11 @@ main{padding:20px;max-width:680px;margin:0 auto}
 <main>
   <div class="gains-card">
     <div style="font-size:1.6rem">💰</div>
-    <div class="gains-lbl">Gains totaux</div>
+    <div class="gains-lbl">Gains totaux (historique)</div>
     <div class="gains-val">{{ "{:,.0f}".format(gains_total) }} FCFA</div>
+    <div style="height:1px;background:rgba(255,255,255,.2);margin:14px 0"></div>
+    <div class="gains-lbl">Solde disponible sur votre compte</div>
+    <div class="gains-val" style="font-size:1.6rem">{{ "{:,.0f}".format(profile.balance or 0) }} FCFA</div>
   </div>
 
   <div class="lien-box">
