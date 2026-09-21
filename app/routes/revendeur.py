@@ -19,8 +19,9 @@ def _slug_valide(slug):
 def index():
     user = get_current_user()
     profile = get_profile(user["id"])
+    base_url = request.host_url.rstrip("/")
     return render_template("dashboard/revendeur.html",
-        user=user, profile=profile, prix_activation=PRIX_ACTIVATION)
+        user=user, profile=profile, prix_activation=PRIX_ACTIVATION, base_url=base_url)
 
 
 @revendeur_bp.route("/activer", methods=["POST"])
@@ -139,9 +140,10 @@ def clients():
 
     mes_clients = get_revendeur_clients_detail(user["id"])
     gains_total = get_revendeur_gains_total(user["id"])
+    base_url = request.host_url.rstrip("/")
 
     return render_template("dashboard/revendeur_clients.html",
-        user=user, profile=profile, mes_clients=mes_clients, gains_total=gains_total)
+        user=user, profile=profile, mes_clients=mes_clients, gains_total=gains_total, base_url=base_url)
 
 
 @revendeur_bp.route("/commandes")
