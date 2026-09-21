@@ -56,6 +56,7 @@ main{padding:20px;max-width:680px;margin:0 auto}
       <div class="emoji">🏪</div>
       <h2>Vous etes revendeur !</h2>
       <p>Votre espace : <strong>{{ base_url }}/r/{{ profile.revendeur_slug }}</strong></p>
+      <div class="prix-badge">{{ "{:,.0f}".format(profile.balance or 0) }} FCFA sur votre compte</div>
     </div>
     <div class="card">
       <div class="actif-badge">
