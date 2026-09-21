@@ -4,6 +4,7 @@ from app.models.database import (get_profile_by_api_key, get_active_services, ge
     create_order, debit_balance, update_order, get_order_by_id_for_user, get_total_recharged)
 from app.models.boostci import add_order as boostci_add
 from app.models.vip import get_vip_tier, calculer_remise_totale
+from app.models.revente import calculer_prix_ligne, crediter_revendeur
 
 logger = logging.getLogger(__name__)
 
@@ -73,10 +74,7 @@ def handle():
         if quantity < service["min_qte"] or quantity > service["max_qte"]:
             return jsonify({"error": f"quantity doit etre entre {service['min_qte']} et {service['max_qte']}."}), 400
 
-        unit_price = float(service["prix_fcfa"])
-        remise_vip = get_vip_tier(get_total_recharged(user_id))["remise"]
-        remise_totale = calculer_remise_totale(remise_vip, quantity)
-        total_price = round(unit_price * quantity * (1 - remise_totale))
+        unit_price, total_price, revendeur_info = calculer_prix_ligne(user_id, service, quantity)
 
         balance = profile.get("balance", 0) or 0
         if balance < total_price:
@@ -119,6 +117,7 @@ def handle():
                 logger.error(f"API add BOOSTCI exception: {e}")
                 update_order(order["id"], {"note_admin": f"API - exception BOOSTCI: {e}"})
 
+        crediter_revendeur(revendeur_info, quantity, total_price, user_id, order["id"])
         return jsonify({"order": order["id"]})
 
     if action == "status":
