@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Commandes de mes clients — Revendeur{% endblock %}
+{% block extra_css %}
+header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 2px 8px rgba(0,0,0,.04);position:sticky;top:0;z-index:10}
+.back-btn{background:var(--blue-l);border:none;color:var(--blue);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none}
+.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+main{padding:20px;max-width:720px;margin:0 auto}
+.stats-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.stat-box{background:var(--white);border-radius:14px;padding:16px;border:1px solid var(--gray);text-align:center}
+.stat-val{font-size:1.5rem;font-weight:900;color:var(--dark)}
+.stat-lbl{font-size:.76rem;color:var(--mid);margin-top:2px}
+.order-item{background:var(--white);border:1px solid var(--gray);border-radius:14px;padding:14px 16px;margin-bottom:10px;opacity:0;transform:translateY(6px);animation:oIn .35s ease forwards}
+@keyframes oIn{to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.order-item{animation:none;opacity:1;transform:none}}
+.o-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+.o-name{font-size:.88rem;font-weight:700;color:var(--dark)}
+.badge{display:inline-flex;padding:3px 10px;border-radius:16px;font-size:.7rem;font-weight:700}
+.s-wait{background:#FFF8E6;color:#D97706}.s-run{background:var(--blue-l);color:var(--blue)}.s-done{background:#EDFFF5;color:var(--green)}.s-ref{background:#fee2e2;color:var(--red)}
+.o-meta{font-size:.76rem;color:var(--mid);display:flex;gap:14px;flex-wrap:wrap}
+.no-data{text-align:center;padding:36px 20px;color:var(--light)}
+.no-data i{font-size:2.2rem;display:block;margin-bottom:10px;color:var(--gray)}
+{% endblock %}
+{% block nav %}
+<header>
+<a href="{{ url_for('revendeur.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
+<div class="logo">BOOST CENTRAL</div>
+</header>
+{% endblock %}
+{% block content %}
+<main>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-val">{{ orders|length }}</div><div class="stat-lbl">Commandes clients</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:#7C3AED">{{ "{:,.0f}".format(gains_total) }} F</div><div class="stat-lbl">Vos gains totaux</div></div>
+  </div>
+
+  {% if orders %}
+    {% for o in orders %}
+    {% set smap={'en_attente':'s-wait','en_cours':'s-run','termine':'s-done','refuse':'s-ref'} %}
+    {% set bmap={'en_attente':'En attente','en_cours':'En cours','termine':'Termine','refuse':'Refuse'} %}
+    <div class="order-item" style="animation-delay:{{ loop.index0 * 0.03 }}s">
+      <div class="o-top">
+        <span class="o-name">{{ o.service }}</span>
+        <span class="badge {{ smap.get(o.statut,'s-wait') }}">{{ bmap.get(o.statut,'En attente') }}</span>
+      </div>
+      <div class="o-meta">
+        <span>{{ o.user_email }}</span>
+        <span>{{ o.reseau|capitalize }}</span>
+        <span>Qte {{ "{:,}".format(o.quantite) }}</span>
+        <span>{{ o.created_at[:10] if o.created_at else '' }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="no-data"><i class="fas fa-inbox"></i><p>Aucune commande de vos clients pour l instant.</p></div>
+  {% endif %}
+</main>
+{% endblock %}
