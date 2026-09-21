@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Mes clients — Revendeur{% endblock %}
+{% block extra_css %}
+header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 2px 8px rgba(0,0,0,.04);position:sticky;top:0;z-index:10}
+.back-btn{background:var(--blue-l);border:none;color:var(--blue);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none}
+.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+main{padding:20px;max-width:680px;margin:0 auto}
+.gains-card{background:linear-gradient(135deg,#7C3AED,#4C1D95);border-radius:20px;padding:26px;text-align:center;color:#fff;margin-bottom:20px}
+.gains-val{font-size:2.2rem;font-weight:900;margin:6px 0}
+.gains-lbl{font-size:.85rem;opacity:.85}
+.list-title{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:12px}
+.client-item{background:var(--white);border:1px solid var(--gray);border-radius:14px;padding:14px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;opacity:0;transform:translateY(6px);animation:cIn .35s ease forwards}
+@keyframes cIn{to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.client-item{animation:none;opacity:1;transform:none}}
+.c-email{font-size:.85rem;font-weight:700;color:var(--dark)}
+.c-date{font-size:.72rem;color:var(--light)}
+.no-clients{text-align:center;padding:36px 20px;color:var(--light)}
+.no-clients i{font-size:2.2rem;display:block;margin-bottom:10px;color:var(--gray)}
+.lien-box{background:var(--light-g);border-radius:12px;padding:14px;font-size:.78rem;color:var(--mid);word-break:break-all;margin-bottom:20px}
+{% endblock %}
+{% block nav %}
+<header>
+<a href="{{ url_for('revendeur.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
+<div class="logo">BOOST CENTRAL</div>
+</header>
+{% endblock %}
+{% block content %}
+<main>
+  <div class="gains-card">
+    <div style="font-size:1.6rem">💰</div>
+    <div class="gains-lbl">Gains totaux</div>
+    <div class="gains-val">{{ "{:,.0f}".format(gains_total) }} FCFA</div>
+  </div>
+
+  <div class="lien-box">
+    <i class="fas fa-link"></i> Partagez ce lien pour que vos ventes soient automatiquement rattachees a vous :
+    <br><strong>boostcentral.app/r/{{ profile.revendeur_slug }}</strong>
+  </div>
+
+  <div class="list-title"><i class="fas fa-users" style="color:#7C3AED"></i> Mes clients ({{ mes_clients|length }})</div>
+  {% if mes_clients %}
+    {% for c in mes_clients %}
+    <div class="client-item" style="animation-delay:{{ loop.index0 * 0.04 }}s">
+      <div>
+        <div class="c-email">{{ c.email }}</div>
+        <div class="c-date">Rattache le {{ c.rattache_le[:10] if c.rattache_le else '' }}</div>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="no-clients"><i class="fas fa-users"></i><p>Aucun client pour l instant. Partagez votre lien !</p></div>
+  {% endif %}
+</main>
+{% endblock %}
