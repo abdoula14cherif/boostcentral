@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Mes prix — Revendeur{% endblock %}
+{% block extra_css %}
+header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 2px 8px rgba(0,0,0,.04);position:sticky;top:0;z-index:10}
+.back-btn{background:var(--blue-l);border:none;color:var(--blue);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none}
+.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+main{padding:20px;max-width:680px;margin:0 auto}
+.info-box{background:#F5F3FF;border:1px solid #DDD6FE;border-radius:12px;padding:14px;margin-bottom:18px;font-size:.84rem;color:#5B21B6;line-height:1.6}
+.svc-item{background:var(--white);border:1px solid var(--gray);border-radius:14px;padding:16px;margin-bottom:10px;opacity:0;transform:translateY(6px);animation:svcIn .35s ease forwards}
+@keyframes svcIn{to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.svc-item{animation:none;opacity:1;transform:none}}
+.svc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.svc-name{font-size:.88rem;font-weight:700;color:var(--dark)}
+.svc-base{font-size:.74rem;color:var(--mid)}
+.svc-form{display:flex;gap:8px;align-items:center}
+.svc-inp{flex:1;padding:10px 12px;border:2px solid var(--gray);border-radius:10px;font-size:.88rem;outline:none}
+.svc-inp:focus{border-color:#7C3AED}
+.btn-save{background:#7C3AED;color:#fff;border:none;padding:0 16px;border-radius:10px;font-weight:700;font-size:.82rem;cursor:pointer}
+.gain-tag{font-size:.74rem;color:var(--green);font-weight:700;margin-top:6px}
+{% endblock %}
+{% block nav %}
+<header>
+<a href="{{ url_for('revendeur.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
+<div class="logo">BOOST CENTRAL</div>
+</header>
+{% endblock %}
+{% block content %}
+<main>
+  <div class="info-box">
+    <i class="fas fa-info-circle"></i> Fixez le prix que <strong>vos clients</strong> paieront pour chaque service. La difference avec le prix de base Boost Central est creditee automatiquement sur votre solde des qu'une commande est passee.
+  </div>
+
+  {% for s in services %}
+  <div class="svc-item" style="animation-delay:{{ loop.index0 * 0.03 }}s">
+    <div class="svc-top">
+      <div>
+        <div class="svc-name">{{ s.categorie }}</div>
+        <div class="svc-base">{{ s.reseau|capitalize }} — Prix de base : {{ s.prix_fcfa }} FCFA</div>
+      </div>
+    </div>
+    <form method="POST" action="{{ url_for('revendeur.prix_enregistrer') }}" class="svc-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="service_id" value="{{ s.id }}">
+      <input type="number" step="0.1" min="{{ s.prix_fcfa }}" class="svc-inp" name="prix_fcfa"
+             value="{{ mes_prix.get(s.id, '') }}" placeholder="Votre prix (min {{ s.prix_fcfa }})">
+      <button type="submit" class="btn-save"><i class="fas fa-check"></i></button>
+    </form>
+    {% if mes_prix.get(s.id) %}
+    <div class="gain-tag">Votre gain : +{{ "%.1f"|format(mes_prix.get(s.id) - s.prix_fcfa) }} FCFA / unite</div>
+    {% endif %}
+  </div>
+  {% else %}
+  <p style="color:var(--light);text-align:center;padding:30px">Aucun service disponible pour l'instant.</p>
+  {% endfor %}
+</main>
+{% endblock %}
