@@ -509,3 +509,80 @@ def rattacher_client_revendeur(revendeur_id, client_id):
     except Exception as e:
         logger.error(f"rattacher_client_revendeur: {e}")
         return False
+
+
+def get_revendeur_prix(revendeur_id, service_id):
+    try:
+        r = requests.get(_url(f"revendeur_prix?revendeur_id=eq.{revendeur_id}&service_id=eq.{service_id}&limit=1"), headers=_headers(True))
+        data = r.json()
+        return data[0] if isinstance(data, list) and data else None
+    except Exception as e:
+        logger.error(f"get_revendeur_prix: {e}")
+        return None
+
+
+def get_revendeur_prix_all(revendeur_id):
+    try:
+        r = requests.get(_url(f"revendeur_prix?revendeur_id=eq.{revendeur_id}"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_revendeur_prix_all: {e}")
+        return []
+
+
+def set_revendeur_prix(revendeur_id, service_id, prix_fcfa):
+    existing = get_revendeur_prix(revendeur_id, service_id)
+    try:
+        if existing:
+            r = requests.patch(_url(f"revendeur_prix?id=eq.{existing['id']}"), json={"prix_fcfa": prix_fcfa}, headers=_headers(True))
+        else:
+            r = requests.post(_url("revendeur_prix"), json={"revendeur_id": revendeur_id, "service_id": service_id, "prix_fcfa": prix_fcfa}, headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"set_revendeur_prix: {e}")
+        return False
+
+
+def get_client_revendeur(client_id):
+    """Retourne le profil du revendeur auquel ce client est rattache, ou None si aucun."""
+    try:
+        r = requests.get(_url(f"revendeur_clients?client_id=eq.{client_id}&limit=1"), headers=_headers(True))
+        data = r.json()
+        if not data:
+            return None
+        return get_profile(data[0]["revendeur_id"])
+    except Exception as e:
+        logger.error(f"get_client_revendeur: {e}")
+        return None
+
+
+def get_revendeur_clients_detail(revendeur_id):
+    """Liste des clients d'un revendeur avec leur email et date de rattachement."""
+    try:
+        r = requests.get(_url(f"revendeur_clients?revendeur_id=eq.{revendeur_id}&order=created_at.desc"), headers=_headers(True))
+        liens = r.json()
+        if not isinstance(liens, list):
+            return []
+        resultat = []
+        for l in liens:
+            profil = get_profile(l.get("client_id"))
+            resultat.append({
+                "email": profil.get("email") if profil else "?",
+                "balance": profil.get("balance", 0) if profil else 0,
+                "rattache_le": l.get("created_at")
+            })
+        return resultat
+    except Exception as e:
+        logger.error(f"get_revendeur_clients_detail: {e}")
+        return []
+
+
+def get_revendeur_gains_total(revendeur_id):
+    try:
+        r = requests.get(_url(f"revendeur_gains?revendeur_id=eq.{revendeur_id}&select=montant"), headers=_headers(True))
+        data = r.json()
+        return sum(g.get("montant", 0) or 0 for g in data) if isinstance(data, list) else 0
+    except Exception as e:
+        logger.error(f"get_revendeur_gains_total: {e}")
+        return 0
