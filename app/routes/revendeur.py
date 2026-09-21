@@ -67,3 +67,96 @@ def activer():
     else:
         flash("Erreur lors de l'activation. Contactez le support.", "error")
         return redirect(url_for("revendeur.index"))
+
+
+@revendeur_bp.route("/prix")
+@login_required
+def prix():
+    from app.models.database import get_active_services, get_revendeur_prix_all
+    user = get_current_user()
+    profile = get_profile(user["id"])
+
+    if not profile or not profile.get("est_revendeur"):
+        flash("Vous devez d'abord activer le mode revendeur.", "error")
+        return redirect(url_for("revendeur.index"))
+
+    if profile.get("revendeur_modele") != "marge":
+        flash("Cette page concerne uniquement le modele 'mes propres prix'.", "info")
+        return redirect(url_for("revendeur.index"))
+
+    services = get_active_services()
+    mes_prix = {p["service_id"]: p["prix_fcfa"] for p in get_revendeur_prix_all(user["id"])}
+
+    return render_template("dashboard/revendeur_prix.html",
+        user=user, profile=profile, services=services, mes_prix=mes_prix)
+
+
+@revendeur_bp.route("/prix/enregistrer", methods=["POST"])
+@login_required
+def prix_enregistrer():
+    from app.models.database import set_revendeur_prix, get_service_by_id
+    user = get_current_user()
+    profile = get_profile(user["id"])
+
+    if not profile or profile.get("revendeur_modele") != "marge":
+        flash("Action non autorisee.", "error")
+        return redirect(url_for("revendeur.index"))
+
+    service_id = request.form.get("service_id", "")
+    prix_fcfa = request.form.get("prix_fcfa", "").strip()
+
+    try:
+        service_id = int(service_id)
+        prix_fcfa = float(prix_fcfa)
+    except:
+        flash("Valeurs invalides.", "error")
+        return redirect(url_for("revendeur.prix"))
+
+    service = get_service_by_id(service_id)
+    if not service:
+        flash("Service introuvable.", "error")
+        return redirect(url_for("revendeur.prix"))
+
+    if prix_fcfa < float(service["prix_fcfa"]):
+        flash(f"Votre prix doit etre superieur ou egal au prix de base ({service['prix_fcfa']} FCFA), sinon vous perdez de l'argent.", "error")
+        return redirect(url_for("revendeur.prix"))
+
+    set_revendeur_prix(user["id"], service_id, prix_fcfa)
+    flash("Prix enregistre.", "success")
+    return redirect(url_for("revendeur.prix"))
+
+
+@revendeur_bp.route("/clients")
+@login_required
+def clients():
+    from app.models.database import get_revendeur_clients_detail, get_revendeur_gains_total
+    user = get_current_user()
+    profile = get_profile(user["id"])
+
+    if not profile or not profile.get("est_revendeur"):
+        flash("Vous devez d'abord activer le mode revendeur.", "error")
+        return redirect(url_for("revendeur.index"))
+
+    mes_clients = get_revendeur_clients_detail(user["id"])
+    gains_total = get_revendeur_gains_total(user["id"])
+
+    return render_template("dashboard/revendeur_clients.html",
+        user=user, profile=profile, mes_clients=mes_clients, gains_total=gains_total)
+
+
+@revendeur_bp.route("/commandes")
+@login_required
+def commandes():
+    from app.models.database import get_revendeur_orders, get_revendeur_gains_total
+    user = get_current_user()
+    profile = get_profile(user["id"])
+
+    if not profile or not profile.get("est_revendeur"):
+        flash("Vous devez d'abord activer le mode revendeur.", "error")
+        return redirect(url_for("revendeur.index"))
+
+    orders = get_revendeur_orders(user["id"], limit=200)
+    gains_total = get_revendeur_gains_total(user["id"])
+
+    return render_template("dashboard/revendeur_commandes.html",
+        user=user, profile=profile, orders=orders, gains_total=gains_total)
