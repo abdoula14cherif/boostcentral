@@ -55,7 +55,7 @@ main{padding:20px;max-width:680px;margin:0 auto}
     <div class="hero-rev">
       <div class="emoji">🏪</div>
       <h2>Vous etes revendeur !</h2>
-      <p>Votre espace : <strong>boostcentral.app/r/{{ profile.revendeur_slug }}</strong></p>
+      <p>Votre espace : <strong>{{ base_url }}/r/{{ profile.revendeur_slug }}</strong></p>
     </div>
     <div class="card">
       <div class="actif-badge">
@@ -87,7 +87,7 @@ main{padding:20px;max-width:680px;margin:0 auto}
         <div class="fg">
           <label>Nom de votre espace</label>
           <input type="text" class="inp" name="slug" id="slugInp" placeholder="ex: jean-boost" pattern="[a-z0-9][a-z0-9-]{2,28}[a-z0-9]" required oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'');majSlug();verifierForm()">
-          <div class="slug-preview">Votre lien : boostcentral.app/r/<strong id="slugPreview">...</strong></div>
+          <div class="slug-preview">Votre lien : <span id="baseUrlPreview"></span>/r/<strong id="slugPreview">...</strong></div>
         </div>
 
         <div class="card-title" style="margin-top:6px"><i class="fas fa-coins" style="color:#7C3AED"></i> Comment voulez-vous gagner ?</div>
@@ -127,6 +127,9 @@ function majSlug(){
   var v = document.getElementById('slugInp').value || '...';
   document.getElementById('slugPreview').textContent = v;
 }
+
+var previewEl = document.getElementById('baseUrlPreview');
+if(previewEl){ previewEl.textContent = window.location.origin; }
 
 function choisirModele(m){
   document.querySelectorAll('.modele-card').forEach(function(c){c.classList.remove('sel')});
