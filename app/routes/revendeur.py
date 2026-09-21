@@ -122,8 +122,11 @@ def prix_enregistrer():
         flash(f"Votre prix doit etre superieur ou egal au prix de base ({service['prix_fcfa']} FCFA), sinon vous perdez de l'argent.", "error")
         return redirect(url_for("revendeur.prix"))
 
-    set_revendeur_prix(user["id"], service_id, prix_fcfa)
-    flash("Prix enregistre.", "success")
+    ok = set_revendeur_prix(user["id"], service_id, prix_fcfa)
+    if ok:
+        flash("Prix enregistre.", "success")
+    else:
+        flash("Erreur lors de l'enregistrement du prix (verifie que la table revendeur_prix existe bien dans Supabase).", "error")
     return redirect(url_for("revendeur.prix"))
 
 
