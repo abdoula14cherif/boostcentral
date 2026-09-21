@@ -32,8 +32,13 @@ def calculer_prix_ligne(user_id, service, quantity):
     revendeur = get_client_revendeur(user_id)
     base_unit_price = float(service["prix_fcfa"])
 
+    logger.info(f"DEBUG revendeur: client={user_id} service={service.get('id')} revendeur_trouve={bool(revendeur)}")
+    if revendeur:
+        logger.info(f"DEBUG revendeur: modele={revendeur.get('revendeur_modele')} revendeur_id={revendeur.get('id')}")
+
     if revendeur and revendeur.get("revendeur_modele") == "marge":
         custom = get_revendeur_prix(revendeur["id"], service["id"])
+        logger.info(f"DEBUG revendeur: prix_personnalise_trouve={bool(custom)}")
         if custom:
             unit_price = float(custom["prix_fcfa"])
             total_price = round(unit_price * quantity)
