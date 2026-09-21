@@ -89,13 +89,17 @@ def crediter_revendeur(revendeur_info, quantity, total_price, client_id, order_i
             flash(f"DEBUG credit: gain <= 0 ({gain}), RIEN CREDITE", "info")
             return
 
-        credit_balance(revendeur["id"], gain)
+        nouveau_solde = credit_balance(revendeur["id"], gain)
+        if nouveau_solde is None:
+            logger.error(f"credit_balance a ECHOUE pour revendeur {revendeur['id']} (gain={gain})")
+            flash(f"DEBUG credit: ❌ credit_balance a ECHOUE (nouveau_solde=None) - verifie le profil {revendeur.get('email')}", "error")
+            return
         req.post(_url("revendeur_gains"), json={
             "revendeur_id": revendeur["id"], "client_id": client_id,
             "order_id": order_id, "montant": gain
         }, headers=_headers())
-        logger.info(f"Revendeur {revendeur.get('email')} credite de {gain} FCFA (type={revendeur_info['type']})")
-        flash(f"DEBUG credit: ✅ {gain} FCFA credites a {revendeur.get('email')}", "success")
+        logger.info(f"Revendeur {revendeur.get('email')} credite de {gain} FCFA (type={revendeur_info['type']}) - nouveau solde={nouveau_solde}")
+        flash(f"DEBUG credit: ✅ {gain} FCFA credites a {revendeur.get('email')} - NOUVEAU SOLDE = {nouveau_solde}", "success")
     except Exception as e:
         logger.error(f"crediter_revendeur: {e}")
         flash(f"DEBUG credit ERREUR: {e}", "error")
