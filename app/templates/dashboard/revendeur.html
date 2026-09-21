@@ -62,9 +62,16 @@ main{padding:20px;max-width:680px;margin:0 auto}
         <i class="fas fa-check-circle"></i>
         <div>
           <div style="font-weight:700;color:var(--dark)">Modele choisi : {{ 'Vos propres prix (marge)' if profile.revendeur_modele == 'marge' else 'Commission de ' ~ (profile.revendeur_commission_pct*100)|round|int ~ '%' }}</div>
-          <div style="font-size:.8rem;color:var(--mid);margin-top:2px">La gestion de vos clients et de vos tarifs arrive tres bientot ici.</div>
+          <div style="font-size:.8rem;color:var(--mid);margin-top:2px">Partagez votre lien pour rattacher automatiquement vos clients.</div>
         </div>
       </div>
+    </div>
+    <div class="card" style="display:flex;gap:10px;flex-wrap:wrap">
+      {% if profile.revendeur_modele == 'marge' %}
+      <a href="{{ url_for('revendeur.prix') }}" class="btn-activer" style="flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px"><i class="fas fa-tags"></i> Mes prix</a>
+      {% endif %}
+      <a href="{{ url_for('revendeur.clients') }}" class="btn-activer" style="flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(90deg,var(--blue),var(--blue-d))"><i class="fas fa-users"></i> Mes clients</a>
+      <a href="{{ url_for('revendeur.commandes') }}" class="btn-activer" style="flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(90deg,var(--orange),var(--orange-d))"><i class="fas fa-list-check"></i> Commandes</a>
     </div>
   {% else %}
     <div class="hero-rev">
