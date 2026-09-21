@@ -9,6 +9,7 @@ from app.models.forms import OrderForm
 from app.models.boostci import add_order as boostci_add, get_balance as boostci_balance
 from app.models.mailer import email_commande_passee, email_admin_nouvelle_commande, email_solde_insuffisant
 from app.models.vip import get_vip_tier, rang, calculer_remise_totale
+from app.models.revente import calculer_prix_ligne, crediter_revendeur
 
 logger = logging.getLogger(__name__)
 
@@ -160,14 +161,12 @@ def _valider_ligne_commande(user, network, service_id_raw, link, quantity_raw, c
     if quantity > service["max_qte"]:
         return False, f"Quantite maximum pour {service['categorie']} : {service['max_qte']:,}.", None
 
-    unit_price = float(service["prix_fcfa"])
-    remise_vip = get_vip_tier(get_total_recharged(user["id"]))["remise"]
-    remise_totale = calculer_remise_totale(remise_vip, quantity)
-    total_price = round(unit_price * quantity * (1 - remise_totale))
+    unit_price, total_price, revendeur_info = calculer_prix_ligne(user["id"], service, quantity)
 
     return True, None, {
         "service": service, "quantity": quantity, "comments_list": comments_list,
-        "is_custom": is_custom, "unit_price": unit_price, "total_price": total_price, "link": link
+        "is_custom": is_custom, "unit_price": unit_price, "total_price": total_price, "link": link,
+        "revendeur_info": revendeur_info
     }
 
 
@@ -210,6 +209,8 @@ def _creer_et_dispatcher(user, donnees):
         except Exception as e:
             logger.error(f"BOOSTCI exception (groupe): {e}")
             update_order(order["id"], {"note_admin": f"❌ EXCEPTION BOOSTCI: {e}"})
+
+    crediter_revendeur(donnees.get("revendeur_info"), donnees["quantity"], donnees["total_price"], user["id"], order["id"])
     return order
 
 
@@ -309,10 +310,7 @@ def place_order():
         flash(f"Quantite maximum : {service['max_qte']:,}.", "error")
         return redirect(url_for("dashboard.index"))
 
-    unit_price = float(service["prix_fcfa"])
-    remise_vip = get_vip_tier(get_total_recharged(user["id"]))["remise"]
-    remise_totale = calculer_remise_totale(remise_vip, quantity)
-    total_price = round(unit_price * quantity * (1 - remise_totale))
+    unit_price, total_price, revendeur_info = calculer_prix_ligne(user["id"], service, quantity)
 
     profile = get_profile(user["id"])
     balance = profile.get("balance", 0) if profile else 0
@@ -350,6 +348,8 @@ def place_order():
     if new_balance is None:
         flash("Erreur lors du debit.", "error")
         return redirect(url_for("dashboard.index"))
+
+    crediter_revendeur(revendeur_info, quantity, total_price, user["id"], order["id"])
 
     # Envoyer chez BOOSTCI si service lie
     provider_id = service.get("boostci_service_id")
