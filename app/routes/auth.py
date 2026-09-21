@@ -3,6 +3,7 @@ import requests
 from flask import Blueprint, render_template, redirect, url_for, flash, session, request, current_app
 from app.models.forms import LoginForm, RegisterForm, ForgotPasswordForm
 from app.models.security import set_session, clear_session
+from app.models.database import get_profile_by_slug, rattacher_client_revendeur
 from app import limiter
 
 logger = logging.getLogger(__name__)
@@ -143,6 +144,7 @@ def register():
         # echoue (email deja utilise, erreur serveur...), l'utilisateur doit
         # pouvoir reessayer sans perdre son code de parrainage.
         ref_code = session.get("ref_code")
+        revendeur_slug = session.get("revendeur_slug")
 
         try:
             r = requests.post(f"{_auth_url()}/signup",
@@ -158,6 +160,10 @@ def register():
                     _ensure_profile(user_id, email, full_name, country)
                     if _crediter_parrain(ref_code, user_id):
                         session.pop("ref_code", None)
+                    if revendeur_slug:
+                        rev = get_profile_by_slug(revendeur_slug)
+                        if rev and rattacher_client_revendeur(rev["id"], user_id):
+                            session.pop("revendeur_slug", None)
                     set_session(user_id, email, full_name)
                     try:
                         email_admin_nouvelle_inscription(email, full_name, country)
@@ -170,6 +176,10 @@ def register():
                         _ensure_profile(data["id"], email, full_name, country)
                         if _crediter_parrain(ref_code, data["id"]):
                             session.pop("ref_code", None)
+                        if revendeur_slug:
+                            rev = get_profile_by_slug(revendeur_slug)
+                            if rev and rattacher_client_revendeur(rev["id"], data["id"]):
+                                session.pop("revendeur_slug", None)
                     flash("Compte cree ! Connectez-vous.", "info")
                     return redirect(url_for("auth.login"))
             else:
