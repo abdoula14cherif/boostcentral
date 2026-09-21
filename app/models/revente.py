@@ -59,7 +59,10 @@ def crediter_revendeur(revendeur_info, quantity, total_price, client_id, order_i
     Toujours une fraction de ce que le client vient reellement de payer -
     jamais d'argent verse que tu n'as pas deja encaisse.
     """
+    logger.info(f"DEBUG crediter_revendeur appele: revendeur_info={revendeur_info}, quantity={quantity}, total_price={total_price}, client_id={client_id}, order_id={order_id}")
+
     if not revendeur_info:
+        logger.info("DEBUG crediter_revendeur: revendeur_info est None, aucun credit (client non rattache ou pas de prix personnalise trouve)")
         return
     try:
         revendeur = revendeur_info["revendeur"]
@@ -68,7 +71,10 @@ def crediter_revendeur(revendeur_info, quantity, total_price, client_id, order_i
         else:
             gain = round(total_price * float(revendeur.get("revendeur_commission_pct") or 0))
 
+        logger.info(f"DEBUG crediter_revendeur: type={revendeur_info['type']}, base_unit_price={revendeur_info['base_unit_price']}, gain calcule={gain}")
+
         if gain <= 0:
+            logger.info(f"DEBUG crediter_revendeur: gain <= 0 ({gain}), rien credite")
             return
 
         credit_balance(revendeur["id"], gain)
