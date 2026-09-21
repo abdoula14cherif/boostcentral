@@ -5,7 +5,7 @@ regle, sans divergence.
 """
 import logging
 import requests as req
-from flask import current_app, flash
+from flask import current_app
 from app.models.database import get_client_revendeur, get_revendeur_prix, get_total_recharged, credit_balance
 from app.models.vip import get_vip_tier, calculer_remise_totale
 
@@ -32,17 +32,8 @@ def calculer_prix_ligne(user_id, service, quantity):
     revendeur = get_client_revendeur(user_id)
     base_unit_price = float(service["prix_fcfa"])
 
-    logger.info(f"DEBUG revendeur: client={user_id} service={service.get('id')} revendeur_trouve={bool(revendeur)}")
-    if revendeur:
-        logger.info(f"DEBUG revendeur: modele={revendeur.get('revendeur_modele')} revendeur_id={revendeur.get('id')}")
-        flash(f"DEBUG: revendeur trouve = {revendeur.get('email')} (modele={revendeur.get('revendeur_modele')})", "info")
-    else:
-        flash("DEBUG: AUCUN revendeur trouve pour ce client (get_client_revendeur a retourne None)", "info")
-
     if revendeur and revendeur.get("revendeur_modele") == "marge":
         custom = get_revendeur_prix(revendeur["id"], service["id"])
-        logger.info(f"DEBUG revendeur: prix_personnalise_trouve={bool(custom)}")
-        flash(f"DEBUG: prix personnalise pour service {service.get('id')} = {custom}", "info")
         if custom:
             unit_price = float(custom["prix_fcfa"])
             total_price = round(unit_price * quantity)
@@ -68,11 +59,7 @@ def crediter_revendeur(revendeur_info, quantity, total_price, client_id, order_i
     Toujours une fraction de ce que le client vient reellement de payer -
     jamais d'argent verse que tu n'as pas deja encaisse.
     """
-    logger.info(f"DEBUG crediter_revendeur appele: revendeur_info={revendeur_info}, quantity={quantity}, total_price={total_price}, client_id={client_id}, order_id={order_id}")
-    flash(f"DEBUG credit: revendeur_info={'PRESENT' if revendeur_info else 'VIDE'}", "info")
-
     if not revendeur_info:
-        logger.info("DEBUG crediter_revendeur: revendeur_info est None, aucun credit (client non rattache ou pas de prix personnalise trouve)")
         return
     try:
         revendeur = revendeur_info["revendeur"]
@@ -81,25 +68,21 @@ def crediter_revendeur(revendeur_info, quantity, total_price, client_id, order_i
         else:
             gain = round(total_price * float(revendeur.get("revendeur_commission_pct") or 0))
 
-        logger.info(f"DEBUG crediter_revendeur: type={revendeur_info['type']}, base_unit_price={revendeur_info['base_unit_price']}, gain calcule={gain}")
-        flash(f"DEBUG credit: type={revendeur_info['type']} base_unit_price={revendeur_info['base_unit_price']} total_price={total_price} quantity={quantity} gain={gain}", "info")
-
         if gain <= 0:
-            logger.info(f"DEBUG crediter_revendeur: gain <= 0 ({gain}), rien credite")
-            flash(f"DEBUG credit: gain <= 0 ({gain}), RIEN CREDITE", "info")
             return
 
         nouveau_solde = credit_balance(revendeur["id"], gain)
         if nouveau_solde is None:
-            logger.error(f"credit_balance a ECHOUE pour revendeur {revendeur['id']} (gain={gain})")
-            flash(f"DEBUG credit: ❌ credit_balance a ECHOUE (nouveau_solde=None) - verifie le profil {revendeur.get('email')}", "error")
+            logger.error(f"credit_balance a echoue pour revendeur {revendeur['id']} (gain={gain})")
             return
-        req.post(_url("revendeur_gains"), json={
+
+        gains_resp = req.post(_url("revendeur_gains"), json={
             "revendeur_id": revendeur["id"], "client_id": client_id,
             "order_id": order_id, "montant": gain
         }, headers=_headers())
-        logger.info(f"Revendeur {revendeur.get('email')} credite de {gain} FCFA (type={revendeur_info['type']}) - nouveau solde={nouveau_solde}")
-        flash(f"DEBUG credit: ✅ {gain} FCFA credites a {revendeur.get('email')} - NOUVEAU SOLDE = {nouveau_solde}", "success")
+        if gains_resp.status_code not in (200, 201):
+            logger.error(f"revendeur_gains insertion echouee ({gains_resp.status_code}): {gains_resp.text}")
+
+        logger.info(f"Revendeur {revendeur.get('email')} credite de {gain} FCFA (type={revendeur_info['type']})")
     except Exception as e:
         logger.error(f"crediter_revendeur: {e}")
-        flash(f"DEBUG credit ERREUR: {e}", "error")
