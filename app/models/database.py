@@ -586,3 +586,20 @@ def get_revendeur_gains_total(revendeur_id):
     except Exception as e:
         logger.error(f"get_revendeur_gains_total: {e}")
         return 0
+
+
+def get_revendeur_orders(revendeur_id, limit=100):
+    """Commandes passees par les clients rattaches a ce revendeur (mini panel revendeur)."""
+    try:
+        r = requests.get(_url(f"revendeur_clients?revendeur_id=eq.{revendeur_id}&select=client_id"), headers=_headers(True))
+        liens = r.json()
+        client_ids = [l.get("client_id") for l in liens] if isinstance(liens, list) else []
+        if not client_ids:
+            return []
+        ids_str = ",".join(client_ids)
+        r2 = requests.get(_url(f"commandes?user_id=in.({ids_str})&order=created_at.desc&limit={limit}"), headers=_headers(True))
+        data = r2.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_revendeur_orders: {e}")
+        return []
