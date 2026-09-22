@@ -156,6 +156,20 @@ def email_solde_insuffisant(to_email, nom, solde, requis):
                  _template("Solde insuffisant", contenu, "#FF6600", "#E65C00", emoji="⚠️"))
 
 
+def email_solde_bas(to_email, nom, solde):
+    """Alerte preventive quand le solde passe sous le seuil (avant meme d'etre a court)."""
+    contenu = f"""
+<p>Bonjour <strong>{nom}</strong>,</p>
+<p>Votre solde Boost Central commence a etre bas. Rechargez maintenant pour continuer a booster vos reseaux sans interruption.</p>
+<div class="box">
+<div class="row"><span>Solde actuel</span><span style="color:#DC2626">{solde:,.0f} FCFA</span></div>
+</div>
+<div class="btn-wrap"><a href="https://boostcentral-eta.vercel.app/recharge/" class="btn">Recharger mon compte</a></div>
+"""
+    return _send(to_email, "🔔 Votre solde est bas — Boost Central",
+                 _template("Pensez a recharger !", contenu, "#FF6600", "#E65C00", emoji="🔔"))
+
+
 def email_inactivite(to_email, nom):
     """Relance automatique apres 2 semaines sans commande (envoyee par tache planifiee)."""
     contenu = f"""
