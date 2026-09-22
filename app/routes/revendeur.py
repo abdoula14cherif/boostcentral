@@ -1,4 +1,5 @@
 import re
+import os
 import logging
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from app.models.security import login_required, get_current_user
@@ -20,8 +21,9 @@ def index():
     user = get_current_user()
     profile = get_profile(user["id"])
     base_url = request.host_url.rstrip("/")
+    root_domain = os.environ.get("ROOT_DOMAIN", "").strip()
     return render_template("dashboard/revendeur.html",
-        user=user, profile=profile, prix_activation=PRIX_ACTIVATION, base_url=base_url)
+        user=user, profile=profile, prix_activation=PRIX_ACTIVATION, base_url=base_url, root_domain=root_domain)
 
 
 @revendeur_bp.route("/activer", methods=["POST"])
