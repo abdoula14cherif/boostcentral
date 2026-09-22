@@ -10,6 +10,7 @@ from app.models.boostci import add_order as boostci_add, get_balance as boostci_
 from app.models.mailer import email_commande_passee, email_admin_nouvelle_commande, email_solde_insuffisant
 from app.models.vip import get_vip_tier, rang, calculer_remise_totale
 from app.models.revente import calculer_prix_ligne, crediter_revendeur
+from app.models.alertes import verifier_solde_bas
 
 logger = logging.getLogger(__name__)
 
@@ -257,6 +258,8 @@ def place_order_groupe():
     for donnees in lignes_valides:
         _creer_et_dispatcher(user, donnees)
 
+    verifier_solde_bas(user["id"], user["email"], user.get("name", ""))
+
     flash(f"✅ {n} commandes passees ! {total_general:,.0f} FCFA debites au total.", "success")
     return redirect(url_for("dashboard.index") + "?commande=ok")
 
@@ -350,6 +353,7 @@ def place_order():
         return redirect(url_for("dashboard.index"))
 
     crediter_revendeur(revendeur_info, quantity, total_price, user["id"], order["id"])
+    verifier_solde_bas(user["id"], user["email"], user.get("name", ""))
 
     # Envoyer chez BOOSTCI si service lie
     provider_id = service.get("boostci_service_id")
