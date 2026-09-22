@@ -5,6 +5,7 @@ from app.models.database import (get_profile_by_api_key, get_active_services, ge
 from app.models.boostci import add_order as boostci_add
 from app.models.vip import get_vip_tier, calculer_remise_totale
 from app.models.revente import calculer_prix_ligne, crediter_revendeur
+from app.models.alertes import verifier_solde_bas
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,7 @@ def handle():
                 update_order(order["id"], {"note_admin": f"API - exception BOOSTCI: {e}"})
 
         crediter_revendeur(revendeur_info, quantity, total_price, user_id, order["id"])
+        verifier_solde_bas(user_id, profile.get("email", ""), profile.get("full_name", ""))
         return jsonify({"order": order["id"]})
 
     if action == "status":
