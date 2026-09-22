@@ -1,7 +1,9 @@
 import logging
 import secrets
+import csv
+import io
 import requests
-from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, Response
 from app.models.security import admin_required
 from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key, get_all_promo_codes, create_promo_code, update_promo_code, get_order_by_id, get_all_tickets, get_ticket_messages, add_ticket_message, update_ticket
 from app.models.mailer import email_commande_livree
@@ -284,3 +286,57 @@ def ticket_statut():
     update_ticket(ticket_id, {"statut": statut})
     flash("Statut mis a jour.", "success")
     return redirect(url_for("admin.index") + "#support")
+
+
+def _csv_response(rows, headers, filename):
+    """Construit une reponse CSV telechargeable a partir d'une liste de dicts."""
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(headers)
+    for row in rows:
+        writer.writerow(row)
+    output = buf.getvalue()
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+
+@admin_bp.route("/export/commandes.csv")
+@admin_required
+def export_commandes():
+    orders = get_all_orders(limit=10000)
+    headers = ["ID", "Email client", "Reseau", "Service", "Quantite", "Prix unitaire", "Prix total", "Lien", "Statut", "Progression", "Date"]
+    rows = [[
+        o.get("id"), o.get("user_email"), o.get("reseau"), o.get("service"),
+        o.get("quantite"), o.get("prix_unitaire"), o.get("prix_total"),
+        o.get("lien"), o.get("statut"), o.get("progression"),
+        (o.get("created_at") or "")[:19]
+    ] for o in orders]
+    return _csv_response(rows, headers, "commandes_boostcentral.csv")
+
+
+@admin_bp.route("/export/recharges.csv")
+@admin_required
+def export_recharges():
+    recharges = get_all_recharges(limit=10000)
+    headers = ["ID", "Email client", "Montant FCFA", "Methode", "Code promo", "Statut", "Date"]
+    rows = [[
+        r.get("id"), r.get("user_email"), r.get("montant_fcfa"), r.get("methode"),
+        r.get("promo_code") or "", r.get("statut"), (r.get("created_at") or "")[:19]
+    ] for r in recharges]
+    return _csv_response(rows, headers, "recharges_boostcentral.csv")
+
+
+@admin_bp.route("/export/utilisateurs.csv")
+@admin_required
+def export_utilisateurs():
+    users = get_all_users()
+    headers = ["ID", "Email", "Nom", "Pays", "Solde FCFA", "Revendeur", "Date inscription"]
+    rows = [[
+        u.get("id"), u.get("email"), u.get("full_name"), u.get("country"),
+        u.get("balance"), "Oui" if u.get("est_revendeur") else "Non",
+        (u.get("created_at") or "")[:19]
+    ] for u in users]
+    return _csv_response(rows, headers, "utilisateurs_boostcentral.csv")
