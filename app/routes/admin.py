@@ -5,7 +5,7 @@ import io
 import requests
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, Response
 from app.models.security import admin_required
-from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key, get_all_promo_codes, create_promo_code, update_promo_code, get_order_by_id, get_all_tickets, get_ticket_messages, add_ticket_message, update_ticket
+from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key, get_all_promo_codes, create_promo_code, update_promo_code, get_order_by_id, get_all_tickets, get_ticket_messages, add_ticket_message, update_ticket, get_all_retraits, get_retrait_by_id, update_retrait
 from app.models.mailer import email_commande_livree
 
 logger = logging.getLogger(__name__)
@@ -55,7 +55,11 @@ def index():
     tickets = get_all_tickets()
     nb_tickets_ouverts = sum(1 for t in tickets if t.get("statut") == "ouvert")
     stats["tickets_ouverts"] = nb_tickets_ouverts
-    return render_template("admin/index.html", recharges=recharges, orders=orders, services=services, users=users, stats=stats, promo_codes=promo_codes, tickets=tickets, whatsapp=current_app.config["WHATSAPP_NUMBER"])
+
+    retraits = get_all_retraits()
+    stats["retraits_attente"] = sum(1 for r in retraits if r.get("statut") == "en_attente")
+
+    return render_template("admin/index.html", recharges=recharges, orders=orders, services=services, users=users, stats=stats, promo_codes=promo_codes, tickets=tickets, retraits=retraits, whatsapp=current_app.config["WHATSAPP_NUMBER"])
 
 @admin_bp.route("/recharge/process", methods=["POST"])
 @admin_required
@@ -340,3 +344,27 @@ def export_utilisateurs():
         (u.get("created_at") or "")[:19]
     ] for u in users]
     return _csv_response(rows, headers, "utilisateurs_boostcentral.csv")
+
+
+@admin_bp.route("/retrait/traiter", methods=["POST"])
+@admin_required
+def traiter_retrait():
+    retrait_id = request.form.get("retrait_id", "")
+    action = request.form.get("action", "")
+
+    retrait = get_retrait_by_id(retrait_id)
+    if not retrait or retrait.get("statut") != "en_attente":
+        flash("Retrait introuvable ou deja traite.", "error")
+        return redirect(url_for("admin.index") + "#retraits")
+
+    if action == "valider":
+        update_retrait(retrait_id, {"statut": "valide"})
+        flash(f"Retrait de {retrait['montant']:,.0f} FCFA marque comme paye. N'oublie pas d'envoyer l'argent reellement.", "success")
+    elif action == "refuser":
+        credit_balance(retrait["user_id"], retrait["montant"])
+        update_retrait(retrait_id, {"statut": "refuse"})
+        flash(f"Retrait refuse, {retrait['montant']:,.0f} FCFA recredites au client.", "info")
+    else:
+        flash("Action invalide.", "error")
+
+    return redirect(url_for("admin.index") + "#retraits")
