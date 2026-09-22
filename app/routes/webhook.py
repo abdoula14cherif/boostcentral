@@ -4,6 +4,7 @@ from app.models.database import credit_balance, create_recharge, get_recharge_by
 from app.routes.parrainage import crediter_commission_recharge
 from app.models.promo import valider_code
 from app.models.database import enregistrer_utilisation_code
+from app.models.alertes import reinitialiser_alerte_solde
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,7 @@ def soleaspay_webhook():
                 logger.warning(f"Code promo {promo_code} devenu invalide au moment du credit: {message}")
 
         credit_balance(user_id, montant_credite)
+        reinitialiser_alerte_solde(user_id)
         update_recharge(recharge["id"], {
             "statut": "valide",
             "capture_url": transaction_reference
