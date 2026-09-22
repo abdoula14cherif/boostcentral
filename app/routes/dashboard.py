@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, session,
 from app.models.security import login_required, get_current_user
 from app.models.database import (get_profile, get_active_services, get_user_orders,
     get_service_by_id, create_order, debit_balance, update_order, set_api_key,
-    get_total_recharged, update_profile)
+    get_total_recharged, update_profile, create_retrait, get_user_retraits, credit_balance)
 from app.models.forms import OrderForm
 from app.models.boostci import add_order as boostci_add, get_balance as boostci_balance
 from app.models.mailer import email_commande_passee, email_admin_nouvelle_commande, email_solde_insuffisant
@@ -426,3 +426,72 @@ def api_services(network):
         "description": s.get("description", ""),
         "custom_comments": s.get("custom_comments", False)
     } for s in services])
+
+
+@dashboard_bp.route("/retirer")
+@login_required
+def retirer():
+    user = get_current_user()
+    profile = get_profile(user["id"])
+
+    if not profile or not profile.get("est_revendeur"):
+        flash("Le retrait est reserve aux revendeurs.", "error")
+        return redirect(url_for("dashboard.index"))
+
+    historique = get_user_retraits(user["id"])
+    return render_template("dashboard/retirer.html", user=user, profile=profile, historique=historique)
+
+
+@dashboard_bp.route("/retirer/demander", methods=["POST"])
+@login_required
+def retirer_demander():
+    user = get_current_user()
+    profile = get_profile(user["id"])
+
+    if not profile or not profile.get("est_revendeur"):
+        flash("Le retrait est reserve aux revendeurs.", "error")
+        return redirect(url_for("dashboard.index"))
+
+    moyen = request.form.get("moyen", "").strip()
+    numero = request.form.get("numero", "").strip()
+    montant_raw = request.form.get("montant", "0").strip()
+
+    try:
+        montant = float(montant_raw)
+    except:
+        flash("Montant invalide.", "error")
+        return redirect(url_for("dashboard.retirer"))
+
+    if montant < 1000:
+        flash("Montant minimum de retrait : 1 000 FCFA.", "error")
+        return redirect(url_for("dashboard.retirer"))
+
+    if not moyen or not numero:
+        flash("Moyen de paiement et numero requis.", "error")
+        return redirect(url_for("dashboard.retirer"))
+
+    balance = profile.get("balance", 0) or 0
+    if balance < montant:
+        flash(f"Solde insuffisant. Solde : {balance:,.0f} FCFA.", "error")
+        return redirect(url_for("dashboard.retirer"))
+
+    # On debite immediatement pour bloquer les fonds (evite un double retrait) -
+    # si l'admin refuse, le montant est recredite automatiquement.
+    new_balance = debit_balance(user["id"], montant)
+    if new_balance is None:
+        flash("Erreur lors du debit.", "error")
+        return redirect(url_for("dashboard.retirer"))
+
+    retrait = create_retrait({
+        "user_id": user["id"], "user_email": user["email"],
+        "montant": montant, "moyen": moyen, "numero": numero,
+        "statut": "en_attente"
+    })
+
+    if not retrait:
+        credit_balance(user["id"], montant)  # annuler le debit si l'enregistrement a echoue
+        flash("Erreur lors de la demande de retrait.", "error")
+        return redirect(url_for("dashboard.retirer"))
+
+    flash(f"Demande de retrait de {montant:,.0f} FCFA envoyee. Traitement sous 24-48h.", "success")
+    return redirect(url_for("dashboard.retirer"))
