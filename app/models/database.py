@@ -603,3 +603,52 @@ def get_revendeur_orders(revendeur_id, limit=100):
     except Exception as e:
         logger.error(f"get_revendeur_orders: {e}")
         return []
+
+
+def create_retrait(data):
+    try:
+        r = requests.post(_url("retraits"), json=data, headers=_headers(True))
+        result = r.json()
+        return result[0] if isinstance(result, list) and result else None
+    except Exception as e:
+        logger.error(f"create_retrait: {e}")
+        return None
+
+
+def get_user_retraits(user_id, limit=20):
+    try:
+        r = requests.get(_url(f"retraits?user_id=eq.{user_id}&order=created_at.desc&limit={limit}"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_user_retraits: {e}")
+        return []
+
+
+def get_all_retraits(limit=100):
+    try:
+        r = requests.get(_url(f"retraits?order=created_at.desc&limit={limit}"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_all_retraits: {e}")
+        return []
+
+
+def get_retrait_by_id(retrait_id):
+    try:
+        r = requests.get(_url(f"retraits?id=eq.{retrait_id}&limit=1"), headers=_headers(True))
+        data = r.json()
+        return data[0] if isinstance(data, list) and data else None
+    except Exception as e:
+        logger.error(f"get_retrait_by_id: {e}")
+        return None
+
+
+def update_retrait(retrait_id, data):
+    try:
+        r = requests.patch(_url(f"retraits?id=eq.{retrait_id}"), json=data, headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"update_retrait: {e}")
+        return False
