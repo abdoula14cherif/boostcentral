@@ -1,6 +1,6 @@
 import os
 import logging
-from flask import Flask, render_template, send_from_directory
+from flask import Flask, render_template, send_from_directory, request, redirect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect
@@ -58,6 +58,29 @@ def create_app(config_name="production"):
     csrf.exempt(webhook_bp)
     csrf.exempt(api_bp)
     csrf.exempt(relance_bp)
+
+    ROOT_DOMAIN = os.environ.get("ROOT_DOMAIN", "").lower().strip()
+
+    @app.before_request
+    def _detecter_sous_domaine_revendeur():
+        """
+        Si l'app tourne sur un vrai domaine (ROOT_DOMAIN configure) et que la
+        requete arrive sur un sous-domaine (monboost.tondomaine.com), on
+        affiche directement la boutique de ce revendeur sur la page d'accueil
+        du sous-domaine - sans changer l'URL. Le reste du site (login,
+        dashboard, etc.) continue de fonctionner normalement sur ce meme
+        sous-domaine.
+        """
+        if not ROOT_DOMAIN or request.path != "/":
+            return None
+        host = request.host.split(":")[0].lower()
+        if host == ROOT_DOMAIN or host == f"www.{ROOT_DOMAIN}" or host.endswith(".vercel.app"):
+            return None
+        if host.endswith("." + ROOT_DOMAIN):
+            slug = host[: -(len(ROOT_DOMAIN) + 1)]
+            from app.routes.boutique import visiter
+            return visiter(slug)
+        return None
 
     @app.route("/")
     def index():
