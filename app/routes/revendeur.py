@@ -8,7 +8,7 @@ from app.models.database import get_profile, debit_balance, slug_deja_pris, acti
 logger = logging.getLogger(__name__)
 revendeur_bp = Blueprint("revendeur", __name__)
 
-PRIX_ACTIVATION = 12000
+PRIX_ACTIVATION = 3600
 
 
 def _slug_valide(slug):
