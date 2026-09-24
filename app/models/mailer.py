@@ -217,3 +217,15 @@ def email_admin_nouvelle_commande(user_email, service, quantite, prix_total, lie
 """
     return _send(ADMIN_EMAIL, f"🚀 Nouvelle commande : {service}",
                  _template("Nouvelle commande !", contenu, "#FF6600", "#E65C00", emoji="🚀"))
+
+
+def email_admin_solde_boostci_bas(solde_usd):
+    """Alerte admin quand le solde BOOSTCI devient bas - pour ne jamais etre pris au depourvu."""
+    contenu = f"""
+<p>Le solde de ton compte fournisseur BOOSTCI est bas. Recharge-le pour eviter des commandes bloquees.</p>
+<div class="box">
+<div class="row"><span>Solde BOOSTCI actuel</span><span style="color:#DC2626">{solde_usd:.2f} $</span></div>
+</div>
+"""
+    return _send(ADMIN_EMAIL, f"⚠️ Solde BOOSTCI bas ({solde_usd:.2f}$)",
+                 _template("Solde fournisseur bas", contenu, "#FF6600", "#E65C00", emoji="⚠️"))
