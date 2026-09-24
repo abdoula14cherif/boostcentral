@@ -3,7 +3,10 @@ import logging
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify
 from app.models.database import get_all_users, get_user_orders, update_profile
-from app.models.mailer import email_inactivite
+from app.models.mailer import email_inactivite, email_admin_solde_boostci_bas
+from app.models.boostci import get_balance as boostci_balance
+
+SEUIL_BOOSTCI_USD = 5.0
 
 logger = logging.getLogger(__name__)
 relance_bp = Blueprint("relance", __name__)
@@ -24,6 +27,14 @@ def _est_autorise():
 def relancer_inactifs():
     if not _est_autorise():
         return jsonify({"error": "Non autorise."}), 401
+
+    # Verification quotidienne du solde fournisseur BOOSTCI
+    try:
+        solde_boostci = boostci_balance()
+        if solde_boostci < SEUIL_BOOSTCI_USD:
+            email_admin_solde_boostci_bas(solde_boostci)
+    except Exception as e:
+        logger.error(f"verification solde BOOSTCI: {e}")
 
     users = get_all_users()
     maintenant = datetime.now(timezone.utc)
