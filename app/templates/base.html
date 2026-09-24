@@ -9,12 +9,21 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Boost Central">
 <title>{% block title %}Boost Central{% endblock %}</title>
+<script>
+(function(){
+  try{
+    var saved = localStorage.getItem('theme');
+    if(saved === 'dark'){ document.documentElement.setAttribute('data-theme','dark'); }
+  }catch(e){}
+})();
+</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{--blue:#0066FF;--blue-d:#0047CC;--blue-l:#E6F0FF;--orange:#FF6600;--orange-d:#E65C00;--white:#fff;--off:#F8FAFC;--gray:#E2E8F0;--light-g:#F1F5F9;--dark:#1E293B;--mid:#475569;--light:#8A9AB5;--green:#059669;--red:#DC2626;--yellow:#D97706}
+:root[data-theme="dark"]{--blue:#3B82F6;--blue-d:#2563EB;--blue-l:rgba(59,130,246,.18);--orange:#FF7A3D;--orange-d:#E65C00;--white:#1A2233;--off:#0F1420;--gray:#2A3550;--light-g:#212B42;--dark:#F1F5F9;--mid:#B6C2D9;--light:#7A879E;--green:#34D399;--red:#F87171;--yellow:#FBBF24}
 html{scroll-behavior:smooth}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var(--mid);min-height:100vh;overflow-x:hidden}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var(--mid);min-height:100vh;overflow-x:hidden;transition:background .25s ease,color .25s ease}
 .flash-container{position:fixed;top:80px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:360px}
 .flash-msg{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;font-size:.84rem;font-weight:600;box-shadow:0 5px 18px rgba(0,0,0,.12);animation:flashIn .35s ease both}
 @keyframes flashIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
@@ -27,6 +36,8 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var
 .wa-float:hover{animation:none;transform:scale(1.1)}
 @keyframes waF{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:translateY(0);opacity:1}}
+.theme-toggle{position:fixed;bottom:24px;left:24px;width:50px;height:50px;background:var(--white);border:2px solid var(--gray);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--dark);font-size:1.15rem;box-shadow:0 5px 18px rgba(0,0,0,.15);z-index:90;cursor:pointer;transition:all .25s}
+.theme-toggle:hover{transform:scale(1.08)}
 {% block extra_css %}{% endblock %}
 </style>
 </head>
@@ -36,6 +47,10 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var
 📲 Installer l app
 </button>
 <style>@keyframes pulse2{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}</style>
+
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Changer de theme">
+  <i class="fas fa-moon" id="themeIcon"></i>
+</button>
 
 <div id="pwa-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#0066FF,#0047CC);color:#fff;padding:14px 16px;box-shadow:0 4px 16px rgba(0,102,255,.4);animation:slideDown .5s ease">
 <div style="display:flex;align-items:center;justify-content:space-between;max-width:600px;margin:0 auto;gap:10px">
@@ -73,6 +88,19 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var
 {% endif %}
 {% block extra_js %}{% endblock %}
 <script>
+function applyThemeIcon(t){
+  var icon=document.getElementById('themeIcon');
+  if(icon){ icon.className = t === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; }
+}
+function toggleTheme(){
+  var current = document.documentElement.getAttribute('data-theme') || 'light';
+  var next = current === 'dark' ? 'light' : 'dark';
+  try{ localStorage.setItem('theme', next); }catch(e){}
+  document.documentElement.setAttribute('data-theme', next);
+  applyThemeIcon(next);
+}
+applyThemeIcon(document.documentElement.getAttribute('data-theme') || 'light');
+
 var deferredPrompt=null;
 var installBtn=document.getElementById("installBtn");
 
