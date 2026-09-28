@@ -8,6 +8,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
 .main{padding:16px;max-width:1100px;margin:0 auto}
 .top-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
 .btn-import-all{display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,var(--green),#047857);color:#fff;border:none;padding:12px 20px;border-radius:12px;font-weight:700;cursor:pointer;font-size:.9rem}
+.btn-recalc{display:flex;align-items:center;gap:8px;background:var(--blue-l);color:var(--blue);border:none;padding:12px 20px;border-radius:12px;font-weight:700;cursor:pointer;font-size:.9rem;text-decoration:none}
 .cat-title{font-size:1rem;font-weight:800;color:var(--dark);margin:18px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--blue-l);display:flex;align-items:center;gap:8px}
 .svc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:10px}
 .svc-card{background:var(--white);border-radius:12px;padding:14px;border:1px solid var(--gray)}
@@ -21,7 +22,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
 .prix-boostci{font-size:.75rem;color:var(--light);text-decoration:line-through}
 .btn-import{width:100%;padding:9px;border:none;border-radius:9px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;font-size:.82rem;font-weight:700;cursor:pointer}
 .btn-import:disabled{opacity:.4;cursor:not-allowed}
-select.sel-r{width:100%;padding:7px;border:1px solid var(--gray);border-radius:8px;font-size:.82rem;margin-bottom:8px;background:var(--white)}
+select.sel-r{width:100%;padding:7px;border:1px solid var(--gray);border-radius:8px;font-size:.82rem;margin-bottom:8px;background:var(--white);color:var(--dark)}
 {% endblock %}
 {% block nav %}
 <header>
@@ -30,25 +31,32 @@ select.sel-r{width:100%;padding:7px;border:1px solid var(--gray);border-radius:8
 </header>
 {% endblock %}
 {% block content %}
+{% set liste_reseaux = ['facebook','tiktok','instagram','youtube','twitter','x','telegram','spotify','whatsapp','snapchat','pinterest','twitch','threads','soundcloud','audiomack','kick','discord','deezer'] %}
+{% set icones = {'facebook':'fab fa-facebook','tiktok':'fab fa-tiktok','instagram':'fab fa-instagram','youtube':'fab fa-youtube','twitter':'fab fa-twitter','x':'fas fa-xmark','telegram':'fab fa-telegram','spotify':'fab fa-spotify','whatsapp':'fab fa-whatsapp','snapchat':'fab fa-snapchat','pinterest':'fab fa-pinterest','twitch':'fab fa-twitch','threads':'fas fa-at','soundcloud':'fab fa-soundcloud','audiomack':'fas fa-music','kick':'fas fa-bolt','discord':'fab fa-discord','deezer':'fas fa-compact-disc'} %}
 <div class="main">
 <div class="top-bar">
 <div>
 <div style="font-size:1.1rem;font-weight:800;color:var(--dark)">Catalogue BOOSTCI</div>
-<div style="font-size:.82rem;color:var(--mid)">Prix affiche = prix BOOSTCI x2 (ta marge incluse)</div>
+<div style="font-size:.82rem;color:var(--mid)">Prix client = prix fournisseur + 1 FCFA par unite (ta marge)</div>
 </div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<a href="{{ url_for('admin_boostci.recalculer_prix') }}" class="btn-recalc" onclick="return confirm('Recalculer le prix de tous les services deja importes ?')"><i class="fas fa-rotate"></i> Recalculer les prix</a>
 <form method="POST" action="{{ url_for('admin_boostci.importer_tous') }}" onsubmit="return confirm('Importer tous les services detectes ?')">
 <button type="submit" class="btn-import-all"><i class="fas fa-download"></i> Tout importer automatiquement</button>
 </form>
+</div>
 </div>
 
 {% for categorie, services in grouped.items() %}
 <div class="cat-title"><i class="fas fa-folder" style="color:var(--blue)"></i> {{ categorie }} ({{ services|length }})</div>
 <div class="svc-grid">
 {% for s in services %}
+{% set prix_fournisseur = s.rate|float * 0.6 %}
+{% set prix_client = prix_fournisseur + 1 %}
 <div class="svc-card">
 <div class="svc-name">{{ s.name }}</div>
 {% if s.reseau_detecte %}
-<span class="badge-reseau"><i class="fab fa-{{ s.reseau_detecte }}"></i> {{ s.reseau_detecte|capitalize }}</span>
+<span class="badge-reseau"><i class="{{ icones.get(s.reseau_detecte, 'fas fa-share-alt') }}"></i> {{ s.reseau_detecte|capitalize }}</span>
 {% else %}
 <span class="badge-reseau badge-no">Non detecte</span>
 {% endif %}
@@ -58,21 +66,21 @@ select.sel-r{width:100%;padding:7px;border:1px solid var(--gray);border-radius:8
 <div class="info-item"><strong>{{ s.min }}</strong>Min quantite</div>
 <div class="info-item"><strong>{{ s.max }}</strong>Max quantite</div>
 </div>
-<div class="prix-boostci">Fournisseur : {{ "%.2f"|format(s.rate|float * 0.6 / 1000) }} FCFA/unite</div>
-<div class="prix-client">Votre prix : {{ "%.2f"|format(s.rate|float * 0.6 / 1000 + 1) }} FCFA/unite</div>
+<div class="prix-boostci">Fournisseur : {{ "%.2f"|format(prix_fournisseur) }} FCFA/unite</div>
+<div class="prix-client">Votre prix : {{ "%.2f"|format(prix_client) }} FCFA/unite</div>
 <form method="POST" action="{{ url_for('admin_boostci.importer') }}">
 <input type="hidden" name="boostci_id" value="{{ s.service }}">
 <input type="hidden" name="nom" value="{{ s.name }}">
 <input type="hidden" name="min_qte" value="{{ s.min }}">
 <input type="hidden" name="max_qte" value="{{ s.max }}">
-<input type="hidden" name="prix_fcfa" value="{{ "%.4f"|format(s.rate|float * 0.6 / 1000 + 1) }}">
-<select class="sel-r" name="reseau">
+<input type="hidden" name="prix_fcfa" value="{{ "%.4f"|format(prix_client) }}">
+<select class="sel-r" name="reseau" required>
 <option value="">-- Choisir reseau --</option>
-{% for r in ['facebook','tiktok','instagram','youtube','twitter','telegram','spotify','whatsapp'] %}
+{% for r in liste_reseaux %}
 <option value="{{ r }}" {% if s.reseau_detecte == r %}selected{% endif %}>{{ r|capitalize }}</option>
 {% endfor %}
 </select>
-<button type="submit" class="btn-import" {% if not s.reseau_detecte %}{% endif %}>
+<button type="submit" class="btn-import">
 <i class="fas fa-plus"></i> Importer ce service
 </button>
 </form>
