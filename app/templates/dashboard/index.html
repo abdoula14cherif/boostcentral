@@ -214,7 +214,7 @@ textarea.inp{resize:vertical;appearance:auto}
   <div class="card">
     <div class="sec-title"><i class="fas fa-share-alt"></i> Reseaux supportes</div>
     <div class="nets-grid">
-      {% for net_id,icon,label in [('facebook','fab fa-facebook','Facebook'),('tiktok','fab fa-tiktok','TikTok'),('instagram','fab fa-instagram','Instagram'),('youtube','fab fa-youtube','YouTube'),('twitter','fab fa-twitter','Twitter'),('telegram','fab fa-telegram','Telegram'),('spotify','fab fa-spotify','Spotify'),('whatsapp','fab fa-whatsapp','WhatsApp')] %}
+      {% for net_id,icon,label in [('facebook','fab fa-facebook','Facebook'),('tiktok','fab fa-tiktok','TikTok'),('instagram','fab fa-instagram','Instagram'),('youtube','fab fa-youtube','YouTube'),('twitter','fab fa-twitter','Twitter'),('telegram','fab fa-telegram','Telegram'),('spotify','fab fa-spotify','Spotify'),('whatsapp','fab fa-whatsapp','WhatsApp'),('x','fas fa-xmark','X'),('snapchat','fab fa-snapchat','Snapchat'),('pinterest','fab fa-pinterest','Pinterest'),('twitch','fab fa-twitch','Twitch'),('threads','fas fa-at','Threads'),('soundcloud','fab fa-soundcloud','SoundCloud'),('audiomack','fas fa-music','Audiomack'),('kick','fas fa-bolt','Kick'),('discord','fab fa-discord','Discord'),('deezer','fas fa-compact-disc','Deezer')] %}
       <div class="net-card" data-net="{{ net_id }}" onclick="selectNet(this)" style="animation-delay:{{ loop.index0 * 0.05 }}s"><i class="{{ icon }}"></i><span>{{ label }}</span></div>
       {% endfor %}
     </div>
@@ -247,7 +247,7 @@ textarea.inp{resize:vertical;appearance:auto}
     <div class="commande-ligne">
       <button type="button" class="btn-del-ligne" onclick="supprimerLigne(this)" title="Retirer ce service"><i class="fas fa-times"></i></button>
       <div class="form-row">
-        <div class="fg"><label>Reseau social</label><div class="sw"><select class="selNet" name="network[]" onchange="onNetChange(this)"><option value="">Selectionnez</option>{% for net_id,icon,label in [('facebook','','Facebook'),('tiktok','','TikTok'),('instagram','','Instagram'),('youtube','','YouTube'),('twitter','','Twitter'),('telegram','','Telegram'),('spotify','','Spotify'),('whatsapp','','WhatsApp')] %}<option value="{{ net_id }}">{{ label }}</option>{% endfor %}</select></div></div>
+        <div class="fg"><label>Reseau social</label><div class="sw"><select class="selNet" name="network[]" onchange="onNetChange(this)"><option value="">Selectionnez</option>{% for net_id,icon,label in [('facebook','','Facebook'),('tiktok','','TikTok'),('instagram','','Instagram'),('youtube','','YouTube'),('twitter','','Twitter'),('telegram','','Telegram'),('spotify','','Spotify'),('whatsapp','','WhatsApp'),('x','','X'),('snapchat','','Snapchat'),('pinterest','','Pinterest'),('twitch','','Twitch'),('threads','','Threads'),('soundcloud','','SoundCloud'),('audiomack','','Audiomack'),('kick','','Kick'),('discord','','Discord'),('deezer','','Deezer')] %}<option value="{{ net_id }}">{{ label }}</option>{% endfor %}</select></div></div>
         <div class="fg"><label>Service</label><div class="sw"><select class="selSvc" name="service_id[]" onchange="onSvcChange(this)" disabled><option value="">Choisissez un reseau</option></select></div></div>
       </div>
       <div class="fg"><label>Lien du compte / video</label><input type="text" class="inp inpLink" name="link[]" placeholder="https://..."></div>
