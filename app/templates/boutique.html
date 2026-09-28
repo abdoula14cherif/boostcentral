@@ -54,7 +54,7 @@ main{padding:20px;max-width:720px;margin:0 auto}
 
   {% if services_par_reseau %}
     {% for net, liste in services_par_reseau.items() %}
-    {% set icons={'facebook':'fab fa-facebook','tiktok':'fab fa-tiktok','instagram':'fab fa-instagram','youtube':'fab fa-youtube','twitter':'fab fa-twitter','telegram':'fab fa-telegram','spotify':'fab fa-spotify','whatsapp':'fab fa-whatsapp'} %}
+    {% set icons={'facebook':'fab fa-facebook','tiktok':'fab fa-tiktok','instagram':'fab fa-instagram','youtube':'fab fa-youtube','twitter':'fab fa-twitter','telegram':'fab fa-telegram','spotify':'fab fa-spotify','whatsapp':'fab fa-whatsapp','x':'fas fa-xmark','snapchat':'fab fa-snapchat','pinterest':'fab fa-pinterest','twitch':'fab fa-twitch','threads':'fas fa-at','soundcloud':'fab fa-soundcloud','audiomack':'fas fa-music','kick':'fas fa-bolt','discord':'fab fa-discord','deezer':'fas fa-compact-disc'} %}
     <div class="net-title"><i class="{{ icons.get(net,'fas fa-share-alt') }}" style="color:#7C3AED"></i> {{ net|capitalize }}</div>
     <div class="svc-grid">
       {% for s in liste %}
