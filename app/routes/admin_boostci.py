@@ -11,7 +11,10 @@ admin_boostci_bp = Blueprint("admin_boostci", __name__)
 RESEAU_MAP = {
     "facebook": "facebook", "instagram": "instagram", "tiktok": "tiktok",
     "youtube": "youtube", "twitter": "twitter", "telegram": "telegram",
-    "spotify": "spotify", "whatsapp": "whatsapp"
+    "spotify": "spotify", "whatsapp": "whatsapp",
+    "snapchat": "snapchat", "pinterest": "pinterest", "twitch": "twitch",
+    "threads": "threads", "soundcloud": "soundcloud", "audiomack": "audiomack",
+    "kick": "kick", "discord": "discord", "deezer": "deezer"
 }
 
 USD_RATE = 600
@@ -76,7 +79,7 @@ def importer():
         flash("Donnees manquantes.", "error")
         return redirect(url_for("admin_boostci.index"))
 
-    exist = req.get(_supabase_url(f"services?boostci_service_id=eq.{boostci_id}&limit=1"), headers=_admin_headers())
+    exist = req.get(_supabase_url(f"services?boostci_service_id=eq.{boostci_id}&fournisseur=eq.boostci&limit=1"), headers=_admin_headers())
     if exist.json():
         flash("Ce service est deja importe.", "warning")
         return redirect(url_for("admin_boostci.index"))
@@ -102,7 +105,8 @@ def importer():
             "description": "Service premium Boost Central",
             "actif": True,
             "boostci_service_id": int(boostci_id),
-            "custom_comments": custom_comments
+            "custom_comments": custom_comments,
+            "fournisseur": "boostci"
         }
         r = req.post(_supabase_url("services"), json=payload, headers=_admin_headers())
         if r.status_code in (200, 201):
@@ -135,7 +139,7 @@ def importer_tous():
 
         boostci_sid = int(s.get("service", 0))
 
-        exist = req.get(_supabase_url(f"services?boostci_service_id=eq.{boostci_sid}&limit=1"), headers=_admin_headers())
+        exist = req.get(_supabase_url(f"services?boostci_service_id=eq.{boostci_sid}&fournisseur=eq.boostci&limit=1"), headers=_admin_headers())
         if exist.json():
             ignore += 1
             continue
@@ -155,7 +159,8 @@ def importer_tous():
                 "description": s.get("description", ""),
                 "actif": True,
                 "boostci_service_id": boostci_sid,
-                "custom_comments": custom_comments
+                "custom_comments": custom_comments,
+                "fournisseur": "boostci"
             }
             r = req.post(_supabase_url("services"), json=payload, headers=_admin_headers())
             if r.status_code in (200, 201):
@@ -173,13 +178,7 @@ def importer_tous():
 @admin_boostci_bp.route("/recalculer-prix")
 @admin_required
 def recalculer_prix():
-    """
-    Recalcule le prix de TOUS les services deja importes a partir du
-    tarif BOOSTCI actuel + la marge standard (meme formule que l'import).
-    Utile quand un prix a ete fige avant une mise a jour du tarif fournisseur,
-    ou pour un service dont le prix n'a jamais ete calcule automatiquement.
-    Accessible simplement en visitant cette URL en etant connecte en admin.
-    """
+    """Recalcule le prix des services importes depuis BOOSTCI uniquement."""
     try:
         catalogue = boostci_get_services()
     except Exception as e:
@@ -195,7 +194,7 @@ def recalculer_prix():
 
     try:
         r = req.get(
-            _supabase_url("services?boostci_service_id=not.is.null&select=id,boostci_service_id,prix_fcfa"),
+            _supabase_url("services?fournisseur=eq.boostci&boostci_service_id=not.is.null&select=id,boostci_service_id,prix_fcfa"),
             headers=_admin_headers()
         )
         nos_services = r.json() or []
