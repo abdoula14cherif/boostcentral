@@ -413,7 +413,8 @@ def place_order():
 @dashboard_bp.route("/api/services/<string:network>")
 @login_required
 def api_services(network):
-    allowed = {"facebook","tiktok","instagram","youtube","twitter","telegram","spotify","whatsapp"}
+    allowed = {"facebook","tiktok","instagram","youtube","twitter","telegram","spotify","whatsapp",
+               "x","snapchat","pinterest","twitch","threads","soundcloud","audiomack","kick","discord","deezer"}
     if network not in allowed:
         return jsonify([])
     services = get_active_services(network=network)
