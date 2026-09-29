@@ -79,7 +79,7 @@ def importer():
         flash("Donnees manquantes.", "error")
         return redirect(url_for("admin_boostci.index"))
 
-    exist = req.get(_supabase_url(f"services?boostci_service_id=eq.{boostci_id}&fournisseur=eq.boostci&limit=1"), headers=_admin_headers())
+    exist = req.get(_supabase_url(f"services?boostci_service_id=eq.{boostci_id}&limit=1"), headers=_admin_headers())
     if exist.json():
         flash("Ce service est deja importe.", "warning")
         return redirect(url_for("admin_boostci.index"))
@@ -106,7 +106,6 @@ def importer():
             "actif": True,
             "boostci_service_id": int(boostci_id),
             "custom_comments": custom_comments,
-            "fournisseur": "boostci"
         }
         r = req.post(_supabase_url("services"), json=payload, headers=_admin_headers())
         if r.status_code in (200, 201):
@@ -139,7 +138,7 @@ def importer_tous():
 
         boostci_sid = int(s.get("service", 0))
 
-        exist = req.get(_supabase_url(f"services?boostci_service_id=eq.{boostci_sid}&fournisseur=eq.boostci&limit=1"), headers=_admin_headers())
+        exist = req.get(_supabase_url(f"services?boostci_service_id=eq.{boostci_sid}&limit=1"), headers=_admin_headers())
         if exist.json():
             ignore += 1
             continue
@@ -160,7 +159,6 @@ def importer_tous():
                 "actif": True,
                 "boostci_service_id": boostci_sid,
                 "custom_comments": custom_comments,
-                "fournisseur": "boostci"
             }
             r = req.post(_supabase_url("services"), json=payload, headers=_admin_headers())
             if r.status_code in (200, 201):
@@ -194,7 +192,7 @@ def recalculer_prix():
 
     try:
         r = req.get(
-            _supabase_url("services?fournisseur=eq.boostci&boostci_service_id=not.is.null&select=id,boostci_service_id,prix_fcfa"),
+            _supabase_url("services?boostci_service_id=not.is.null&select=id,boostci_service_id,prix_fcfa"),
             headers=_admin_headers()
         )
         nos_services = r.json() or []
