@@ -162,7 +162,12 @@ tr:hover td{background:var(--off)}
 <td>{{ u.full_name or '' }}</td>
 <td>{{ u.country or '' }}</td>
 <td><strong style="color:var(--orange)">{{ "{:,.0f}".format(u.balance or 0) }}</strong></td>
-<td><button class="btn-sm btn-o" onclick="openModalB('{{ u.id }}','{{ u.email|e }}',{{ u.balance or 0 }})"><i class="fas fa-wallet"></i> Solde</button></td>
+<td style="display:flex;gap:6px">
+<button class="btn-sm btn-o" onclick="openModalB('{{ u.id }}','{{ u.email|e }}',{{ u.balance or 0 }})"><i class="fas fa-wallet"></i> Solde</button>
+{% if u.est_revendeur and u.revendeur_modele == 'marge' %}
+<button class="btn-sm btn-b" onclick="openPrixRevendeur('{{ u.id }}','{{ u.email|e }}')"><i class="fas fa-tags"></i> Prix</button>
+{% endif %}
+</td>
 </tr>
 {% else %}<tr><td colspan="5"><div class="no-data"><i class="fas fa-users"></i><p>Aucun utilisateur</p></div></td></tr>{% endfor %}
 </tbody>
@@ -333,6 +338,14 @@ tr:hover td{background:var(--off)}
 </div>
 </div>
 
+<div class="modal-bg" id="modal-pr">
+<div class="modal" style="max-width:520px">
+<button class="modal-close" onclick="closeModal('modal-pr')">X</button>
+<h3 id="modal-pr-title">Prix revendeur</h3>
+<div id="modal-pr-body" style="max-height:400px;overflow-y:auto">Chargement...</div>
+</div>
+</div>
+
 <div class="modal-bg" id="modal-r">
 <div class="modal">
 <button class="modal-close" onclick="closeModal('modal-r')">X</button>
@@ -424,6 +437,29 @@ function openTicket(id,sujet,email){
     })
     .catch(function(){document.getElementById('modal-t-thread').innerHTML = 'Erreur de chargement.';});
 }
+function openPrixRevendeur(uid,email){
+  document.getElementById('modal-pr-title').textContent='Prix de '+email;
+  document.getElementById('modal-pr-body').innerHTML='Chargement...';
+  openModal('modal-pr');
+  fetch('/admin/revendeur/'+uid+'/prix')
+    .then(function(r){return r.json();})
+    .then(function(data){
+      var html='';
+      (data.services||[]).forEach(function(s){
+        html+='<form method="POST" action="{{ url_for('+"'admin.modifier_prix_revendeur'"+') }}" style="display:flex;gap:8px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--gray)">';
+        html+='<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">';
+        html+='<input type="hidden" name="user_id" value="'+uid+'">';
+        html+='<input type="hidden" name="service_id" value="'+s.service_id+'">';
+        html+='<div style="flex:1"><div style="font-size:.82rem;font-weight:700;color:var(--dark)">'+s.categorie+'</div><div style="font-size:.7rem;color:var(--light)">Base : '+s.prix_base+' FCFA</div></div>';
+        html+='<input type="number" step="0.1" name="prix_fcfa" value="'+(s.prix_revendeur||'')+'" placeholder="Prix" style="width:90px;padding:6px 8px;border:2px solid var(--gray);border-radius:8px;font-size:.82rem">';
+        html+='<button type="submit" class="btn-sm btn-g"><i class="fas fa-check"></i></button>';
+        html+='</form>';
+      });
+      document.getElementById('modal-pr-body').innerHTML=html || 'Aucun service.';
+    })
+    .catch(function(){document.getElementById('modal-pr-body').innerHTML='Erreur de chargement.';});
+}
+
 var hash=window.location.hash.replace('#','');
 var tabMap={recharges:0,commandes:1,services:2,users:3,api:4,promo:5,support:6,retraits:7};
 if(hash in tabMap){var btns=document.querySelectorAll('.tab-btn');showTab(hash,btns[tabMap[hash]])}
