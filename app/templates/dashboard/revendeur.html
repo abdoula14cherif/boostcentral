@@ -61,7 +61,7 @@ main{padding:20px;max-width:680px;margin:0 auto}
       {% else %}
       <p>Votre espace : <strong>{{ base_url }}/r/{{ profile.revendeur_slug }}</strong></p>
       {% endif %}
-      <div class="prix-badge">{{ "{:,.0f}".format(profile.balance or 0) }} FCFA sur votre compte</div>
+      <div class="prix-badge"><span class="countup" data-target="{{ (profile.balance or 0)|int }}">0</span> FCFA sur votre compte</div>
     </div>
     <div class="card">
       <div class="actif-badge">
@@ -129,6 +129,27 @@ main{padding:20px;max-width:680px;margin:0 auto}
 {% endblock %}
 {% block extra_js %}
 <script>
+function lancerCountup(){
+  document.querySelectorAll('.countup').forEach(function(el){
+    var target = parseInt(el.dataset.target) || 0;
+    var duree = 900;
+    var debut = null;
+    function step(ts){
+      if(!debut) debut = ts;
+      var progres = Math.min((ts - debut) / duree, 1);
+      var val = Math.round(target * (1 - Math.pow(1 - progres, 3)));
+      el.textContent = val.toLocaleString();
+      if(progres < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
+if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+  document.querySelectorAll('.countup').forEach(function(el){ el.textContent = (parseInt(el.dataset.target)||0).toLocaleString(); });
+} else {
+  document.addEventListener('DOMContentLoaded', lancerCountup);
+}
+
 function majSlug(){
   var v = document.getElementById('slugInp').value || '...';
   document.getElementById('slugPreview').textContent = v;
