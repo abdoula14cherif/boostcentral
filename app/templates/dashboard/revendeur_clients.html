@@ -29,10 +29,10 @@ main{padding:20px;max-width:680px;margin:0 auto}
   <div class="gains-card">
     <div style="font-size:1.6rem">💰</div>
     <div class="gains-lbl">Gains totaux (historique)</div>
-    <div class="gains-val">{{ "{:,.0f}".format(gains_total) }} FCFA</div>
+    <div class="gains-val"><span class="countup" data-target="{{ gains_total|int }}">0</span> FCFA</div>
     <div style="height:1px;background:rgba(255,255,255,.2);margin:14px 0"></div>
     <div class="gains-lbl">Solde disponible sur votre compte</div>
-    <div class="gains-val" style="font-size:1.6rem">{{ "{:,.0f}".format(profile.balance or 0) }} FCFA</div>
+    <div class="gains-val" style="font-size:1.6rem"><span class="countup" data-target="{{ (profile.balance or 0)|int }}">0</span> FCFA</div>
   </div>
 
   <div class="lien-box">
@@ -54,4 +54,26 @@ main{padding:20px;max-width:680px;margin:0 auto}
     <div class="no-clients"><i class="fas fa-users"></i><p>Aucun client pour l instant. Partagez votre lien !</p></div>
   {% endif %}
 </main>
+{% endblock %}
+{% block extra_js %}
+<script>
+function lancerCountup(){
+  document.querySelectorAll('.countup').forEach(function(el){
+    var target = parseInt(el.dataset.target) || 0;
+    var duree = 900, debut = null;
+    function step(ts){
+      if(!debut) debut = ts;
+      var progres = Math.min((ts - debut) / duree, 1);
+      el.textContent = Math.round(target * (1 - Math.pow(1 - progres, 3))).toLocaleString();
+      if(progres < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
+if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+  document.querySelectorAll('.countup').forEach(function(el){ el.textContent = (parseInt(el.dataset.target)||0).toLocaleString(); });
+} else {
+  document.addEventListener('DOMContentLoaded', lancerCountup);
+}
+</script>
 {% endblock %}
