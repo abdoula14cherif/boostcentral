@@ -29,8 +29,8 @@ main{padding:20px;max-width:720px;margin:0 auto}
 {% block content %}
 <main>
   <div class="stats-row">
-    <div class="stat-box"><div class="stat-val">{{ orders|length }}</div><div class="stat-lbl">Commandes clients</div></div>
-    <div class="stat-box"><div class="stat-val" style="color:#7C3AED">{{ "{:,.0f}".format(gains_total) }} F</div><div class="stat-lbl">Vos gains totaux</div></div>
+    <div class="stat-box"><div class="stat-val"><span class="countup" data-target="{{ orders|length }}">0</span></div><div class="stat-lbl">Commandes clients</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:#7C3AED"><span class="countup" data-target="{{ gains_total|int }}">0</span> F</div><div class="stat-lbl">Vos gains totaux</div></div>
   </div>
 
   {% if orders %}
@@ -54,4 +54,26 @@ main{padding:20px;max-width:720px;margin:0 auto}
     <div class="no-data"><i class="fas fa-inbox"></i><p>Aucune commande de vos clients pour l instant.</p></div>
   {% endif %}
 </main>
+{% endblock %}
+{% block extra_js %}
+<script>
+function lancerCountup(){
+  document.querySelectorAll('.countup').forEach(function(el){
+    var target = parseInt(el.dataset.target) || 0;
+    var duree = 900, debut = null;
+    function step(ts){
+      if(!debut) debut = ts;
+      var progres = Math.min((ts - debut) / duree, 1);
+      el.textContent = Math.round(target * (1 - Math.pow(1 - progres, 3))).toLocaleString();
+      if(progres < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  });
+}
+if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+  document.querySelectorAll('.countup').forEach(function(el){ el.textContent = (parseInt(el.dataset.target)||0).toLocaleString(); });
+} else {
+  document.addEventListener('DOMContentLoaded', lancerCountup);
+}
+</script>
 {% endblock %}
