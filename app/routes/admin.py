@@ -5,7 +5,7 @@ import io
 import requests
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, Response
 from app.models.security import admin_required
-from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key, get_all_promo_codes, create_promo_code, update_promo_code, get_order_by_id, get_all_tickets, get_ticket_messages, add_ticket_message, update_ticket, get_all_retraits, get_retrait_by_id, update_retrait
+from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key, get_all_promo_codes, create_promo_code, update_promo_code, get_order_by_id, get_all_tickets, get_ticket_messages, add_ticket_message, update_ticket, get_all_retraits, get_retrait_by_id, update_retrait, get_active_services, get_revendeur_prix_all, set_revendeur_prix, get_profile
 from app.models.mailer import email_commande_livree
 
 logger = logging.getLogger(__name__)
@@ -368,3 +368,47 @@ def traiter_retrait():
         flash("Action invalide.", "error")
 
     return redirect(url_for("admin.index") + "#retraits")
+
+
+@admin_bp.route("/revendeur/<user_id>/prix")
+@admin_required
+def voir_prix_revendeur(user_id):
+    from flask import jsonify
+    revendeur = get_profile(user_id)
+    if not revendeur or not revendeur.get("est_revendeur"):
+        return jsonify({"error": "Pas un revendeur."}), 404
+
+    services = get_active_services()
+    mes_prix = {p["service_id"]: p["prix_fcfa"] for p in get_revendeur_prix_all(user_id)}
+
+    data = [{
+        "service_id": s["id"],
+        "categorie": s["categorie"],
+        "reseau": s["reseau"],
+        "prix_base": s["prix_fcfa"],
+        "prix_revendeur": mes_prix.get(s["id"])
+    } for s in services]
+
+    return jsonify({"email": revendeur.get("email"), "modele": revendeur.get("revendeur_modele"), "services": data})
+
+
+@admin_bp.route("/revendeur/prix/modifier", methods=["POST"])
+@admin_required
+def modifier_prix_revendeur():
+    user_id = request.form.get("user_id", "")
+    service_id = request.form.get("service_id", "")
+    prix_fcfa = request.form.get("prix_fcfa", "").strip()
+
+    try:
+        service_id = int(service_id)
+        prix_fcfa = float(prix_fcfa)
+    except:
+        flash("Valeurs invalides.", "error")
+        return redirect(url_for("admin.index") + "#users")
+
+    ok = set_revendeur_prix(user_id, service_id, prix_fcfa)
+    if ok:
+        flash("Prix du revendeur mis a jour.", "success")
+    else:
+        flash("Erreur lors de la mise a jour.", "error")
+    return redirect(url_for("admin.index") + "#users")
