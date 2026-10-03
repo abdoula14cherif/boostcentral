@@ -437,27 +437,50 @@ function openTicket(id,sujet,email){
     })
     .catch(function(){document.getElementById('modal-t-thread').innerHTML = 'Erreur de chargement.';});
 }
-function openPrixRevendeur(uid,email){
-  document.getElementById('modal-pr-title').textContent='Prix de '+email;
-  document.getElementById('modal-pr-body').innerHTML='Chargement...';
+
+/* ============================================================
+   Prix revendeur — CORRIGÉ
+   Utilise |tojson pour éviter tout problème d'échappement
+   ============================================================ */
+var URL_MODIFIER_PRIX_REVENDEUR = {{ url_for('admin.modifier_prix_revendeur') | tojson }};
+var CSRF_TOKEN_PRIX = {{ csrf_token() | tojson }};
+
+function openPrixRevendeur(uid, email){
+  document.getElementById('modal-pr-title').textContent = 'Prix de ' + email;
+  document.getElementById('modal-pr-body').innerHTML = 'Chargement...';
   openModal('modal-pr');
-  fetch('/admin/revendeur/'+uid+'/prix')
-    .then(function(r){return r.json();})
+
+  fetch('/admin/revendeur/' + uid + '/prix')
+    .then(function(r){ return r.json(); })
     .then(function(data){
-      var html='';
-      (data.services||[]).forEach(function(s){
-        html+='<form method="POST" action="{{ url_for('+"'admin.modifier_prix_revendeur'"+') }}" style="display:flex;gap:8px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--gray)">';
-        html+='<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">';
-        html+='<input type="hidden" name="user_id" value="'+uid+'">';
-        html+='<input type="hidden" name="service_id" value="'+s.service_id+'">';
-        html+='<div style="flex:1"><div style="font-size:.82rem;font-weight:700;color:var(--dark)">'+s.categorie+'</div><div style="font-size:.7rem;color:var(--light)">Base : '+s.prix_base+' FCFA</div></div>';
-        html+='<input type="number" step="0.1" name="prix_fcfa" value="'+(s.prix_revendeur||'')+'" placeholder="Prix" style="width:90px;padding:6px 8px;border:2px solid var(--gray);border-radius:8px;font-size:.82rem">';
-        html+='<button type="submit" class="btn-sm btn-g"><i class="fas fa-check"></i></button>';
-        html+='</form>';
+      var html = '';
+      (data.services || []).forEach(function(s){
+        var prix = (s.prix_revendeur !== null && s.prix_revendeur !== undefined) ? s.prix_revendeur : '';
+
+        html += '<form method="POST" action="' + URL_MODIFIER_PRIX_REVENDEUR + '" '
+              +      'style="display:flex;gap:8px;align-items:center;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--gray)">';
+
+        html += '<input type="hidden" name="csrf_token" value="' + CSRF_TOKEN_PRIX + '">';
+        html += '<input type="hidden" name="user_id" value="' + uid + '">';
+        html += '<input type="hidden" name="service_id" value="' + s.service_id + '">';
+
+        html += '<div style="flex:1">'
+              +   '<div style="font-size:.82rem;font-weight:700;color:var(--dark)">' + s.categorie + '</div>'
+              +   '<div style="font-size:.7rem;color:var(--light)">Base : ' + s.prix_base + ' FCFA</div>'
+              + '</div>';
+
+        html += '<input type="number" step="0.1" name="prix_fcfa" value="' + prix + '" '
+              +      'placeholder="Prix" '
+              +      'style="width:90px;padding:6px 8px;border:2px solid var(--gray);border-radius:8px;font-size:.82rem">';
+
+        html += '<button type="submit" class="btn-sm btn-g"><i class="fas fa-check"></i></button>';
+        html += '</form>';
       });
-      document.getElementById('modal-pr-body').innerHTML=html || 'Aucun service.';
+      document.getElementById('modal-pr-body').innerHTML = html || 'Aucun service.';
     })
-    .catch(function(){document.getElementById('modal-pr-body').innerHTML='Erreur de chargement.';});
+    .catch(function(){
+      document.getElementById('modal-pr-body').innerHTML = 'Erreur de chargement.';
+    });
 }
 
 var hash=window.location.hash.replace('#','');
