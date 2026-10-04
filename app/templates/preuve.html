@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Nos resultats — Boost Central{% endblock %}
+{% block extra_css %}
+header{display:flex;align-items:center;justify-content:center;padding:18px 20px;background:var(--white);border-bottom:2px solid var(--gray)}
+.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+main{padding:20px;max-width:960px;margin:0 auto}
+.hero-preuves{text-align:center;margin-bottom:28px}
+.hero-preuves .badge-top{display:inline-block;font-size:.72rem;font-weight:700;background:var(--blue-l);color:var(--blue);padding:5px 14px;border-radius:20px;margin-bottom:12px;letter-spacing:.5px}
+.hero-preuves h1{font-size:1.5rem;font-weight:900;color:var(--dark);margin-bottom:8px}
+.hero-preuves p{font-size:.9rem;color:var(--mid);max-width:460px;margin:0 auto}
+.gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px}
+.preuve-card{background:var(--white);border-radius:18px;overflow:hidden;border:1px solid var(--gray);box-shadow:0 6px 20px rgba(0,0,0,.06);opacity:0;transform:translateY(14px);animation:pIn .5s ease forwards;transition:transform .25s}
+.preuve-card:hover{transform:translateY(-4px)}
+@keyframes pIn{to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.preuve-card{animation:none;opacity:1;transform:none}.preuve-card:hover{transform:none}}
+.preuve-imgs{position:relative;display:grid;grid-template-columns:1fr 1fr}
+.preuve-imgs img{width:100%;height:170px;object-fit:cover;display:block}
+.preuve-lbl{position:absolute;top:10px;font-size:.68rem;font-weight:800;padding:4px 10px;border-radius:20px;color:#fff;letter-spacing:.3px}
+.lbl-avant{left:10px;background:rgba(220,38,38,.88)}
+.lbl-apres{right:10px;background:rgba(5,150,105,.9)}
+.vs-badge{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:36px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;font-weight:900;color:var(--dark);box-shadow:0 2px 10px rgba(0,0,0,.2)}
+.preuve-body{padding:16px 18px}
+.preuve-titre{font-size:.95rem;font-weight:800;color:var(--dark);margin-bottom:6px}
+.preuve-desc{font-size:.82rem;color:var(--mid);line-height:1.5}
+.preuve-reseau{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;color:var(--blue);background:var(--blue-l);padding:3px 10px;border-radius:14px;margin-top:8px}
+.no-preuves{text-align:center;padding:60px 20px;color:var(--light)}
+.no-preuves i{font-size:2.4rem;display:block;margin-bottom:12px;color:var(--gray)}
+.bottom-cta{text-align:center;background:var(--light-g);border-radius:18px;padding:30px 20px;margin-top:30px}
+.bottom-cta p{font-size:.88rem;color:var(--mid);margin-bottom:14px}
+.btn-cta{display:inline-flex;align-items:center;gap:8px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;padding:14px 28px;border-radius:12px;font-weight:800;font-size:.92rem;text-decoration:none}
+{% endblock %}
+{% block nav %}
+<header><div class="logo">BOOST CENTRAL</div></header>
+{% endblock %}
+{% block content %}
+<main>
+  <div class="hero-preuves">
+    <div class="badge-top"><i class="fas fa-circle-check"></i> Resultats verifies</div>
+    <h1>Nos clients obtiennent de vrais resultats</h1>
+    <p>Avant/apres reels de commandes livrees via Boost Central.</p>
+  </div>
+
+  {% if preuves %}
+  <div class="gallery">
+    {% for p in preuves %}
+    <div class="preuve-card" style="animation-delay:{{ loop.index0 * 0.06 }}s">
+      <div class="preuve-imgs">
+        <div style="position:relative"><img src="{{ p.image_avant }}" alt="Avant"><span class="preuve-lbl lbl-avant">AVANT</span></div>
+        <div style="position:relative"><img src="{{ p.image_apres }}" alt="Apres"><span class="preuve-lbl lbl-apres">APRES</span></div>
+        <div class="vs-badge">VS</div>
+      </div>
+      <div class="preuve-body">
+        <div class="preuve-titre">{{ p.titre }}</div>
+        {% if p.description %}<div class="preuve-desc">{{ p.description }}</div>{% endif %}
+        {% if p.reseau %}<div class="preuve-reseau"><i class="fas fa-share-alt"></i> {{ p.reseau|capitalize }}</div>{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="bottom-cta">
+    <p>Pret a obtenir les memes resultats ?</p>
+    <a href="{{ url_for('auth.login') }}" class="btn-cta"><i class="fas fa-rocket"></i> Creer mon compte</a>
+  </div>
+  {% else %}
+  <div class="no-preuves"><i class="fas fa-images"></i><p>Aucune preuve publiee pour l instant.</p></div>
+  {% endif %}
+</main>
+{% endblock %}
