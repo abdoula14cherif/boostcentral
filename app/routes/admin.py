@@ -5,7 +5,8 @@ import io
 import requests
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, Response
 from app.models.security import admin_required
-from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key, get_all_promo_codes, create_promo_code, update_promo_code, get_order_by_id, get_all_tickets, get_ticket_messages, add_ticket_message, update_ticket, get_all_retraits, get_retrait_by_id, update_retrait, get_active_services, get_revendeur_prix_all, set_revendeur_prix, get_profile
+from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key, get_all_promo_codes, create_promo_code, update_promo_code, get_order_by_id, get_all_tickets, get_ticket_messages, add_ticket_message, update_ticket, get_all_retraits, get_retrait_by_id, update_retrait, get_active_services, get_revendeur_prix_all, set_revendeur_prix, get_profile, create_preuve, get_all_preuves, delete_preuve
+from app.models.storage import upload_image
 from app.models.mailer import email_commande_livree
 
 logger = logging.getLogger(__name__)
@@ -412,3 +413,53 @@ def modifier_prix_revendeur():
     else:
         flash("Erreur lors de la mise a jour.", "error")
     return redirect(url_for("admin.index") + "#users")
+
+
+@admin_bp.route("/preuves")
+@admin_required
+def preuves_page():
+    preuves = get_all_preuves()
+    return render_template("admin/preuves.html", preuves=preuves)
+
+
+@admin_bp.route("/preuves/ajouter", methods=["POST"])
+@admin_required
+def ajouter_preuve():
+    titre = request.form.get("titre", "").strip()
+    description = request.form.get("description", "").strip()
+    reseau = request.form.get("reseau", "").strip()
+    avant_file = request.files.get("avant")
+    apres_file = request.files.get("apres")
+
+    if not titre or not avant_file or not avant_file.filename or not apres_file or not apres_file.filename:
+        flash("Titre et les deux images (avant/apres) sont requis.", "error")
+        return redirect(url_for("admin.preuves_page"))
+
+    avant_url = upload_image(avant_file, prefix="avant_")
+    apres_url = upload_image(apres_file, prefix="apres_")
+
+    if not avant_url or not apres_url:
+        flash("Erreur lors de l'upload des images. Verifie que le bucket 'preuves' existe et est public sur Supabase.", "error")
+        return redirect(url_for("admin.preuves_page"))
+
+    result = create_preuve({
+        "titre": titre, "description": description, "reseau": reseau or None,
+        "image_avant": avant_url, "image_apres": apres_url
+    })
+
+    if result:
+        flash("Preuve publiee !", "success")
+    else:
+        flash("Erreur lors de l'enregistrement.", "error")
+    return redirect(url_for("admin.preuves_page"))
+
+
+@admin_bp.route("/preuves/<preuve_id>/supprimer", methods=["POST"])
+@admin_required
+def supprimer_preuve(preuve_id):
+    ok = delete_preuve(preuve_id)
+    if ok:
+        flash("Preuve supprimee.", "success")
+    else:
+        flash("Erreur lors de la suppression.", "error")
+    return redirect(url_for("admin.preuves_page"))
