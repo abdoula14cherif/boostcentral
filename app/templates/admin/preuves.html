@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Preuves — Admin{% endblock %}
+{% block extra_css %}
+body{background:var(--off)}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--dark);position:sticky;top:0;z-index:100}
+.adm-logo{font-size:1rem;font-weight:900;background:linear-gradient(90deg,#60a5fa,#f97316);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn-back{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;text-decoration:none}
+.main{padding:16px;max-width:900px;margin:0 auto}
+.card{background:var(--white);border-radius:16px;padding:20px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px}
+.card-title{font-size:1rem;font-weight:800;color:var(--dark);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.82rem;font-weight:600;color:var(--dark);margin-bottom:6px}
+.inp,.sel-inp{width:100%;padding:11px 13px;border:2px solid var(--gray);border-radius:11px;font-size:.9rem;color:var(--dark);outline:none;background:var(--white)}
+.inp:focus{border-color:var(--blue)}
+.upload-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.upload-box{border:2px dashed var(--gray);border-radius:12px;padding:16px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.upload-box:hover{border-color:var(--blue)}
+.upload-box input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-box i{font-size:1.5rem;color:var(--light);margin-bottom:6px;display:block}
+.upload-box span{font-size:.78rem;color:var(--mid);font-weight:600}
+.upload-box.has-file{border-color:var(--green);background:#EDFFF5}
+.btn-publier{width:100%;padding:13px;margin-top:14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;font-weight:800;font-size:.92rem;cursor:pointer}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.preuve-card{background:var(--white);border-radius:14px;overflow:hidden;border:1px solid var(--gray)}
+.preuve-imgs{display:grid;grid-template-columns:1fr 1fr}
+.preuve-imgs img{width:100%;height:140px;object-fit:cover;display:block}
+.preuve-lbl{font-size:.65rem;font-weight:800;text-align:center;padding:3px;color:#fff}
+.lbl-avant{background:var(--red)}
+.lbl-apres{background:var(--green)}
+.preuve-body{padding:12px 14px}
+.preuve-titre{font-size:.88rem;font-weight:700;color:var(--dark);margin-bottom:4px}
+.preuve-desc{font-size:.76rem;color:var(--mid);margin-bottom:10px}
+.btn-del-preuve{width:100%;padding:8px;border:none;border-radius:9px;background:#fee2e2;color:var(--red);font-size:.78rem;font-weight:700;cursor:pointer}
+{% endblock %}
+{% block nav %}
+<header>
+<div class="adm-logo">⚡ BOOST CENTRAL — Preuves</div>
+<a href="{{ url_for('admin.index') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Admin</a>
+</header>
+{% endblock %}
+{% block content %}
+<div class="main">
+<div class="card">
+<div class="card-title"><i class="fas fa-plus-circle" style="color:var(--green)"></i> Publier une preuve avant/apres</div>
+<form method="POST" action="{{ url_for('admin.ajouter_preuve') }}" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<div class="fg"><label>Titre</label><input class="inp" type="text" name="titre" placeholder="Ex : +5000 followers TikTok en 24h" required></div>
+<div class="fg"><label>Reseau (optionnel)</label><input class="inp" type="text" name="reseau" placeholder="Ex : tiktok"></div>
+<div class="fg"><label>Description (optionnel)</label><input class="inp" type="text" name="description" placeholder="Details sur ce resultat"></div>
+<div class="fg">
+<label>Captures d ecran</label>
+<div class="upload-row">
+<label class="upload-box" id="boxAvant">
+<input type="file" name="avant" accept="image/*" required onchange="previewUpload(this,'boxAvant')">
+<i class="fas fa-image"></i>
+<span>Avant</span>
+</label>
+<label class="upload-box" id="boxApres">
+<input type="file" name="apres" accept="image/*" required onchange="previewUpload(this,'boxApres')">
+<i class="fas fa-image"></i>
+<span>Apres</span>
+</label>
+</div>
+</div>
+<button type="submit" class="btn-publier"><i class="fas fa-upload"></i> Publier</button>
+</form>
+</div>
+
+<div class="card-title" style="margin-bottom:14px"><i class="fas fa-images" style="color:var(--blue)"></i> Preuves publiees ({{ preuves|length }})</div>
+<div class="gallery">
+{% for p in preuves %}
+<div class="preuve-card">
+<div class="preuve-imgs">
+<div><img src="{{ p.image_avant }}" alt="Avant"><div class="preuve-lbl lbl-avant">AVANT</div></div>
+<div><img src="{{ p.image_apres }}" alt="Apres"><div class="preuve-lbl lbl-apres">APRES</div></div>
+</div>
+<div class="preuve-body">
+<div class="preuve-titre">{{ p.titre }}</div>
+{% if p.description %}<div class="preuve-desc">{{ p.description }}</div>{% endif %}
+<form method="POST" action="{{ url_for('admin.supprimer_preuve', preuve_id=p.id) }}" onsubmit="return confirm('Supprimer cette preuve ?')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<button type="submit" class="btn-del-preuve"><i class="fas fa-trash"></i> Supprimer</button>
+</form>
+</div>
+</div>
+{% else %}
+<p style="color:var(--light);padding:20px">Aucune preuve publiee pour l instant.</p>
+{% endfor %}
+</div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function previewUpload(input,boxId){
+  var box=document.getElementById(boxId);
+  if(input.files && input.files[0]){
+    box.classList.add('has-file');
+    box.querySelector('span').textContent=input.files[0].name;
+    box.querySelector('i').className='fas fa-check-circle';
+  }
+}
+</script>
+{% endblock %}
