@@ -652,3 +652,32 @@ def update_retrait(retrait_id, data):
     except Exception as e:
         logger.error(f"update_retrait: {e}")
         return False
+
+
+def create_preuve(data):
+    try:
+        r = requests.post(_url("preuves"), json=data, headers=_headers(True))
+        result = r.json()
+        return result[0] if isinstance(result, list) and result else None
+    except Exception as e:
+        logger.error(f"create_preuve: {e}")
+        return None
+
+
+def get_all_preuves(limit=100):
+    try:
+        r = requests.get(_url(f"preuves?order=created_at.desc&limit={limit}"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_all_preuves: {e}")
+        return []
+
+
+def delete_preuve(preuve_id):
+    try:
+        r = requests.delete(_url(f"preuves?id=eq.{preuve_id}"), headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"delete_preuve: {e}")
+        return False
