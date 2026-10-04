@@ -37,6 +37,7 @@ def create_app(config_name="production"):
     from app.routes.support import support_bp
     from app.routes.revendeur import revendeur_bp
     from app.routes.boutique import boutique_bp
+    from app.routes.vitrine import vitrine_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
@@ -54,6 +55,7 @@ def create_app(config_name="production"):
     app.register_blueprint(support_bp, url_prefix="/support")
     app.register_blueprint(revendeur_bp, url_prefix="/revendeur")
     app.register_blueprint(boutique_bp)
+    app.register_blueprint(vitrine_bp)
 
     csrf.exempt(webhook_bp)
     csrf.exempt(api_bp)
