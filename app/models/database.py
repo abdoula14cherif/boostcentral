@@ -681,3 +681,108 @@ def delete_preuve(preuve_id):
     except Exception as e:
         logger.error(f"delete_preuve: {e}")
         return False
+
+
+def get_active_produits():
+    try:
+        r = requests.get(_url("produits?actif=eq.true&order=created_at.desc"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_active_produits: {e}")
+        return []
+
+
+def get_all_produits():
+    try:
+        r = requests.get(_url("produits?order=created_at.desc"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_all_produits: {e}")
+        return []
+
+
+def get_produit_by_id(produit_id):
+    try:
+        r = requests.get(_url(f"produits?id=eq.{produit_id}&limit=1"), headers=_headers(True))
+        data = r.json()
+        return data[0] if isinstance(data, list) and data else None
+    except Exception as e:
+        logger.error(f"get_produit_by_id: {e}")
+        return None
+
+
+def create_produit(data):
+    try:
+        r = requests.post(_url("produits"), json=data, headers=_headers(True))
+        result = r.json()
+        return result[0] if isinstance(result, list) and result else None
+    except Exception as e:
+        logger.error(f"create_produit: {e}")
+        return None
+
+
+def update_produit(produit_id, data):
+    try:
+        r = requests.patch(_url(f"produits?id=eq.{produit_id}"), json=data, headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"update_produit: {e}")
+        return False
+
+
+def get_lien_user_produit(user_id, produit_id):
+    try:
+        r = requests.get(_url(f"produits_liens?user_id=eq.{user_id}&produit_id=eq.{produit_id}&limit=1"), headers=_headers(True))
+        data = r.json()
+        return data[0] if isinstance(data, list) and data else None
+    except Exception as e:
+        logger.error(f"get_lien_user_produit: {e}")
+        return None
+
+
+def get_lien_by_slug(slug):
+    try:
+        r = requests.get(_url(f"produits_liens?slug=eq.{slug}&limit=1"), headers=_headers(True))
+        data = r.json()
+        return data[0] if isinstance(data, list) and data else None
+    except Exception as e:
+        logger.error(f"get_lien_by_slug: {e}")
+        return None
+
+
+def create_lien(data):
+    try:
+        r = requests.post(_url("produits_liens"), json=data, headers=_headers(True))
+        result = r.json()
+        return result[0] if isinstance(result, list) and result else None
+    except Exception as e:
+        logger.error(f"create_lien: {e}")
+        return None
+
+
+def update_lien_prix(lien_id, prix_vente):
+    try:
+        r = requests.patch(_url(f"produits_liens?id=eq.{lien_id}"), json={"prix_vente": prix_vente}, headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"update_lien_prix: {e}")
+        return False
+
+
+def get_user_liens(user_id):
+    """Liens de l'utilisateur, avec les infos du produit associe."""
+    try:
+        r = requests.get(_url(f"produits_liens?user_id=eq.{user_id}&order=created_at.desc"), headers=_headers(True))
+        liens = r.json()
+        if not isinstance(liens, list):
+            return []
+        resultat = []
+        for l in liens:
+            produit = get_produit_by_id(l.get("produit_id"))
+            resultat.append({**l, "produit": produit})
+        return resultat
+    except Exception as e:
+        logger.error(f"get_user_liens: {e}")
+        return []
