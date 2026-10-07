@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Affiliation — Boost Central{% endblock %}
+{% block extra_css %}
+header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 2px 8px rgba(0,0,0,.04);position:sticky;top:0;z-index:10}
+.back-btn{background:var(--blue-l);border:none;color:var(--blue);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none}
+.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+main{padding:20px;max-width:680px;margin:0 auto}
+.hero-aff{background:linear-gradient(135deg,#059669,#047857);border-radius:20px;padding:26px 24px;margin-bottom:20px;text-align:center;color:#fff}
+.hero-aff .emoji{font-size:2.2rem;margin-bottom:8px}
+.hero-aff h2{font-size:1.15rem;font-weight:800;margin-bottom:6px}
+.hero-aff p{font-size:.85rem;opacity:.88;line-height:1.5}
+.produit-card{background:var(--white);border-radius:16px;padding:20px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:16px;opacity:0;transform:translateY(8px);animation:pcIn .4s ease forwards}
+@keyframes pcIn{to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.produit-card{animation:none;opacity:1;transform:none}}
+.produit-nom{font-size:1rem;font-weight:800;color:var(--dark);margin-bottom:4px}
+.produit-desc{font-size:.82rem;color:var(--mid);margin-bottom:10px;line-height:1.5}
+.produit-prix-base{font-size:.78rem;color:var(--light);margin-bottom:14px}
+.fg{margin-bottom:10px}
+.fg label{display:block;font-size:.78rem;font-weight:600;color:var(--dark);margin-bottom:5px}
+.inp{width:100%;padding:11px 13px;border:2px solid var(--gray);border-radius:11px;font-size:.88rem;color:var(--dark);outline:none}
+.inp:focus{border-color:var(--green)}
+.btn-vendre{width:100%;padding:12px;border:none;border-radius:11px;background:linear-gradient(90deg,#059669,#047857);color:#fff;font-weight:800;font-size:.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.lien-box{background:#EDFFF5;border:1px dashed var(--green);border-radius:12px;padding:12px;margin-top:12px;font-size:.78rem;color:#047857;word-break:break-all;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.btn-copy-aff{background:var(--green);color:#fff;border:none;padding:6px 10px;border-radius:8px;cursor:pointer;flex-shrink:0}
+.gain-info{font-size:.76rem;color:var(--mid);margin-top:8px}
+.gain-info strong{color:#059669}
+.no-produits{text-align:center;padding:40px 20px;color:var(--light)}
+.no-produits i{font-size:2.2rem;display:block;margin-bottom:10px;color:var(--gray)}
+{% endblock %}
+{% block nav %}
+<header>
+<a href="{{ url_for('dashboard.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
+<div class="logo">BOOST CENTRAL</div>
+</header>
+{% endblock %}
+{% block content %}
+<main>
+  <div class="hero-aff">
+    <div class="emoji">💵</div>
+    <h2>Vendez, gagnez de l argent</h2>
+    <p>Vendez nos formations et produits a votre propre prix. Vous gardez 100% de la marge que vous ajoutez, plus {{ taux_commission }}% garanti sur chaque vente.</p>
+  </div>
+
+  {% if produits %}
+    {% for p in produits %}
+    {% set lien = mes_liens.get(p.id) %}
+    <div class="produit-card" style="animation-delay:{{ loop.index0 * 0.05 }}s">
+      <div class="produit-nom">{{ p.nom }}</div>
+      {% if p.description %}<div class="produit-desc">{{ p.description }}</div>{% endif %}
+      <div class="produit-prix-base">Prix plateforme : <strong>{{ "{:,.0f}".format(p.prix_plateforme) }} FCFA</strong></div>
+
+      <form method="POST" action="{{ url_for('affiliation.vendre') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="produit_id" value="{{ p.id }}">
+        <div class="fg">
+          <label>Votre prix de vente (minimum {{ "{:,.0f}".format(p.prix_plateforme) }} FCFA)</label>
+          <input class="inp" type="number" name="prix_vente" min="{{ p.prix_plateforme }}" step="1"
+                 value="{{ lien.prix_vente if lien else p.prix_plateforme }}">
+        </div>
+        <button type="submit" class="btn-vendre"><i class="fas fa-tag"></i> {% if lien %}Mettre a jour mon prix{% else %}Generer mon lien de vente{% endif %}</button>
+      </form>
+
+      {% if lien %}
+      <div class="lien-box">
+        <span id="lien-{{ p.id }}">{{ request.url_root.rstrip('/') }}/p/{{ lien.slug }}</span>
+        <button type="button" class="btn-copy-aff" onclick="copierLien('{{ p.id }}')"><i class="fas fa-copy"></i></button>
+      </div>
+      <div class="gain-info">
+        Sur chaque vente a {{ "{:,.0f}".format(lien.prix_vente) }} FCFA, vous gagnez
+        <strong>{{ "{:,.0f}".format((p.prix_plateforme * (taux_commission/100)) + (lien.prix_vente - p.prix_plateforme)) }} FCFA</strong>
+        ({{ taux_commission }}% garanti + 100% de votre marge ajoutee).
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="no-produits"><i class="fas fa-box-open"></i><p>Aucun produit disponible a la vente pour l instant.</p></div>
+  {% endif %}
+</main>
+{% endblock %}
+{% block extra_js %}
+<script>
+function copierLien(id){
+  var txt = document.getElementById('lien-'+id).textContent.trim();
+  navigator.clipboard.writeText(txt).then(function(){ alert('Lien copie !'); });
+}
+</script>
+{% endblock %}
