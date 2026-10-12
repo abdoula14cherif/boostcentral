@@ -16,6 +16,10 @@
     {
       "path": "/cron/inactifs",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/cron/process-notifications",
+      "schedule": "*/5 * * * *"
     }
   ]
 }
