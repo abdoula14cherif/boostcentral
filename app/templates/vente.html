@@ -8,7 +8,6 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
 .secure-badge{display:flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;color:var(--green);background:#EDFFF5;padding:6px 12px;border-radius:20px}
 main{padding:16px;max-width:640px;margin:0 auto;padding-bottom:100px}
 
-/* HERO */
 .hero{background:linear-gradient(135deg,#1E40AF,#3B82F6);border-radius:20px;padding:24px 20px;margin-bottom:16px;text-align:center;color:#fff;position:relative;overflow:hidden}
 .hero::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at top right,rgba(255,255,255,.15),transparent 60%);pointer-events:none}
 .hero-img{width:100%;max-height:280px;object-fit:contain;border-radius:14px;margin-bottom:18px;position:relative;z-index:1;box-shadow:0 12px 30px rgba(0,0,0,.35)}
@@ -20,7 +19,6 @@ main{padding:16px;max-width:640px;margin:0 auto;padding-bottom:100px}
 .prix-reel span{font-size:1rem;font-weight:700;opacity:.9}
 .economie{display:inline-block;background:#F59E0B;color:#fff;font-size:.72rem;font-weight:800;padding:4px 12px;border-radius:20px;margin-top:10px}
 
-/* BLOC BÉNÉFICES */
 .bloc-bene{background:var(--white);border-radius:18px;padding:22px;border:1px solid var(--gray);margin-bottom:16px;box-shadow:0 4px 14px rgba(0,0,0,.04)}
 .bloc-titre{font-size:1.05rem;font-weight:800;color:var(--dark);margin-bottom:16px;display:flex;align-items:center;gap:8px}
 .bloc-titre .ico{background:var(--blue-l);color:var(--blue);width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem}
@@ -31,7 +29,6 @@ main{padding:16px;max-width:640px;margin:0 auto;padding-bottom:100px}
 .bene-text{font-size:.87rem;color:var(--dark);line-height:1.5}
 .bene-text strong{font-weight:700}
 
-/* PREUVE SOCIALE */
 .preuve-sociale{background:var(--white);border-radius:18px;padding:22px;border:1px solid var(--gray);margin-bottom:16px;box-shadow:0 4px 14px rgba(0,0,0,.04)}
 .stars{color:#F59E0B;font-size:.95rem;margin-bottom:6px}
 .avis{background:var(--off);border-radius:12px;padding:14px;margin-top:12px;font-size:.83rem;color:var(--dark);line-height:1.5;position:relative}
@@ -39,11 +36,9 @@ main{padding:16px;max-width:640px;margin:0 auto;padding-bottom:100px}
 .avis-auteur{font-size:.75rem;color:var(--mid);margin-top:8px;font-weight:600;display:flex;align-items:center;gap:6px}
 .avatar{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--orange));color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700}
 
-/* URGENCE */
 .urgence{background:linear-gradient(135deg,#FEF3C7,#FDE68A);border:2px dashed #F59E0B;border-radius:14px;padding:14px;margin-bottom:16px;text-align:center;font-size:.83rem;color:#92400E;font-weight:600}
 .urgence strong{display:block;font-size:.95rem;font-weight:900;margin-bottom:2px}
 
-/* CTA PRINCIPAL */
 .cta-card{background:var(--white);border-radius:20px;padding:24px 20px;border:1px solid var(--gray);box-shadow:0 8px 30px rgba(59,130,246,.15);margin-bottom:16px}
 .cta-card h3{font-size:1rem;font-weight:800;color:var(--dark);margin-bottom:6px;text-align:center}
 .cta-card .sous-cta{font-size:.8rem;color:var(--mid);text-align:center;margin-bottom:18px}
@@ -51,13 +46,12 @@ main{padding:16px;max-width:640px;margin:0 auto;padding-bottom:100px}
 .fg label{display:block;font-size:.8rem;font-weight:600;color:var(--dark);margin-bottom:6px}
 .inp{width:100%;padding:14px 16px;border:2px solid var(--gray);border-radius:12px;font-size:.95rem;color:var(--dark);outline:none;transition:border-color .2s}
 .inp:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(59,130,246,.1)}
-.btn-acheter{width:100%;padding:18px;border:none;border-radius:14px;background:linear-gradient(90deg,#F97316,#EA580C);color:#fff;font-size:1.05rem;font-weight:900;cursor:pointer;box-shadow:0 8px 24px rgba(249,115,22,.35);transition:transform .15s;display:flex;align-items:center;justify-content:center;gap:10px;letter-spacing:.3px}
+.btn-acheter{width:100%;padding:18px;border:none;border-radius:14px;background:linear-gradient(90deg,#F97316,#EA580C);color:#fff;font-size:1.05rem;font-weight:900;cursor:pointer;box-shadow:0 8px 24px rgba(249,115,22,.35);transition:transform .15s;display:flex;align-items:center;justify-content:center;gap:10px}
 .btn-acheter:active{transform:scale(.98)}
 .trust{display:flex;justify-content:center;gap:14px;margin-top:16px;font-size:.72rem;color:var(--mid);flex-wrap:wrap}
 .trust span{display:flex;align-items:center;gap:4px}
 .trust i{color:var(--green)}
 
-/* FAQ */
 .faq-card{background:var(--white);border-radius:18px;padding:22px;border:1px solid var(--gray);margin-bottom:16px;box-shadow:0 4px 14px rgba(0,0,0,.04)}
 .faq-item{border-bottom:1px solid var(--gray);padding:14px 0}
 .faq-item:last-child{border-bottom:none;padding-bottom:0}
@@ -67,7 +61,18 @@ main{padding:16px;max-width:640px;margin:0 auto;padding-bottom:100px}
 .faq-item p{font-size:.82rem;color:var(--mid);line-height:1.6;margin-top:10px}
 .faq-item summary::-webkit-details-marker{display:none}
 
-/* BARRE FIXE BAS */
+/* BLOC SUIVI APRES PAIEMENT */
+.suivi-paiement{background:linear-gradient(135deg,#FFFBEB,#FEF3C7);border:2px solid #F59E0B;border-radius:16px;padding:20px;margin-bottom:16px}
+.suivi-paiement h3{font-size:.98rem;font-weight:900;color:#92400E;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.suivi-paiement p{font-size:.83rem;color:#78350F;line-height:1.5;margin-bottom:14px}
+.suivi-statut{display:flex;align-items:center;gap:8px;font-size:.82rem;color:#78350F;margin-bottom:14px;background:rgba(255,255,255,.5);padding:10px 12px;border-radius:10px}
+.suivi-statut .dot{width:10px;height:10px;border-radius:50%;background:#F59E0B;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.suivi-statut.valide .dot{background:#059669;animation:none}
+.suivi-statut.valide{color:#047857}
+.btn-probleme{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border:2px solid #DC2626;background:#fff;color:#DC2626;border-radius:12px;font-weight:800;font-size:.88rem;text-decoration:none;margin-top:10px}
+.btn-produit{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:16px;background:linear-gradient(90deg,#059669,#047857);color:#fff;border:none;border-radius:14px;font-weight:900;font-size:.95rem;text-decoration:none;box-shadow:0 8px 24px rgba(5,150,105,.35);margin-top:10px}
+
 .sticky-bar{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:2px solid var(--gray);padding:12px 20px;z-index:50;box-shadow:0 -4px 20px rgba(0,0,0,.08)}
 .sticky-bar-inner{max-width:640px;margin:0 auto;display:flex;align-items:center;gap:12px}
 .sticky-prix{flex-shrink:0}
@@ -90,11 +95,34 @@ main{padding:16px;max-width:640px;margin:0 auto;padding-bottom:100px}
   <input type="hidden" name="orderId" id="checkoutOrderId">
   <input type="hidden" name="description" value="Achat {{ produit.nom }}">
   <input type="hidden" name="shopName" value="Boost Central">
-  <input type="hidden" name="successUrl" value="{{ request.url_root.rstrip('/') }}{{ url_for('vente.retour', slug=slug) }}">
+  <input type="hidden" name="successUrl" value="{{ request.url_root.rstrip('/') }}{{ url_for('vente.retour', slug=slug) }}?ref=REF_PLACEHOLDER">
   <input type="hidden" name="failureUrl" value="{{ request.url_root.rstrip('/') }}{{ url_for('vente.echec', slug=slug) }}">
 </form>
 
 <main>
+
+  <!-- SI UNE REFERENCE EST PRESENTE → AFFICHER LE SUIVI DE PAIEMENT -->
+  {% if reference %}
+  <div class="suivi-paiement" id="suiviBox">
+    <h3><i class="fas fa-hourglass-half"></i> Verification de votre paiement...</h3>
+    <p>Nous verifions aupres de notre partenaire de paiement que votre transaction est bien passee. Ca prend quelques secondes.</p>
+    <div class="suivi-statut" id="statutBox">
+      <span class="dot"></span>
+      <span id="statutText">En attente de confirmation...</span>
+    </div>
+
+    <!-- Bouton produit (cache par defaut, affiche si paiement valide) -->
+    <a href="#" id="btnProduit" class="btn-produit" style="display:none" target="_blank">
+      <i class="fas fa-gift"></i> Acceder a mon produit
+    </a>
+
+    <!-- Bouton "Probleme ?" toujours visible apres paiement -->
+    <a id="btnProbleme" class="btn-probleme" href="#"
+       onclick="return contacterAdmin(event, '{{ reference }}');">
+      <i class="fas fa-circle-exclamation"></i> Je n'ai pas recu mon produit
+    </a>
+  </div>
+  {% endif %}
 
   <!-- HERO -->
   <div class="hero">
@@ -198,13 +226,13 @@ main{padding:16px;max-width:640px;margin:0 auto;padding-bottom:100px}
 </main>
 
 <!-- BARRE FIXE BAS -->
-<div class="sticky-bar">
+<div class="sticky-bar" id="stickyBar">
   <div class="sticky-bar-inner">
     <div class="sticky-prix">
       <div class="lbl">Total a payer</div>
       <div class="val">{{ "{:,.0f}".format(lien.prix_vente) }} F</div>
     </div>
-    <button type="button" class="sticky-btn" onclick="scrollToCTA()"><i class="fas fa-bolt"></i> Commander maintenant</button>
+    <button type="button" class="sticky-btn" onclick="scrollToCTA()"><i class="fas fa-bolt"></i> Commander</button>
   </div>
 </div>
 
@@ -225,12 +253,78 @@ function scrollToCTA(){
   setTimeout(function(){document.getElementById('emailInp').focus();},600);
 }
 
+/* === VERIFICATION DU STATUT APRES PAIEMENT === */
+{% if reference %}
+var currentRef = "{{ reference }}";
+var produitNom = "{{ produit.nom|e }}";
+var montantPaye = {{ lien.prix_vente }};
+var emailAcheteur = "";
+
+function verifierStatut(){
+  fetch('/p/{{ slug }}/statut?ref=' + currentRef)
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d.statut === 'valide'){
+        // Paiement valide → afficher le bouton produit + maj statut
+        document.getElementById('statutBox').classList.add('valide');
+        document.getElementById('statutText').textContent = 'Paiement confirme ! Votre produit est pret.';
+        document.getElementById('suiviBox').querySelector('h3').innerHTML = '<i class="fas fa-circle-check" style="color:#059669"></i> Paiement confirme !';
+
+        if(d.lien_livraison){
+          var btn = document.getElementById('btnProduit');
+          btn.href = d.lien_livraison;
+          btn.style.display = 'flex';
+        }
+
+        // Cacher la barre sticky en bas
+        var sb = document.getElementById('stickyBar');
+        if(sb) sb.style.display = 'none';
+      }
+    })
+    .catch(function(e){ console.log('Statut check erreur:', e); });
+}
+
+// Lancer la verification toutes les 3 secondes pendant 2 minutes max
+var checkCount = 0;
+var maxChecks = 40;
+var checkInterval = setInterval(function(){
+  verifierStatut();
+  checkCount++;
+  if(checkCount >= maxChecks){
+    clearInterval(checkInterval);
+    document.getElementById('statutText').textContent = 'Paiement toujours en attente de confirmation. Si vous avez ete debite, contactez-nous.';
+  }
+}, 3000);
+
+// Premiere verification immediate
+setTimeout(verifierStatut, 2000);
+{% endif %}
+
+/* === CONTACTER L'ADMIN EN CAS DE PROBLEME === */
+function contacterAdmin(ev, ref){
+  ev.preventDefault();
+  var message = "Bonjour, je n'ai pas recu mon produit.%0A%0A" +
+                "Produit : " + encodeURIComponent(produitNom) + "%0A" +
+                "Montant paye : " + montantPaye + " FCFA%0A" +
+                "Reference de paiement : " + ref + "%0A" +
+                "Email utilise : " + encodeURIComponent(emailAcheteur || "je renseignerai") + "%0A%0A" +
+                "Merci de verifier et de m'envoyer mon produit.";
+  var url = "https://wa.me/237689011185?text=" + message;
+  window.open(url, '_blank');
+  return false;
+}
+
 {% if request.args.get('payer') == '1' %}
 var autoMontant = {{ request.args.get('montant', 0) }};
 var autoOrderRef = "{{ request.args.get('order', '') }}";
 if(autoMontant > 0 && autoOrderRef){
   document.getElementById('checkoutAmount').value = autoMontant;
   document.getElementById('checkoutOrderId').value = autoOrderRef;
+  // Mettre a jour le successUrl avec la vraie ref
+  var successInput = document.querySelector('input[name="successUrl"]');
+  if(successInput){
+    successInput.value = successInput.value.replace('REF_PLACEHOLDER', autoOrderRef);
+  }
   document.getElementById('soleaspayForm').submit();
 }
 {% endif %}
