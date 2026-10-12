@@ -1,91 +1,68 @@
-import os
 import logging
-from datetime import datetime, timedelta, timezone
-from flask import Blueprint, request, jsonify
-from app.models.database import get_all_users, get_user_orders, update_profile
-from app.models.mailer import email_inactivite, email_admin_solde_boostci_bas
-from app.models.boostci import get_balance as boostci_balance
-
-SEUIL_BOOSTCI_USD = 5.0
+from flask import Blueprint, jsonify, request
+from app.models.database import (
+    get_notifications_en_attente,
+    marquer_notification_envoyee,
+    marquer_notification_echec
+)
+from app.models.mailer import email_nouveau_produit, email_newsletter_personnalise
 
 logger = logging.getLogger(__name__)
 relance_bp = Blueprint("relance", __name__)
 
-JOURS_INACTIVITE = 14
 
+@relance_bp.route("/process-notifications", methods=["GET", "POST"])
+def process_notifications():
+    """
+    Traite la file de notifications : envoie 10 emails max par appel.
+    Appele par Vercel Cron toutes les 5 minutes.
+    """
+    notifs = get_notifications_en_attente(limit=10)
+    envoyes = 0
+    echecs = 0
 
-def _est_autorise():
-    """Verifie que l'appel vient bien de Vercel Cron (via CRON_SECRET)."""
-    secret = os.environ.get("CRON_SECRET", "")
-    if not secret:
-        return False
-    auth = request.headers.get("Authorization", "")
-    return auth == f"Bearer {secret}"
-
-
-@relance_bp.route("/inactifs", methods=["GET", "POST"])
-def relancer_inactifs():
-    if not _est_autorise():
-        return jsonify({"error": "Non autorise."}), 401
-
-    # Verification quotidienne du solde fournisseur BOOSTCI
-    try:
-        solde_boostci = boostci_balance()
-        if solde_boostci < SEUIL_BOOSTCI_USD:
-            email_admin_solde_boostci_bas(solde_boostci)
-    except Exception as e:
-        logger.error(f"verification solde BOOSTCI: {e}")
-
-    users = get_all_users()
-    maintenant = datetime.now(timezone.utc)
-    seuil = maintenant - timedelta(days=JOURS_INACTIVITE)
-
-    relances = 0
-    verifies = 0
-
-    for u in users:
-        user_id = u.get("id")
-        email = u.get("email")
-        if not user_id or not email:
-            continue
-        verifies += 1
-
-        # Ne pas relancer un compte tout jeune
+    for n in notifs:
         try:
-            created = datetime.fromisoformat((u.get("created_at") or "").replace("Z", "+00:00"))
-            if created > seuil:
-                continue
-        except Exception:
-            pass
+            type_notif = n.get("type", "")
+            email_dest = n.get("destinataire_email")
+            nom_dest = n.get("destinataire_nom") or (email_dest or "").split("@")[0]
+            payload = n.get("payload") or {}
 
-        # Ne pas relancer plus d'une fois par periode de 14 jours
-        derniere_relance = u.get("derniere_relance")
-        if derniere_relance:
-            try:
-                dr = datetime.fromisoformat(derniere_relance.replace("Z", "+00:00"))
-                if dr > seuil:
-                    continue
-            except Exception:
-                pass
+            ok = False
 
-        # Verifier la derniere commande
-        derniere_commande = get_user_orders(user_id, limit=1)
-        if derniere_commande:
-            try:
-                dc = datetime.fromisoformat((derniere_commande[0].get("created_at") or "").replace("Z", "+00:00"))
-                if dc > seuil:
-                    continue  # actif recemment, on ne relance pas
-            except Exception:
-                pass
+            if type_notif == "nouveau_produit":
+                ok = email_nouveau_produit(
+                    to_email=email_dest,
+                    nom_destinataire=nom_dest,
+                    nom_produit=payload.get("nom_produit", ""),
+                    description_produit=payload.get("description", ""),
+                    prix_plateforme=payload.get("prix", 0),
+                    image_url=payload.get("image_url") or None,
+                    lien_produit="https://boostcentral.world/dashboard/affiliation"
+                )
 
-        nom = (u.get("full_name") or email.split("@")[0])
-        try:
-            ok = email_inactivite(email, nom)
+            elif type_notif == "newsletter":
+                ok = email_newsletter_personnalise(
+                    to_email=email_dest,
+                    nom_destinataire=nom_dest,
+                    sujet=n.get("sujet", "Boost Central"),
+                    contenu_html=n.get("contenu_html", "")
+                )
+
             if ok:
-                update_profile(user_id, {"derniere_relance": maintenant.isoformat()})
-                relances += 1
+                marquer_notification_envoyee(n["id"])
+                envoyes += 1
+            else:
+                marquer_notification_echec(n["id"], "Envoi echoue")
+                echecs += 1
         except Exception as e:
-            logger.error(f"relance inactivite {email}: {e}")
+            logger.error(f"process_notifications -> {n.get('id')}: {e}")
+            marquer_notification_echec(n["id"], str(e))
+            echecs += 1
 
-    logger.info(f"Relance inactifs: {verifies} verifies, {relances} relances envoyees")
-    return jsonify({"verifies": verifies, "relances": relances})
+    logger.info(f"process_notifications: {envoyes} envoyes, {echecs} echecs")
+    return jsonify({
+        "envoyes": envoyes,
+        "echecs": echecs,
+        "restants": len(notifs) - envoyes - echecs
+    }), 200
