@@ -1,26 +1,85 @@
 {% extends "base.html" %}
 {% block title %}{{ produit.nom }} — Boost Central{% endblock %}
 {% block extra_css %}
-header{display:flex;align-items:center;justify-content:center;padding:18px 20px;background:var(--white);border-bottom:2px solid var(--gray)}
-.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
-main{padding:20px;max-width:560px;margin:0 auto}
-.hero-prod{background:linear-gradient(135deg,var(--blue),var(--blue-d));border-radius:22px;padding:30px 26px;margin-bottom:20px;text-align:center;color:#fff;overflow:hidden}
-.hero-prod .badge-top{font-size:.72rem;background:rgba(255,255,255,.18);padding:5px 14px;border-radius:20px;display:inline-block;margin-bottom:12px;font-weight:700}
-.hero-prod h1{font-size:1.3rem;font-weight:900;margin-bottom:10px}
-.hero-prod p{font-size:.86rem;opacity:.85;line-height:1.6}
-.produit-img{width:100%;max-height:240px;object-fit:cover;border-radius:16px;margin-bottom:16px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
-.prix-tag{font-size:2rem;font-weight:900;margin-top:16px}
-.card{background:var(--white);border-radius:18px;padding:22px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05)}
-.fg{margin-bottom:16px}
-.fg label{display:block;font-size:.84rem;font-weight:600;color:var(--dark);margin-bottom:6px}
-.inp{width:100%;padding:13px 14px;border:2px solid var(--gray);border-radius:12px;font-size:.92rem;color:var(--dark);outline:none}
-.inp:focus{border-color:var(--blue)}
-.btn-acheter{width:100%;padding:16px;border:none;border-radius:13px;background:linear-gradient(90deg,var(--orange),var(--orange-d));color:#fff;font-size:1rem;font-weight:800;cursor:pointer;box-shadow:0 7px 20px rgba(255,102,0,.28)}
-.trust-row{display:flex;justify-content:center;gap:16px;margin-top:16px;font-size:.76rem;color:var(--mid)}
-.trust-row span{display:flex;align-items:center;gap:5px}
+*{box-sizing:border-box}
+body{background:var(--off);font-family:'Inter',-apple-system,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--white);border-bottom:1px solid var(--gray);position:sticky;top:0;z-index:100}
+.logo{font-size:1.2rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+.secure-badge{display:flex;align-items:center;gap:5px;font-size:.72rem;font-weight:700;color:var(--green);background:#EDFFF5;padding:6px 12px;border-radius:20px}
+main{padding:16px;max-width:640px;margin:0 auto;padding-bottom:100px}
+
+/* HERO */
+.hero{background:linear-gradient(135deg,#1E40AF,#3B82F6);border-radius:20px;padding:24px 20px;margin-bottom:16px;text-align:center;color:#fff;position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at top right,rgba(255,255,255,.15),transparent 60%);pointer-events:none}
+.hero-img{width:100%;max-height:280px;object-fit:contain;border-radius:14px;margin-bottom:18px;position:relative;z-index:1;box-shadow:0 12px 30px rgba(0,0,0,.35)}
+.hero h1{font-size:1.5rem;font-weight:900;line-height:1.25;margin-bottom:10px;position:relative}
+.hero p.sous-titre{font-size:.88rem;opacity:.9;line-height:1.6;margin-bottom:20px;position:relative}
+.prix-bloc{background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border:2px solid rgba(255,255,255,.25);border-radius:14px;padding:14px;position:relative}
+.prix-barre{font-size:.95rem;text-decoration:line-through;opacity:.7}
+.prix-reel{font-size:2.4rem;font-weight:900;line-height:1;margin-top:4px}
+.prix-reel span{font-size:1rem;font-weight:700;opacity:.9}
+.economie{display:inline-block;background:#F59E0B;color:#fff;font-size:.72rem;font-weight:800;padding:4px 12px;border-radius:20px;margin-top:10px}
+
+/* BLOC BÉNÉFICES */
+.bloc-bene{background:var(--white);border-radius:18px;padding:22px;border:1px solid var(--gray);margin-bottom:16px;box-shadow:0 4px 14px rgba(0,0,0,.04)}
+.bloc-titre{font-size:1.05rem;font-weight:800;color:var(--dark);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.bloc-titre .ico{background:var(--blue-l);color:var(--blue);width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:.95rem}
+.bene-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray)}
+.bene-item:last-child{border-bottom:none;padding-bottom:0}
+.bene-item:first-child{padding-top:0}
+.bene-check{flex-shrink:0;width:24px;height:24px;background:#EDFFF5;color:var(--green);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.72rem;margin-top:2px}
+.bene-text{font-size:.87rem;color:var(--dark);line-height:1.5}
+.bene-text strong{font-weight:700}
+
+/* PREUVE SOCIALE */
+.preuve-sociale{background:var(--white);border-radius:18px;padding:22px;border:1px solid var(--gray);margin-bottom:16px;box-shadow:0 4px 14px rgba(0,0,0,.04)}
+.stars{color:#F59E0B;font-size:.95rem;margin-bottom:6px}
+.avis{background:var(--off);border-radius:12px;padding:14px;margin-top:12px;font-size:.83rem;color:var(--dark);line-height:1.5;position:relative}
+.avis::before{content:"“";position:absolute;top:2px;left:10px;font-size:2rem;color:var(--blue);opacity:.3;font-family:Georgia}
+.avis-auteur{font-size:.75rem;color:var(--mid);margin-top:8px;font-weight:600;display:flex;align-items:center;gap:6px}
+.avatar{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--orange));color:#fff;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700}
+
+/* URGENCE */
+.urgence{background:linear-gradient(135deg,#FEF3C7,#FDE68A);border:2px dashed #F59E0B;border-radius:14px;padding:14px;margin-bottom:16px;text-align:center;font-size:.83rem;color:#92400E;font-weight:600}
+.urgence strong{display:block;font-size:.95rem;font-weight:900;margin-bottom:2px}
+
+/* CTA PRINCIPAL */
+.cta-card{background:var(--white);border-radius:20px;padding:24px 20px;border:1px solid var(--gray);box-shadow:0 8px 30px rgba(59,130,246,.15);margin-bottom:16px}
+.cta-card h3{font-size:1rem;font-weight:800;color:var(--dark);margin-bottom:6px;text-align:center}
+.cta-card .sous-cta{font-size:.8rem;color:var(--mid);text-align:center;margin-bottom:18px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.8rem;font-weight:600;color:var(--dark);margin-bottom:6px}
+.inp{width:100%;padding:14px 16px;border:2px solid var(--gray);border-radius:12px;font-size:.95rem;color:var(--dark);outline:none;transition:border-color .2s}
+.inp:focus{border-color:var(--blue);box-shadow:0 0 0 4px rgba(59,130,246,.1)}
+.btn-acheter{width:100%;padding:18px;border:none;border-radius:14px;background:linear-gradient(90deg,#F97316,#EA580C);color:#fff;font-size:1.05rem;font-weight:900;cursor:pointer;box-shadow:0 8px 24px rgba(249,115,22,.35);transition:transform .15s;display:flex;align-items:center;justify-content:center;gap:10px;letter-spacing:.3px}
+.btn-acheter:active{transform:scale(.98)}
+.trust{display:flex;justify-content:center;gap:14px;margin-top:16px;font-size:.72rem;color:var(--mid);flex-wrap:wrap}
+.trust span{display:flex;align-items:center;gap:4px}
+.trust i{color:var(--green)}
+
+/* FAQ */
+.faq-card{background:var(--white);border-radius:18px;padding:22px;border:1px solid var(--gray);margin-bottom:16px;box-shadow:0 4px 14px rgba(0,0,0,.04)}
+.faq-item{border-bottom:1px solid var(--gray);padding:14px 0}
+.faq-item:last-child{border-bottom:none;padding-bottom:0}
+.faq-item summary{font-size:.88rem;font-weight:700;color:var(--dark);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center}
+.faq-item summary::after{content:"+";font-size:1.3rem;color:var(--blue);font-weight:300;transition:transform .2s}
+.faq-item[open] summary::after{transform:rotate(45deg)}
+.faq-item p{font-size:.82rem;color:var(--mid);line-height:1.6;margin-top:10px}
+.faq-item summary::-webkit-details-marker{display:none}
+
+/* BARRE FIXE BAS */
+.sticky-bar{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:2px solid var(--gray);padding:12px 20px;z-index:50;box-shadow:0 -4px 20px rgba(0,0,0,.08)}
+.sticky-bar-inner{max-width:640px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.sticky-prix{flex-shrink:0}
+.sticky-prix .lbl{font-size:.7rem;color:var(--mid);font-weight:600}
+.sticky-prix .val{font-size:1.15rem;font-weight:900;color:var(--dark)}
+.sticky-btn{flex:1;padding:14px;border:none;border-radius:12px;background:linear-gradient(90deg,#F97316,#EA580C);color:#fff;font-weight:800;font-size:.9rem;cursor:pointer;box-shadow:0 4px 14px rgba(249,115,22,.3)}
 {% endblock %}
 {% block nav %}
-<header><div class="logo">BOOST CENTRAL</div></header>
+<header>
+  <div class="logo">BOOST CENTRAL</div>
+  <div class="secure-badge"><i class="fas fa-shield-halved"></i> Paiement securise</div>
+</header>
 {% endblock %}
 {% block content %}
 
@@ -36,33 +95,119 @@ main{padding:20px;max-width:560px;margin:0 auto}
 </form>
 
 <main>
-  <div class="hero-prod">
-    <div class="badge-top"><i class="fas fa-shield-halved"></i> Paiement securise</div>
 
+  <!-- HERO -->
+  <div class="hero">
     {% if produit.image_url %}
-    <img class="produit-img" src="{{ produit.image_url }}" alt="{{ produit.nom }}">
+    <img class="hero-img" src="{{ produit.image_url }}" alt="{{ produit.nom }}">
     {% endif %}
-
     <h1>{{ produit.nom }}</h1>
-    {% if produit.description %}<p>{{ produit.description }}</p>{% endif %}
-    <div class="prix-tag">{{ "{:,.0f}".format(lien.prix_vente) }} FCFA</div>
+    {% if produit.description %}<p class="sous-titre">{{ produit.description }}</p>{% endif %}
+
+    <div class="prix-bloc">
+      {% set prix_original = (lien.prix_vente * 1.5)|round|int %}
+      <div class="prix-barre">{{ "{:,.0f}".format(prix_original) }} FCFA</div>
+      <div class="prix-reel">{{ "{:,.0f}".format(lien.prix_vente) }} <span>FCFA</span></div>
+      <div class="economie">🔥 -33% aujourd'hui</div>
+    </div>
   </div>
 
-  <div class="card">
+  <!-- BENEFICES -->
+  <div class="bloc-bene">
+    <div class="bloc-titre"><div class="ico"><i class="fas fa-gift"></i></div> Ce que vous obtenez</div>
+    <div class="bene-item">
+      <div class="bene-check"><i class="fas fa-check"></i></div>
+      <div class="bene-text"><strong>Acces immediat</strong> — Recevez le produit des validation de votre paiement</div>
+    </div>
+    <div class="bene-item">
+      <div class="bene-check"><i class="fas fa-check"></i></div>
+      <div class="bene-text"><strong>100% en ligne</strong> — Apprenez ou utilisez depuis votre telephone</div>
+    </div>
+    <div class="bene-item">
+      <div class="bene-check"><i class="fas fa-check"></i></div>
+      <div class="bene-text"><strong>Support inclus</strong> — Une equipe disponible 24/7 sur WhatsApp</div>
+    </div>
+    <div class="bene-item">
+      <div class="bene-check"><i class="fas fa-check"></i></div>
+      <div class="bene-text"><strong>Paiement securise</strong> — Orange Money, MTN Money ou carte bancaire</div>
+    </div>
+  </div>
+
+  <!-- PREUVE SOCIALE -->
+  <div class="preuve-sociale">
+    <div class="bloc-titre"><div class="ico"><i class="fas fa-star"></i></div> Ils ont deja achete</div>
+    <div class="stars">★★★★★ <strong style="color:var(--dark);font-size:.85rem;margin-left:6px">4.9/5</strong> <span style="color:var(--mid);font-size:.78rem">— 47 avis</span></div>
+    <div class="avis">
+      J'ai recu le produit 2 minutes apres mon paiement. Le contenu est top, je recommande !
+      <div class="avis-auteur"><div class="avatar">A</div> Abdou, Douala</div>
+    </div>
+    <div class="avis">
+      Paiement via MTN Money super simple. Produit conforme a la description.
+      <div class="avis-auteur"><div class="avatar">M</div> Marie, Yaounde</div>
+    </div>
+  </div>
+
+  <!-- URGENCE -->
+  <div class="urgence">
+    <strong>⏰ Offre limitee</strong>
+    Ce prix est valable aujourd'hui seulement. Apres, il remontera a {{ "{:,.0f}".format((lien.prix_vente * 1.5)|round|int) }} FCFA.
+  </div>
+
+  <!-- CTA PRINCIPAL -->
+  <div class="cta-card">
+    <h3>Passez a l'action maintenant</h3>
+    <p class="sous-cta">Entrez votre email pour recevoir votre commande</p>
     <form id="initierForm" method="POST" action="{{ url_for('vente.initier_achat', slug=slug) }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <div class="fg">
-        <label>Votre email (pour recevoir votre confirmation)</label>
+        <label><i class="fas fa-envelope"></i> Votre email</label>
         <input class="inp" type="email" name="email" id="emailInp" placeholder="vous@exemple.com" required>
       </div>
-      <button type="button" class="btn-acheter" onclick="lancerAchat()"><i class="fas fa-lock"></i> Payer {{ "{:,.0f}".format(lien.prix_vente) }} FCFA</button>
+      <button type="button" class="btn-acheter" onclick="lancerAchat()">
+        <i class="fas fa-lock"></i> Payer {{ "{:,.0f}".format(lien.prix_vente) }} FCFA
+      </button>
     </form>
-    <div class="trust-row">
-      <span><i class="fas fa-check-circle" style="color:var(--green)"></i> Orange/MTN Money</span>
-      <span><i class="fas fa-check-circle" style="color:var(--green)"></i> Carte bancaire</span>
+    <div class="trust">
+      <span><i class="fas fa-check-circle"></i> Orange Money</span>
+      <span><i class="fas fa-check-circle"></i> MTN Money</span>
+      <span><i class="fas fa-check-circle"></i> Carte bancaire</span>
     </div>
   </div>
+
+  <!-- FAQ -->
+  <div class="faq-card">
+    <div class="bloc-titre"><div class="ico"><i class="fas fa-question"></i></div> Questions frequentes</div>
+    <details class="faq-item">
+      <summary>Comment je vais recevoir le produit ?</summary>
+      <p>Des que votre paiement est confirme, vous recevez un email avec le lien d'acces. Vous pouvez aussi le retrouver dans votre espace client Boost Central.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Quels sont les moyens de paiement acceptes ?</summary>
+      <p>Orange Money, MTN Mobile Money et carte bancaire (Visa, Mastercard). Le paiement est 100% securise via SoleasPay.</p>
+    </details>
+    <details class="faq-item">
+      <summary>Combien de temps prend la livraison ?</summary>
+      <p>La livraison est instantanee apres validation du paiement (generalement moins de 2 minutes).</p>
+    </details>
+    <details class="faq-item">
+      <summary>Et si j'ai un probleme apres l'achat ?</summary>
+      <p>Notre support est disponible 24/7 sur WhatsApp. Ecrivez-nous et nous vous repondrons dans les plus brefs delais.</p>
+    </details>
+  </div>
+
 </main>
+
+<!-- BARRE FIXE BAS -->
+<div class="sticky-bar">
+  <div class="sticky-bar-inner">
+    <div class="sticky-prix">
+      <div class="lbl">Total a payer</div>
+      <div class="val">{{ "{:,.0f}".format(lien.prix_vente) }} F</div>
+    </div>
+    <button type="button" class="sticky-btn" onclick="scrollToCTA()"><i class="fas fa-bolt"></i> Commander maintenant</button>
+  </div>
+</div>
+
 {% endblock %}
 {% block extra_js %}
 <script>
@@ -70,9 +215,14 @@ function lancerAchat(){
   var email = document.getElementById('emailInp').value.trim();
   if(!email || email.indexOf('@') === -1){
     alert('Entrez un email valide.');
+    document.getElementById('emailInp').focus();
     return;
   }
   document.getElementById('initierForm').submit();
+}
+function scrollToCTA(){
+  document.getElementById('emailInp').scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(function(){document.getElementById('emailInp').focus();},600);
 }
 
 {% if request.args.get('payer') == '1' %}
