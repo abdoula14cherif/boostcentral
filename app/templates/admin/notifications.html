@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Notifications — Admin{% endblock %}
+
+{% block extra_css %}
+body{background:var(--off)}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--dark);position:sticky;top:0;z-index:100}
+.adm-logo{font-size:1rem;font-weight:900;background:linear-gradient(90deg,#60a5fa,#f97316);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn-back{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;text-decoration:none}
+.main{padding:16px;max-width:1000px;margin:0 auto}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px}
+.stat-box{background:var(--white);border-radius:14px;padding:16px;border:1px solid var(--gray);text-align:center}
+.stat-box .num{font-size:1.6rem;font-weight:900;color:var(--dark)}
+.stat-box .lbl{font-size:.74rem;color:var(--mid);margin-top:4px;font-weight:600}
+.top-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px}
+.btn-sync{display:flex;align-items:center;gap:8px;background:linear-gradient(90deg,#DB2777,#BE185D);color:#fff;border:none;padding:12px 20px;border-radius:12px;font-weight:700;cursor:pointer;font-size:.9rem;text-decoration:none}
+.btn-sync:disabled{opacity:.5;cursor:not-allowed}
+.btn-secondary{display:flex;align-items:center;gap:6px;background:var(--white);color:var(--mid);border:1px solid var(--gray);padding:9px 16px;border-radius:10px;font-weight:600;font-size:.82rem;cursor:pointer;text-decoration:none}
+.tbl-box{background:var(--white);border-radius:16px;border:1px solid var(--gray);overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,.05)}
+table{width:100%;border-collapse:collapse}
+th{background:var(--light-g);padding:10px 14px;text-align:left;font-size:.75rem;font-weight:700;color:var(--mid);text-transform:uppercase;border-bottom:1px solid var(--gray);white-space:nowrap}
+td{padding:11px 14px;font-size:.83rem;color:var(--dark);border-bottom:1px solid var(--gray);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--off)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:.71rem;font-weight:700}
+.b-wait{background:#FFF8E6;color:#D97706}
+.b-ok{background:#EDFFF5;color:var(--green)}
+.b-fail{background:#fee2e2;color:var(--red)}
+.no-data{text-align:center;padding:40px;color:var(--light)}
+.info-box{background:var(--blue-l);border-left:4px solid var(--blue);padding:14px 16px;border-radius:10px;margin-bottom:16px;font-size:.84rem;color:var(--blue-d);line-height:1.6}
+.progress-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:none;align-items:center;justify-content:center}
+.progress-overlay.open{display:flex}
+.progress-card{background:var(--white);border-radius:20px;padding:30px;text-align:center;max-width:340px}
+.spinner{width:50px;height:50px;border:4px solid var(--gray);border-top-color:#DB2777;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+{% endblock %}
+
+{% block nav %}
+<header>
+  <div class="adm-logo">⚡ BOOST CENTRAL — Notifications</div>
+  <a href="{{ url_for('admin.index') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Admin</a>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="main">
+
+  {% if stats.en_attente > 0 %}
+  <div class="info-box">
+    <strong>📬 {{ stats.en_attente }} notification(s) en attente.</strong><br>
+    Clique sur "Envoyer maintenant" pour en envoyer <strong>25 par clic</strong>. Tu peux cliquer plusieurs fois d'affilée.
+  </div>
+  {% endif %}
+
+  <div class="stats-row">
+    <div class="stat-box"><div class="num" style="color:#D97706">{{ stats.en_attente }}</div><div class="lbl">En attente</div></div>
+    <div class="stat-box"><div class="num" style="color:#059669">{{ stats.envoye }}</div><div class="lbl">Envoyees</div></div>
+    <div class="stat-box"><div class="num" style="color:#DC2626">{{ stats.echec }}</div><div class="lbl">Echecs</div></div>
+    <div class="stat-box"><div class="num">{{ stats.total }}</div><div class="lbl">Total</div></div>
+  </div>
+
+  <div class="top-bar">
+    <div>
+      <div style="font-size:1.05rem;font-weight:800;color:var(--dark)">File d'attente</div>
+      <div style="font-size:.8rem;color:var(--mid)">50 dernieres notifications</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      {% if stats.echec > 0 %}
+      <form method="POST" action="{{ url_for('admin_notifications.relancer_echecs') }}" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-secondary" onclick="return confirm('Remettre les {{ stats.echec }} notifications en echec dans la file ?')">
+          <i class="fas fa-redo"></i> Relancer les echecs
+        </button>
+      </form>
+      {% endif %}
+      <button type="button" class="btn-sync" id="btn-envoyer" onclick="envoyerLot()" {% if stats.en_attente == 0 %}disabled{% endif %}>
+        <i class="fas fa-paper-plane"></i> Envoyer maintenant (25)
+      </button>
+    </div>
+  </div>
+
+  {% if notifications %}
+  <div class="tbl-box">
+    <table>
+      <thead>
+        <tr>
+          <th>Destinataire</th>
+          <th>Type</th>
+          <th>Sujet</th>
+          <th>Statut</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for n in notifications %}
+        {% set bmap={'en_attente':('b-wait','En attente'),'envoye':('b-ok','Envoye'),'echec':('b-fail','Echec')} %}
+        {% set bc,bt=bmap.get(n.statut,('b-wait','En attente')) %}
+        <tr>
+          <td style="font-size:.78rem">{{ n.destinataire_email }}</td>
+          <td style="font-size:.75rem;color:var(--mid)">{{ n.type }}</td>
+          <td style="font-size:.8rem">{{ (n.sujet or '')[:40] }}{% if n.sujet and n.sujet|length > 40 %}...{% endif %}</td>
+          <td><span class="badge {{ bc }}">{{ bt }}</span></td>
+          <td style="font-size:.73rem;color:var(--mid)">{{ (n.created_at or '')[:16].replace('T', ' ') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="no-data">
+    <i class="fas fa-inbox" style="font-size:3rem;display:block;margin-bottom:12px;color:var(--gray)"></i>
+    <p>Aucune notification dans la file.</p>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- OVERLAY DE PROGRESSION -->
+<div class="progress-overlay" id="overlay">
+  <div class="progress-card">
+    <div class="spinner"></div>
+    <div style="font-size:1rem;font-weight:800;color:var(--dark);margin-bottom:8px">Envoi en cours...</div>
+    <div style="font-size:.85rem;color:var(--mid)">Envoi de 25 emails</div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function envoyerLot(){
+  var btn = document.getElementById('btn-envoyer');
+  var overlay = document.getElementById('overlay');
+  btn.disabled = true;
+  overlay.classList.add('open');
+
+  var form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '{{ url_for("admin_notifications.envoyer_notifications") }}';
+
+  var csrf = document.createElement('input');
+  csrf.type = 'hidden';
+  csrf.name = 'csrf_token';
+  csrf.value = '{{ csrf_token() }}';
+  form.appendChild(csrf);
+
+  var limit = document.createElement('input');
+  limit.type = 'hidden';
+  limit.name = 'limit';
+  limit.value = '25';
+  form.appendChild(limit);
+
+  document.body.appendChild(form);
+  form.submit();
+}
+</script>
+{% endblock %}
