@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}Personnaliser ma boutique — Revendeur{% endblock %}
+{% block extra_css %}
+header{display:flex;align-items:center;gap:14px;padding:16px 20px;background:var(--white);border-bottom:2px solid var(--gray);box-shadow:0 2px 8px rgba(0,0,0,.04);position:sticky;top:0;z-index:10}
+.back-btn{background:var(--blue-l);border:none;color:var(--blue);padding:8px 12px;border-radius:9px;cursor:pointer;font-size:.9rem;font-weight:700;display:flex;align-items:center;gap:6px;text-decoration:none}
+.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+main{padding:20px;max-width:720px;margin:0 auto;padding-bottom:40px}
+.card{background:var(--white);border-radius:16px;padding:20px;border:1px solid var(--gray);box-shadow:0 3px 12px rgba(0,0,0,.04);margin-bottom:18px}
+.card-title{font-size:1rem;font-weight:800;color:var(--dark);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title i{color:#7C3AED}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.82rem;font-weight:600;color:var(--dark);margin-bottom:6px}
+.fg .hint{font-size:.72rem;color:var(--mid);margin-top:4px;font-weight:400;line-height:1.5}
+.inp,.sel-inp,.txta{width:100%;padding:11px 13px;border:2px solid var(--gray);border-radius:11px;font-size:.9rem;color:var(--dark);outline:none;background:var(--white);font-family:inherit}
+.inp:focus,.sel-inp:focus,.txta:focus{border-color:#7C3AED}
+.txta{min-height:80px;resize:vertical}
+
+/* Themes grid */
+.themes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-top:8px}
+.theme-item{position:relative;cursor:pointer;border:3px solid var(--gray);border-radius:12px;overflow:hidden;transition:transform .2s,border-color .2s}
+.theme-item:hover{transform:translateY(-3px)}
+.theme-item input{position:absolute;opacity:0;pointer-events:none}
+.theme-item.actif{border-color:#7C3AED}
+.theme-preview{height:60px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:1.1rem}
+.theme-label{text-align:center;font-size:.75rem;font-weight:700;color:var(--dark);padding:6px 4px;background:var(--white)}
+.theme-item input:checked + .theme-preview{box-shadow:inset 0 0 0 3px #fff}
+
+/* Upload boxes */
+.upload-box{border:2px dashed var(--gray);border-radius:12px;padding:14px;text-align:center;cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s}
+.upload-box:hover{border-color:#7C3AED}
+.upload-box input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.upload-box i{font-size:1.5rem;color:var(--light);display:block;margin-bottom:6px}
+.upload-box span{font-size:.76rem;color:var(--mid)}
+.preview-img{max-width:100%;max-height:120px;border-radius:10px;margin-top:10px;object-fit:cover}
+.suppr-img{display:inline-flex;align-items:center;gap:4px;background:#FEE2E2;color:#991B1B;padding:5px 10px;border-radius:8px;font-size:.72rem;font-weight:700;border:none;cursor:pointer;margin-top:6px}
+
+/* Toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--gray)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-lbl{font-size:.85rem;font-weight:600;color:var(--dark)}
+.toggle-desc{font-size:.73rem;color:var(--mid);margin-top:2px}
+.switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--gray);transition:.3s;border-radius:24px}
+.slider:before{position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background:#fff;transition:.3s;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+input:checked + .slider{background:#7C3AED}
+input:checked + .slider:before{transform:translateX(20px)}
+
+.btn-save{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(90deg,#7C3AED,#4C1D95);color:#fff;font-weight:800;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 6px 18px rgba(124,58,237,.3);margin-top:10px}
+.btn-save:hover{transform:translateY(-1px)}
+
+.lien-info{background:#F5F3FF;border-left:4px solid #7C3AED;border-radius:10px;padding:14px;margin-bottom:18px;font-size:.82rem;color:#5B21B6;word-break:break-all;line-height:1.6}
+.lien-info strong{display:block;margin-bottom:4px}
+{% endblock %}
+
+{% block nav %}
+<header>
+  <a href="{{ url_for('revendeur.index') }}" class="back-btn"><i class="fas fa-arrow-left"></i> Retour</a>
+  <div class="logo">BOOST CENTRAL</div>
+</header>
+{% endblock %}
+
+{% block content %}
+<main>
+
+  <div class="lien-info">
+    <strong><i class="fas fa-link"></i> Votre boutique publique :</strong>
+    {{ base_url }}/r/{{ profile.revendeur_slug }}
+  </div>
+
+  <form method="POST" action="{{ url_for('revendeur.personnaliser_enregistrer') }}" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- IDENTITE -->
+    <div class="card">
+      <div class="card-title"><i class="fas fa-store"></i> Identite de la boutique</div>
+
+      <div class="fg">
+        <label>Nom de la boutique</label>
+        <input class="inp" type="text" name="boutique_nom" value="{{ profile.boutique_nom or '' }}" placeholder="Ex : Boost Douala">
+        <div class="hint">Ce nom apparaitra en haut de votre boutique.</div>
+      </div>
+
+      <div class="fg">
+        <label>Slogan (titre principal)</label>
+        <input class="inp" type="text" name="boutique_slogan" value="{{ profile.boutique_slogan or '' }}" placeholder="Ex : Le boost le plus rapide du Cameroun">
+      </div>
+
+      <div class="fg">
+        <label>Message d'accueil</label>
+        <textarea class="txta" name="boutique_message_accueil" placeholder="Decrivez votre boutique en quelques mots...">{{ profile.boutique_message_accueil or '' }}</textarea>
+      </div>
+
+      <div class="fg">
+        <label>Logo de la boutique</label>
+        <div class="upload-box">
+          <input type="file" name="boutique_logo" accept="image/*">
+          <i class="fas fa-image"></i>
+          <span>Cliquez pour uploader un logo (recommande : 200x200px)</span>
+        </div>
+        {% if profile.boutique_logo_url %}
+        <img class="preview-img" src="{{ profile.boutique_logo_url }}" alt="Logo">
+        {% endif %}
+      </div>
+
+      <div class="fg">
+        <label>Banniere (image en haut de la boutique)</label>
+        <div class="upload-box">
+          <input type="file" name="boutique_banniere" accept="image/*">
+          <i class="fas fa-panorama"></i>
+          <span>Cliquez pour uploader une banniere (recommande : 1200x400px)</span>
+        </div>
+        {% if profile.boutique_banniere_url %}
+        <img class="preview-img" src="{{ profile.boutique_banniere_url }}" alt="Banniere" style="max-height:100px">
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- THEME -->
+    <div class="card">
+      <div class="card-title"><i class="fas fa-palette"></i> Theme de couleurs</div>
+
+      <div class="themes-grid">
+        {% for nom, couleurs in themes.items() %}
+        <label class="theme-item {% if (profile.boutique_theme or 'bleu') == nom %}actif{% endif %}" onclick="selectTheme(this)">
+          <input type="radio" name="boutique_theme" value="{{ nom }}" {% if (profile.boutique_theme or 'bleu') == nom %}checked{% endif %}>
+          <div class="theme-preview" style="background:linear-gradient(135deg,{{ couleurs[0] }},{{ couleurs[1] }})">
+            Aa
+          </div>
+          <div class="theme-label">{{ nom|capitalize }}</div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- CONTACT -->
+    <div class="card">
+      <div class="card-title"><i class="fas fa-address-book"></i> Contact</div>
+
+      <div class="fg">
+        <label>Numero WhatsApp</label>
+        <input class="inp" type="text" name="boutique_whatsapp" value="{{ profile.boutique_whatsapp or '' }}" placeholder="Ex : 237658033690">
+        <div class="hint">Format international sans le + (ex : 237658033690)</div>
+      </div>
+
+      <div class="fg">
+        <label>Email de contact (optionnel)</label>
+        <input class="inp" type="email" name="boutique_email" value="{{ profile.boutique_email or '' }}" placeholder="contact@madomain.com">
+      </div>
+    </div>
+
+    <!-- RESEAUX SOCIAUX -->
+    <div class="card">
+      <div class="card-title"><i class="fas fa-share-alt"></i> Reseaux sociaux</div>
+
+      <div class="fg">
+        <label><i class="fab fa-facebook" style="color:#1877F2"></i> Facebook</label>
+        <input class="inp" type="url" name="boutique_facebook" value="{{ profile.boutique_facebook or '' }}" placeholder="https://facebook.com/mapage">
+      </div>
+
+      <div class="fg">
+        <label><i class="fab fa-instagram" style="color:#E4405F"></i> Instagram</label>
+        <input class="inp" type="url" name="boutique_instagram" value="{{ profile.boutique_instagram or '' }}" placeholder="https://instagram.com/moncompte">
+      </div>
+
+      <div class="fg">
+        <label><i class="fab fa-tiktok" style="color:#000"></i> TikTok</label>
+        <input class="inp" type="url" name="boutique_tiktok" value="{{ profile.boutique_tiktok or '' }}" placeholder="https://tiktok.com/@moncompte">
+      </div>
+
+      <div class="fg">
+        <label><i class="fab fa-telegram" style="color:#0088CC"></i> Telegram</label>
+        <input class="inp" type="url" name="boutique_telegram" value="{{ profile.boutique_telegram or '' }}" placeholder="https://t.me/moncanal">
+      </div>
+    </div>
+
+    <!-- A PROPOS -->
+    <div class="card">
+      <div class="card-title"><i class="fas fa-info-circle"></i> A propos</div>
+      <div class="fg">
+        <label>Texte "A propos" (optionnel)</label>
+        <textarea class="txta" name="boutique_a_propos" placeholder="Parlez de votre entreprise, vos garanties, vos delais...">{{ profile.boutique_a_propos or '' }}</textarea>
+      </div>
+    </div>
+
+    <!-- OPTIONS -->
+    <div class="card">
+      <div class="card-title"><i class="fas fa-cog"></i> Options d'affichage</div>
+
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-lbl">Afficher les prix</div>
+          <div class="toggle-desc">Si desactive, les clients verront "Prix sur demande"</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" name="boutique_afficher_prix" {% if profile.boutique_afficher_prix != False %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <div>
+          <div class="toggle-lbl">WhatsApp flottant</div>
+          <div class="toggle-desc">Bouton WhatsApp en bas a droite de votre boutique</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" name="boutique_whatsapp_flottant" {% if profile.boutique_whatsapp_flottant != False %}checked{% endif %}>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <button type="submit" class="btn-save">
+      <i class="fas fa-save"></i> Enregistrer ma boutique
+    </button>
+  </form>
+
+</main>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function selectTheme(el){
+  document.querySelectorAll('.theme-item').forEach(t => t.classList.remove('actif'));
+  el.classList.add('actif');
+}
+</script>
+{% endblock %}
