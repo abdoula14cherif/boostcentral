@@ -42,6 +42,7 @@ def create_app(config_name="production"):
     from app.routes.vente import vente_bp
     from app.routes.admin_produits import admin_produits_bp
     from app.routes.admin_newsletter import admin_newsletter_bp
+    from app.routes.admin_notifications import admin_notifications_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
@@ -64,6 +65,7 @@ def create_app(config_name="production"):
     app.register_blueprint(vente_bp)
     app.register_blueprint(admin_produits_bp, url_prefix="/admin")
     app.register_blueprint(admin_newsletter_bp, url_prefix="/admin")
+    app.register_blueprint(admin_notifications_bp, url_prefix="/admin")
 
     csrf.exempt(webhook_bp)
     csrf.exempt(api_bp)
