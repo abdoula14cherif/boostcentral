@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Produits — Admin{% endblock %}
+
+{% block extra_css %}
+body{background:var(--off)}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--dark);position:sticky;top:0;z-index:100}
+.adm-logo{font-size:1rem;font-weight:900;background:linear-gradient(90deg,#60a5fa,#f97316);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn-back{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;text-decoration:none}
+.main{padding:16px;max-width:1000px;margin:0 auto}
+.card{background:var(--white);border-radius:16px;padding:20px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px}
+.card-title{font-size:1rem;font-weight:800;color:var(--dark);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.82rem;font-weight:600;color:var(--dark);margin-bottom:6px}
+.inp{width:100%;padding:11px 13px;border:2px solid var(--gray);border-radius:11px;font-size:.9rem;color:var(--dark);outline:none;background:var(--white)}
+.inp:focus{border-color:var(--blue)}
+.upload-box{border:2px dashed var(--gray);border-radius:12px;padding:16px;text-align:center;cursor:pointer;position:relative;overflow:hidden}
+.upload-box input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.btn-publier{width:100%;padding:13px;margin-top:14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;font-weight:800;font-size:.92rem;cursor:pointer}
+.produits-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.produit-card{background:var(--white);border-radius:14px;overflow:hidden;border:1px solid var(--gray)}
+.produit-img{width:100%;height:150px;object-fit:cover;background:var(--gray)}
+.produit-body{padding:14px}
+.produit-titre{font-size:.9rem;font-weight:700;color:var(--dark);margin-bottom:6px}
+.produit-desc{font-size:.78rem;color:var(--mid);margin-bottom:8px;min-height:32px}
+.produit-prix{font-size:.95rem;font-weight:900;color:var(--orange);margin-bottom:10px}
+.actions{display:flex;gap:6px}
+.btn-sm{flex:1;padding:8px;border:none;border-radius:9px;font-size:.75rem;font-weight:700;cursor:pointer}
+.btn-o{background:#FEF3C7;color:#92400E}
+.btn-r{background:#FEE2E2;color:#991B1B}
+.btn-g{background:#D1FAE5;color:#065F46}
+.badge-actif{display:inline-block;padding:3px 8px;border-radius:10px;font-size:.68rem;font-weight:700;background:#D1FAE5;color:#065F46;margin-bottom:6px}
+.badge-inactif{display:inline-block;padding:3px 8px;border-radius:10px;font-size:.68rem;font-weight:700;background:#FEE2E2;color:#991B1B;margin-bottom:6px}
+{% endblock %}
+
+{% block nav %}
+<header>
+  <div class="adm-logo">⚡ BOOST CENTRAL — Produits</div>
+  <a href="{{ url_for('admin.index') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Admin</a>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="main">
+
+  <div class="card">
+    <div class="card-title"><i class="fas fa-plus-circle" style="color:var(--green)"></i> Ajouter un produit</div>
+    <form method="POST" action="{{ url_for('admin_produits.ajouter_produit') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="fg"><label>Nom du produit *</label><input class="inp" type="text" name="nom" placeholder="Ex : Pack 1000 followers TikTok" required></div>
+      <div class="fg"><label>Description</label><input class="inp" type="text" name="description" placeholder="Details sur le produit"></div>
+      <div class="fg"><label>Prix plateforme (FCFA) *</label><input class="inp" type="number" name="prix_plateforme" step="0.1" min="0.1" placeholder="Ex : 5000" required></div>
+      <div class="fg">
+        <label>Image du produit</label>
+        <div class="upload-box">
+          <input type="file" name="image" accept="image/*">
+          <i class="fas fa-cloud-upload-alt" style="font-size:1.5rem;color:var(--light);display:block;margin-bottom:6px"></i>
+          <span style="font-size:.78rem;color:var(--mid)">Clique pour uploader</span>
+        </div>
+      </div>
+      <button type="submit" class="btn-publier"><i class="fas fa-check"></i> Creer le produit</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="fas fa-box" style="color:var(--blue)"></i> Produits existants ({{ produits|length }})</div>
+    {% if produits %}
+    <div class="produits-grid">
+      {% for p in produits %}
+      <div class="produit-card">
+        {% if p.image_url %}
+        <img class="produit-img" src="{{ p.image_url }}" alt="{{ p.nom }}">
+        {% else %}
+        <div class="produit-img" style="display:flex;align-items:center;justify-content:center;color:var(--light)"><i class="fas fa-image" style="font-size:2rem"></i></div>
+        {% endif %}
+        <div class="produit-body">
+          {% if p.actif %}<span class="badge-actif">Actif</span>{% else %}<span class="badge-inactif">Inactif</span>{% endif %}
+          <div class="produit-titre">{{ p.nom }}</div>
+          <div class="produit-desc">{{ p.description or "" }}</div>
+          <div class="produit-prix">{{ "{:,.0f}".format(p.prix_plateforme or 0) }} FCFA</div>
+          <div class="actions">
+            <form method="POST" action="{{ url_for('admin_produits.toggle_produit') }}" style="flex:1">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="produit_id" value="{{ p.id }}">
+              <input type="hidden" name="actif" value="{{ '1' if p.actif else '0' }}">
+              <button type="submit" class="btn-sm {% if p.actif %}btn-o{% else %}btn-g{% endif %}" style="width:100%">{% if p.actif %}Desactiver{% else %}Activer{% endif %}</button>
+            </form>
+            <form method="POST" action="{{ url_for('admin_produits.supprimer_produit') }}" style="flex:1" onsubmit="return confirm('Supprimer {{ p.nom }} ?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="produit_id" value="{{ p.id }}">
+              <button type="submit" class="btn-sm btn-r" style="width:100%">Supprimer</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="text-align:center;color:var(--light);padding:30px">Aucun produit. Cree le premier ci-dessus.</p>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
