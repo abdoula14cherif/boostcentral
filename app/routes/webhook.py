@@ -5,6 +5,7 @@ from app.routes.parrainage import crediter_commission_recharge
 from app.models.promo import valider_code
 from app.models.database import enregistrer_utilisation_code
 from app.models.alertes import reinitialiser_alerte_solde
+from app.models.database import get_vente_by_reference, update_vente, crediter_solde_affilie
 
 logger = logging.getLogger(__name__)
 
@@ -75,8 +76,23 @@ def soleaspay_webhook():
             return jsonify({"received": True}), 200
 
         recharge = get_recharge_by_hash(invoice_reference)
+
         if not recharge:
-            logger.warning(f"Webhook SoleasPay: aucune recharge trouvee pour la reference {invoice_reference}")
+            # Ce n'est peut-etre pas une recharge mais une vente de produit affilie
+            vente = get_vente_by_reference(invoice_reference)
+            if not vente:
+                logger.warning(f"Webhook SoleasPay: aucune recharge ni vente trouvee pour la reference {invoice_reference}")
+                return jsonify({"received": True}), 200
+
+            if vente.get("statut") == "valide":
+                return jsonify({"received": True}), 200  # deja traitee (webhook rejoue)
+
+            update_vente(vente["id"], {"statut": "valide"})
+            nouveau_solde = crediter_solde_affilie(vente["user_id"], vente["gain_affilie"])
+            if nouveau_solde is None:
+                logger.error(f"Echec credit solde_affilie pour vente {vente['id']}")
+            else:
+                logger.info(f"Vente {vente['id']} validee: +{vente['gain_affilie']} FCFA solde_affilie pour user {vente['user_id']}")
             return jsonify({"received": True}), 200
 
         # Idempotence : si deja validee (webhook rejoue), on ne credite pas deux fois
