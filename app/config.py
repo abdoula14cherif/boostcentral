@@ -1,6 +1,7 @@
 import os
 from datetime import timedelta
 
+
 class BaseConfig:
     SECRET_KEY = os.environ.get("SECRET_KEY", "changez-moi")
     WTF_CSRF_ENABLED = False
@@ -8,24 +9,43 @@ class BaseConfig:
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
+
+    # Supabase
     SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
     SUPABASE_ANON_KEY = os.environ.get("SUPABASE_ANON_KEY", "")
     SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
+
+    # Admin
     ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "abdoula13cherif@gmail.com")
-    WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "237689011185")
+
+    # Contact & Support — Numero WhatsApp officiel
+    WHATSAPP_NUMBER = os.environ.get("WHATSAPP_NUMBER", "237658033690")
+
+    # Paiements
     SOINA_PAY_URL = os.environ.get("SOINA_PAY_URL", "https://soinapay.com/pay/zmnmqbap")
+
+    # Email
     GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "")
+
+    # Fournisseur BOOSTCI
     BOOSTCI_API_KEY = os.environ.get("BOOSTCI_API_KEY", "")
     BOOSTCI_API_URL = os.environ.get("BOOSTCI_API_URL", "https://boostci.com/api/v2")
+
+    # Pagination
     ORDERS_PER_PAGE = 20
     RECHARGES_PER_PAGE = 10
+
+    # Taux
     USD_RATE = 600.0
+
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
 
+
 class ProductionConfig(BaseConfig):
     DEBUG = False
+
 
 config_map = {
     "development": DevelopmentConfig,
