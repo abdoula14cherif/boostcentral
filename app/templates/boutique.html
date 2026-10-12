@@ -1,49 +1,103 @@
 {% extends "base.html" %}
-{% block title %}{{ slug }} — Boutique Boost Central{% endblock %}
+{% block title %}{{ boutique.nom }} — Boost Central{% endblock %}
 {% block extra_css %}
-header{display:flex;align-items:center;justify-content:center;padding:18px 20px;background:var(--white);border-bottom:2px solid var(--gray)}
-.logo{font-size:1.3rem;font-weight:900;background:linear-gradient(90deg,var(--blue),var(--orange));-webkit-background-clip:text;background-clip:text;color:transparent}
+:root{
+  --bouton-color:{{ boutique.couleur_principale }};
+  --bouton-color-d:{{ boutique.couleur_secondaire }};
+}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--white);border-bottom:2px solid var(--gray);position:sticky;top:0;z-index:100}
+.logo{font-size:1.1rem;font-weight:900;color:var(--dark);display:flex;align-items:center;gap:8px}
+.logo img{height:36px;width:36px;object-fit:cover;border-radius:8px}
+.logo-txt{background:linear-gradient(90deg,var(--bouton-color),var(--bouton-color-d));-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn-retour{background:var(--light-g);color:var(--mid);padding:8px 14px;border-radius:9px;text-decoration:none;font-size:.82rem;font-weight:600}
 main{padding:20px;max-width:720px;margin:0 auto}
-.hero-bout{position:relative;overflow:hidden;background:linear-gradient(135deg,#7C3AED,#4C1D95);border-radius:22px;padding:36px 26px;margin-bottom:20px;text-align:center;color:#fff}
-.hero-bout::before{content:'';position:absolute;top:-30%;right:-10%;width:60%;height:160%;background:radial-gradient(circle,rgba(255,255,255,.12) 0%,transparent 65%);pointer-events:none}
-.badge-shop{position:relative;font-size:.72rem;background:rgba(255,255,255,.18);padding:5px 14px;border-radius:20px;display:inline-block;margin-bottom:14px;font-weight:700;letter-spacing:.5px}
-.hero-bout h1{position:relative;font-size:1.6rem;font-weight:900;margin-bottom:10px;line-height:1.3}
-.hero-bout p{position:relative;font-size:.9rem;opacity:.88;line-height:1.6;max-width:440px;margin:0 auto}
-.btn-cta{position:relative;display:inline-flex;align-items:center;gap:8px;background:#fff;color:#7C3AED;padding:15px 32px;border-radius:13px;font-weight:800;font-size:.98rem;text-decoration:none;margin-top:20px;transition:transform .22s;box-shadow:0 10px 26px rgba(0,0,0,.18)}
+.hero-bout{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--bouton-color),var(--bouton-color-d));border-radius:22px;padding:36px 26px;margin-bottom:20px;text-align:center;color:#fff}
+.hero-bout.has-banniere{padding:0;overflow:hidden;position:relative}
+.hero-banniere{width:100%;height:180px;object-fit:cover;display:block;opacity:.4}
+.hero-content{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:26px}
+.hero-bout::before{content:'';position:absolute;top:-30%;right:-10%;width:60%;height:160%;background:radial-gradient(circle,rgba(255,255,255,.12) 0%,transparent 65%);pointer-events:none;z-index:1}
+.badge-shop{position:relative;font-size:.72rem;background:rgba(255,255,255,.18);padding:5px 14px;border-radius:20px;display:inline-block;margin-bottom:14px;font-weight:700;letter-spacing:.5px;z-index:2}
+.hero-bout h1{position:relative;font-size:1.6rem;font-weight:900;margin-bottom:10px;line-height:1.3;z-index:2}
+.hero-bout p{position:relative;font-size:.9rem;opacity:.92;line-height:1.6;max-width:440px;margin:0 auto;z-index:2}
+.btn-cta{position:relative;display:inline-flex;align-items:center;gap:8px;background:#fff;color:var(--bouton-color);padding:15px 32px;border-radius:13px;font-weight:800;font-size:.98rem;text-decoration:none;margin-top:20px;transition:transform .22s;box-shadow:0 10px 26px rgba(0,0,0,.18);z-index:2}
 .btn-cta:hover{transform:translateY(-2px)}
+
+/* Contact rapide */
+.contact-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:16px;position:relative;z-index:2}
+.contact-btn{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.18);color:#fff;padding:8px 14px;border-radius:20px;font-size:.78rem;font-weight:700;text-decoration:none;transition:background .2s}
+.contact-btn:hover{background:rgba(255,255,255,.3)}
 
 .trust-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}
 .trust-item{background:var(--white);border:1px solid var(--gray);border-radius:14px;padding:14px 10px;text-align:center}
-.trust-item i{font-size:1.15rem;color:#7C3AED;margin-bottom:6px;display:block}
+.trust-item i{font-size:1.15rem;color:var(--bouton-color);margin-bottom:6px;display:block}
 .trust-item span{font-size:.72rem;font-weight:700;color:var(--dark);display:block;line-height:1.3}
 
 .net-title{font-size:.95rem;font-weight:800;color:var(--dark);margin:22px 0 12px;display:flex;align-items:center;gap:8px}
+.net-title i{color:var(--bouton-color)}
 .svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px}
 @media(max-width:480px){.svc-grid{grid-template-columns:1fr}}
 .svc-card{background:var(--white);border:1px solid var(--gray);border-radius:14px;padding:16px;opacity:0;transform:translateY(8px);animation:svcIn .4s ease forwards;transition:border-color .22s,transform .22s}
-.svc-card:hover{border-color:#7C3AED;transform:translateY(-2px)}
+.svc-card:hover{border-color:var(--bouton-color);transform:translateY(-2px)}
 @keyframes svcIn{to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.svc-card{animation:none;opacity:1;transform:none}}
 .svc-name{font-size:.85rem;font-weight:700;color:var(--dark);margin-bottom:8px}
-.svc-price{font-size:1.15rem;font-weight:900;color:#7C3AED}
+.svc-price{font-size:1.15rem;font-weight:900;color:var(--bouton-color)}
 .svc-unit{font-size:.7rem;color:var(--mid);font-weight:600}
 .no-svc{text-align:center;padding:40px 20px;color:var(--light)}
 .no-svc i{font-size:2.2rem;display:block;margin-bottom:10px;color:var(--gray)}
 
 .bottom-cta{text-align:center;background:var(--light-g);border-radius:18px;padding:26px 20px;margin-top:24px}
 .bottom-cta p{font-size:.86rem;color:var(--mid);margin-bottom:14px}
+.bottom-cta .btn-cta{background:linear-gradient(90deg,var(--bouton-color),var(--bouton-color-d));color:#fff;margin-top:0}
+
+/* A propos */
+.apropos-box{background:var(--white);border:1px solid var(--gray);border-radius:14px;padding:18px;margin-top:20px;font-size:.84rem;color:var(--mid);line-height:1.7}
+.apropos-box h3{font-size:.92rem;font-weight:800;color:var(--dark);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.apropos-box h3 i{color:var(--bouton-color)}
+
 .footer-bout{text-align:center;padding:20px 0 6px;font-size:.76rem;color:var(--light)}
+.footer-bout a{color:var(--bouton-color);text-decoration:none;font-weight:700}
+
+/* WhatsApp flottant */
+.wa-boutique{position:fixed;bottom:24px;right:24px;width:56px;height:56px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.5rem;box-shadow:0 5px 20px rgba(37,211,102,.45);z-index:90;text-decoration:none;animation:waPulse 2s infinite}
+.wa-boutique:hover{transform:scale(1.08);animation:none}
+@keyframes waPulse{0%,100%{box-shadow:0 5px 20px rgba(37,211,102,.45)}50%{box-shadow:0 5px 28px rgba(37,211,102,.7)}}
 {% endblock %}
 {% block nav %}
-<header><div class="logo">BOOST CENTRAL</div></header>
+<header>
+  <div class="logo">
+    {% if boutique.logo_url %}
+    <img src="{{ boutique.logo_url }}" alt="{{ boutique.nom }}">
+    {% endif %}
+    <span class="logo-txt">{{ boutique.nom }}</span>
+  </div>
+  <a href="{{ url_for('auth.login') }}" class="btn-retour"><i class="fas fa-sign-in-alt"></i> Connexion</a>
+</header>
 {% endblock %}
 {% block content %}
 <main>
-  <div class="hero-bout">
-    <div class="badge-shop"><i class="fas fa-store"></i> Boutique de {{ slug }}</div>
-    <h1>Boostez vos reseaux sociaux des aujourd hui</h1>
-    <p>Followers, vues, likes, commentaires — livraison rapide, paiement Mobile Money, suivi en temps reel de vos commandes.</p>
-    <a href="{{ url_for('auth.login') }}" class="btn-cta"><i class="fas fa-rocket"></i> Creer mon compte gratuitement</a>
+
+  <!-- HERO -->
+  <div class="hero-bout {% if boutique.banniere_url %}has-banniere{% endif %}">
+    {% if boutique.banniere_url %}
+    <img class="hero-banniere" src="{{ boutique.banniere_url }}" alt="Banniere">
+    <div class="hero-content">
+    {% endif %}
+      <div class="badge-shop"><i class="fas fa-store"></i> {{ boutique.nom }}</div>
+      <h1>{{ boutique.slogan }}</h1>
+      <p>{{ boutique.message_accueil }}</p>
+      <a href="{{ url_for('auth.login') }}" class="btn-cta"><i class="fas fa-rocket"></i> Creer mon compte gratuitement</a>
+
+      {% if boutique.whatsapp or boutique.facebook or boutique.instagram or boutique.tiktok or boutique.telegram %}
+      <div class="contact-row">
+        {% if boutique.whatsapp %}<a href="https://wa.me/{{ boutique.whatsapp }}" target="_blank" class="contact-btn"><i class="fab fa-whatsapp"></i> WhatsApp</a>{% endif %}
+        {% if boutique.facebook %}<a href="{{ boutique.facebook }}" target="_blank" class="contact-btn"><i class="fab fa-facebook"></i> Facebook</a>{% endif %}
+        {% if boutique.instagram %}<a href="{{ boutique.instagram }}" target="_blank" class="contact-btn"><i class="fab fa-instagram"></i> Instagram</a>{% endif %}
+        {% if boutique.tiktok %}<a href="{{ boutique.tiktok }}" target="_blank" class="contact-btn"><i class="fab fa-tiktok"></i> TikTok</a>{% endif %}
+        {% if boutique.telegram %}<a href="{{ boutique.telegram }}" target="_blank" class="contact-btn"><i class="fab fa-telegram"></i> Telegram</a>{% endif %}
+      </div>
+      {% endif %}
+    {% if boutique.banniere_url %}</div>{% endif %}
   </div>
 
   <div class="trust-row">
@@ -55,13 +109,17 @@ main{padding:20px;max-width:720px;margin:0 auto}
   {% if services_par_reseau %}
     {% for net, liste in services_par_reseau.items() %}
     {% set icons={'facebook':'fab fa-facebook','tiktok':'fab fa-tiktok','instagram':'fab fa-instagram','youtube':'fab fa-youtube','twitter':'fab fa-twitter','telegram':'fab fa-telegram','spotify':'fab fa-spotify','whatsapp':'fab fa-whatsapp','x':'fas fa-xmark','snapchat':'fab fa-snapchat','pinterest':'fab fa-pinterest','twitch':'fab fa-twitch','threads':'fas fa-at','soundcloud':'fab fa-soundcloud','audiomack':'fas fa-music','kick':'fas fa-bolt','discord':'fab fa-discord','deezer':'fas fa-compact-disc'} %}
-    <div class="net-title"><i class="{{ icons.get(net,'fas fa-share-alt') }}" style="color:#7C3AED"></i> {{ net|capitalize }}</div>
+    <div class="net-title"><i class="{{ icons.get(net,'fas fa-share-alt') }}"></i> {{ net|capitalize }}</div>
     <div class="svc-grid">
       {% for s in liste %}
       <div class="svc-card" style="animation-delay:{{ loop.index0 * 0.04 }}s">
         <div class="svc-name">{{ s.categorie }}</div>
+        {% if boutique.afficher_prix %}
         <div class="svc-price">{{ s.prix_affiche }} FCFA</div>
         <div class="svc-unit">par unite</div>
+        {% else %}
+        <div class="svc-price" style="font-size:.85rem;color:var(--mid)">Prix sur demande</div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
@@ -69,12 +127,28 @@ main{padding:20px;max-width:720px;margin:0 auto}
 
     <div class="bottom-cta">
       <p>Creez votre compte en 30 secondes et passez votre premiere commande des maintenant.</p>
-      <a href="{{ url_for('auth.login') }}" class="btn-cta" style="background:linear-gradient(90deg,#7C3AED,#6D28D9);color:#fff"><i class="fas fa-arrow-right"></i> Commencer maintenant</a>
+      <a href="{{ url_for('auth.login') }}" class="btn-cta"><i class="fas fa-arrow-right"></i> Commencer maintenant</a>
     </div>
   {% else %}
-    <div class="no-svc"><i class="fas fa-store-slash"></i><p>Ce revendeur n a pas encore configure ses services. Revenez bientot !</p></div>
+    <div class="no-svc"><i class="fas fa-store-slash"></i><p>Cette boutique n'a pas encore configure ses services. Revenez bientot !</p></div>
   {% endif %}
 
-  <div class="footer-bout">Propulse par Boost Central</div>
+  {% if boutique.a_propos %}
+  <div class="apropos-box">
+    <h3><i class="fas fa-info-circle"></i> A propos</h3>
+    {{ boutique.a_propos }}
+  </div>
+  {% endif %}
+
+  <div class="footer-bout">
+    Propulse par <a href="{{ url_for('index') }}">Boost Central</a>
+  </div>
 </main>
+
+{% if boutique.whatsapp_flottant and boutique.whatsapp %}
+<a href="https://wa.me/{{ boutique.whatsapp }}?text=Bonjour%2C%20je%20viens%20de%20votre%20boutique%20{{ boutique.nom|urlencode }}" target="_blank" class="wa-boutique" title="Contacter {{ boutique.nom }}">
+  <i class="fab fa-whatsapp"></i>
+</a>
+{% endif %}
+
 {% endblock %}
