@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Ventes — Admin{% endblock %}
+
+{% block extra_css %}
+body{background:var(--off)}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--dark);position:sticky;top:0;z-index:100}
+.adm-logo{font-size:1rem;font-weight:900;background:linear-gradient(90deg,#60a5fa,#f97316);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn-back{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;text-decoration:none}
+.main{padding:16px;max-width:1200px;margin:0 auto}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--white);border-radius:14px;padding:16px;border:1px solid var(--gray);text-align:center}
+.stat-card .num{font-size:1.4rem;font-weight:900;color:var(--dark)}
+.stat-card .lbl{font-size:.72rem;color:var(--mid);margin-top:4px;font-weight:600}
+.card{background:var(--white);border-radius:16px;padding:20px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px;overflow-x:auto}
+.card-title{font-size:1rem;font-weight:800;color:var(--dark);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+th{text-align:left;padding:10px 8px;border-bottom:2px solid var(--gray);color:var(--mid);font-weight:700;font-size:.75rem;text-transform:uppercase;letter-spacing:.3px}
+td{padding:12px 8px;border-bottom:1px solid var(--gray);color:var(--dark);vertical-align:middle}
+tr:hover{background:var(--off)}
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:.7rem;font-weight:700}
+.badge-attente{background:#FEF3C7;color:#92400E}
+.badge-valide{background:#D1FAE5;color:#065F46}
+.badge-annule{background:#FEE2E2;color:#991B1B}
+.ref{font-family:monospace;font-size:.72rem;color:var(--mid)}
+.email{font-size:.8rem}
+.montant{font-weight:700}
+.gain{color:var(--green);font-weight:700}
+.btn-action{padding:6px 12px;border:none;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;margin-right:4px}
+.btn-valider{background:#D1FAE5;color:#065F46}
+.btn-annuler{background:#FEE2E2;color:#991B1B}
+.no-data{text-align:center;padding:40px;color:var(--light)}
+{% endblock %}
+
+{% block nav %}
+<header>
+  <div class="adm-logo">⚡ BOOST CENTRAL — Ventes</div>
+  <a href="{{ url_for('admin.index') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Admin</a>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="main">
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="num">{{ stats.total }}</div>
+      <div class="lbl">Total ventes</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">{{ "{:,.0f}".format(stats.total_montant) }}</div>
+      <div class="lbl">Montant total (FCFA)</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" style="color:var(--green)">{{ "{:,.0f}".format(stats.total_gains) }}</div>
+      <div class="lbl">Gains affilies (FCFA)</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" style="color:#D97706">{{ stats.en_attente }}</div>
+      <div class="lbl">En attente</div>
+    </div>
+    <div class="stat-card">
+      <div class="num" style="color:#059669">{{ stats.validees }}</div>
+      <div class="lbl">Validees</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title"><i class="fas fa-shopping-cart" style="color:var(--blue)"></i> Liste des ventes produits affilies</div>
+
+    {% if ventes %}
+    <table>
+      <thead>
+        <tr>
+          <th>Reference</th>
+          <th>Acheteur</th>
+          <th>Montant</th>
+          <th>Gain affilie</th>
+          <th>Statut</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in ventes %}
+        <tr>
+          <td><span class="ref">{{ (v.reference or "")[:8] }}...</span></td>
+          <td><span class="email">{{ v.acheteur_email or "—" }}</span></td>
+          <td><span class="montant">{{ "{:,.0f}".format(v.montant_paye or 0) }} F</span></td>
+          <td><span class="gain">+{{ "{:,.0f}".format(v.gain_affilie or 0) }} F</span></td>
+          <td>
+            {% if v.statut == "valide" %}
+              <span class="badge badge-valide">Validee</span>
+            {% elif v.statut == "annule" %}
+              <span class="badge badge-annule">Annulee</span>
+            {% else %}
+              <span class="badge badge-attente">En attente</span>
+            {% endif %}
+          </td>
+          <td><span class="ref">{{ (v.created_at or "")[:10] }}</span></td>
+          <td>
+            {% if v.statut == "en_attente" %}
+              <form method="POST" action="{{ url_for('admin.maj_statut_vente') }}" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="vente_id" value="{{ v.id }}">
+                <input type="hidden" name="statut" value="valide">
+                <button type="submit" class="btn-action btn-valider">Valider</button>
+              </form>
+              <form method="POST" action="{{ url_for('admin.maj_statut_vente') }}" style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="vente_id" value="{{ v.id }}">
+                <input type="hidden" name="statut" value="annule">
+                <button type="submit" class="btn-action btn-annuler">Annuler</button>
+              </form>
+            {% else %}
+              <span style="color:var(--light);font-size:.75rem">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="no-data"><i class="fas fa-inbox"></i><p>Aucune vente pour le moment.</p></div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
