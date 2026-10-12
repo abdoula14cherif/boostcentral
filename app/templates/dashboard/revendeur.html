@@ -33,6 +33,18 @@ main{padding:20px;max-width:680px;margin:0 auto}
 .actif-badge{display:flex;align-items:center;gap:10px;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:14px;padding:16px}
 .actif-badge i{font-size:1.5rem;color:#7C3AED}
 
+/* Boutons d'action revendeur */
+.actions-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:480px){.actions-grid{grid-template-columns:1fr}}
+.action-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px 12px;border-radius:14px;text-decoration:none;color:#fff;font-weight:700;font-size:.85rem;text-align:center;transition:transform .2s,box-shadow .2s;min-height:90px}
+.action-btn:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(0,0,0,.15)}
+.action-btn i{font-size:1.4rem}
+.action-btn.principal{grid-column:1/-1;background:linear-gradient(135deg,#7C3AED,#4C1D95);box-shadow:0 8px 20px rgba(124,58,237,.3)}
+.action-btn.prix{background:linear-gradient(135deg,#0066FF,#0047CC)}
+.action-btn.clients{background:linear-gradient(135deg,#059669,#047857)}
+.action-btn.commandes{background:linear-gradient(135deg,#F97316,#EA580C)}
+.action-btn.boutique{background:linear-gradient(135deg,#DB2777,#BE185D)}
+
 #confettiOverlay{position:fixed;inset:0;background:rgba(15,20,30,.6);backdrop-filter:blur(4px);z-index:2200;display:none;align-items:center;justify-content:center;padding:20px}
 #confettiOverlay.open{display:flex}
 .confetti-card{background:var(--white);border-radius:22px;padding:34px 26px;max-width:360px;width:100%;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.28);animation:cardPop .45s cubic-bezier(.2,.9,.3,1.2)}
@@ -63,6 +75,7 @@ main{padding:20px;max-width:680px;margin:0 auto}
       {% endif %}
       <div class="prix-badge"><span class="countup" data-target="{{ (profile.balance or 0)|int }}">0</span> FCFA sur votre compte</div>
     </div>
+
     <div class="card">
       <div class="actif-badge">
         <i class="fas fa-check-circle"></i>
@@ -72,13 +85,44 @@ main{padding:20px;max-width:680px;margin:0 auto}
         </div>
       </div>
     </div>
-    <div class="card" style="display:flex;gap:10px;flex-wrap:wrap">
-      {% if profile.revendeur_modele == 'marge' %}
-      <a href="{{ url_for('revendeur.prix') }}" class="btn-activer" style="flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px"><i class="fas fa-tags"></i> Mes prix</a>
-      {% endif %}
-      <a href="{{ url_for('revendeur.clients') }}" class="btn-activer" style="flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(90deg,var(--blue),var(--blue-d))"><i class="fas fa-users"></i> Mes clients</a>
-      <a href="{{ url_for('revendeur.commandes') }}" class="btn-activer" style="flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(90deg,var(--orange),var(--orange-d))"><i class="fas fa-list-check"></i> Commandes</a>
+
+    <!-- ACTIONS REVENDEUR -->
+    <div class="card">
+      <div class="card-title"><i class="fas fa-bolt" style="color:#7C3AED"></i> Mes outils</div>
+      <div class="actions-grid">
+
+        <!-- BOUTON PRINCIPAL : PERSONNALISER -->
+        <a href="{{ url_for('revendeur.personnaliser') }}" class="action-btn principal">
+          <i class="fas fa-palette"></i>
+          <span>Personnaliser ma boutique</span>
+          <span style="font-size:.7rem;opacity:.85;font-weight:500">Logo, couleurs, contact, reseaux</span>
+        </a>
+
+        {% if profile.revendeur_modele == 'marge' %}
+        <a href="{{ url_for('revendeur.prix') }}" class="action-btn prix">
+          <i class="fas fa-tags"></i>
+          <span>Mes prix</span>
+        </a>
+        {% endif %}
+
+        <a href="{{ url_for('revendeur.clients') }}" class="action-btn clients">
+          <i class="fas fa-users"></i>
+          <span>Mes clients</span>
+        </a>
+
+        <a href="{{ url_for('revendeur.commandes') }}" class="action-btn commandes">
+          <i class="fas fa-list-check"></i>
+          <span>Commandes</span>
+        </a>
+
+        <a href="{{ base_url }}/r/{{ profile.revendeur_slug }}" target="_blank" class="action-btn boutique">
+          <i class="fas fa-store"></i>
+          <span>Voir ma boutique</span>
+        </a>
+
+      </div>
     </div>
+
   {% else %}
     <div class="hero-rev">
       <div class="emoji">🏪</div>
@@ -122,7 +166,7 @@ main{padding:20px;max-width:680px;margin:0 auto}
   <div class="confetti-card">
     <div class="em">🎉</div>
     <h3>Bienvenue revendeur !</h3>
-    <p>Votre espace est actif. La gestion complete de vos clients et de vos tarifs arrive tres bientot.</p>
+    <p>Votre espace est actif. Personnalisez votre boutique pour commencer a vendre.</p>
     <button type="button" class="btn-ok-conf" onclick="document.getElementById('confettiOverlay').classList.remove('open')">Super !</button>
   </div>
 </div>
@@ -168,7 +212,8 @@ function choisirModele(m){
 function verifierForm(){
   var slug = document.getElementById('slugInp') ? document.getElementById('slugInp').value : '';
   var modele = document.querySelector('input[name="modele"]:checked');
-  document.getElementById('btnActiver').disabled = !(slug.length >= 3 && modele);
+  var btn = document.getElementById('btnActiver');
+  if(btn) btn.disabled = !(slug.length >= 3 && modele);
 }
 
 {% if request.args.get('active') == '1' %}
