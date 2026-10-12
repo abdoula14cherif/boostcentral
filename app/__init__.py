@@ -67,6 +67,10 @@ def create_app(config_name="production"):
     csrf.exempt(api_bp)
     csrf.exempt(relance_bp)
 
+    # === HELPER WHATSAPP CONTEXTUEL ===
+    from app.models.whatsapp import wa_link
+    app.jinja_env.globals['wa_link'] = wa_link
+
     ROOT_DOMAIN = os.environ.get("ROOT_DOMAIN", "").lower().strip()
 
     @app.before_request
@@ -75,9 +79,7 @@ def create_app(config_name="production"):
         Si l'app tourne sur un vrai domaine (ROOT_DOMAIN configure) et que la
         requete arrive sur un sous-domaine (monboost.tondomaine.com), on
         affiche directement la boutique de ce revendeur sur la page d'accueil
-        du sous-domaine - sans changer l'URL. Le reste du site (login,
-        dashboard, etc.) continue de fonctionner normalement sur ce meme
-        sous-domaine.
+        du sous-domaine - sans changer l'URL.
         """
         if not ROOT_DOMAIN or request.path != "/":
             return None
