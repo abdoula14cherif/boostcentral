@@ -140,7 +140,6 @@ def get_order_by_id_for_user(order_id, user_id):
 
 
 def get_order_by_id(order_id):
-    """Recupere une commande par son id, sans filtrer par utilisateur (usage admin)."""
     try:
         r = requests.get(_url(f"commandes?id=eq.{order_id}&limit=1"), headers=_headers(True))
         data = r.json()
@@ -210,7 +209,6 @@ def get_all_recharges(limit=50):
 
 
 def get_recharge_by_hash(hash_tx):
-    """Retrouve une recharge via sa reference (utilise par le webhook SoleasPay pour matcher invoice_reference)."""
     try:
         r = requests.get(_url(f"recharges?hash_tx=eq.{hash_tx}&limit=1"), headers=_headers(True))
         data = r.json()
@@ -223,7 +221,6 @@ def get_recharge_by_hash(hash_tx):
 
 
 def get_recharge_by_id_for_user(recharge_id, user_id):
-    """Recupere une recharge par id, en verifiant qu'elle appartient bien a l'utilisateur (securite facture PDF)."""
     try:
         r = requests.get(_url(f"recharges?id=eq.{recharge_id}&user_id=eq.{user_id}&limit=1"), headers=_headers(True))
         data = r.json()
@@ -278,7 +275,6 @@ def set_api_key(user_id, api_key):
 
 
 def get_total_recharged(user_id):
-    """Somme des recharges VALIDEES (argent reellement recu) - base du programme VIP."""
     try:
         r = requests.get(_url(f"recharges?user_id=eq.{user_id}&statut=eq.valide&select=montant_fcfa"), headers=_headers(True))
         data = r.json()
@@ -291,7 +287,6 @@ def get_total_recharged(user_id):
 
 
 def update_profile(user_id, data):
-    """Mise a jour generique d'un profil (champs divers : vip_tier_vu, etc.)."""
     try:
         r = requests.patch(_url(f"profiles?id=eq.{user_id}"), json=data, headers=_headers(True))
         return r.status_code < 300
@@ -301,7 +296,6 @@ def update_profile(user_id, data):
 
 
 def get_promo_code(code):
-    """Recupere un code promo par son code (insensible a la casse cote appelant)."""
     try:
         r = requests.get(_url(f"promo_codes?code=eq.{code}&limit=1"), headers=_headers(True))
         data = r.json()
@@ -351,7 +345,7 @@ def has_user_used_code(user_id, code_id):
         return isinstance(data, list) and len(data) > 0
     except Exception as e:
         logger.error(f"has_user_used_code: {e}")
-        return True  # par securite, on bloque en cas d'erreur plutot que de laisser abuser
+        return True
 
 
 def enregistrer_utilisation_code(code_id, user_id, recharge_id):
@@ -359,7 +353,6 @@ def enregistrer_utilisation_code(code_id, user_id, recharge_id):
         requests.post(_url("promo_utilisations"), json={
             "code_id": code_id, "user_id": user_id, "recharge_id": recharge_id
         }, headers=_headers(True))
-        # Incrementer le compteur d'utilisations
         code = requests.get(_url(f"promo_codes?id=eq.{code_id}&limit=1"), headers=_headers(True)).json()
         if code:
             current = code[0].get("utilisations_count", 0) or 0
@@ -460,7 +453,6 @@ def add_ticket_message(ticket_id, auteur, message):
 
 
 def get_profile_by_slug(slug):
-    """Retrouve un revendeur par son slug (utilise sur la page revendeur et pour le futur sous-domaine)."""
     try:
         r = requests.get(_url(f"profiles?revendeur_slug=eq.{slug}&est_revendeur=eq.true&limit=1"), headers=_headers(True))
         data = r.json()
@@ -477,7 +469,7 @@ def slug_deja_pris(slug):
         return isinstance(data, list) and len(data) > 0
     except Exception as e:
         logger.error(f"slug_deja_pris: {e}")
-        return True  # par securite
+        return True
 
 
 def activer_revendeur(user_id, slug, modele, commission_pct=0.10):
@@ -545,7 +537,6 @@ def set_revendeur_prix(revendeur_id, service_id, prix_fcfa):
 
 
 def get_client_revendeur(client_id):
-    """Retourne le profil du revendeur auquel ce client est rattache, ou None si aucun."""
     try:
         r = requests.get(_url(f"revendeur_clients?client_id=eq.{client_id}&limit=1"), headers=_headers(True))
         data = r.json()
@@ -558,7 +549,6 @@ def get_client_revendeur(client_id):
 
 
 def get_revendeur_clients_detail(revendeur_id):
-    """Liste des clients d'un revendeur avec leur email et date de rattachement."""
     try:
         r = requests.get(_url(f"revendeur_clients?revendeur_id=eq.{revendeur_id}&order=created_at.desc"), headers=_headers(True))
         liens = r.json()
@@ -589,7 +579,6 @@ def get_revendeur_gains_total(revendeur_id):
 
 
 def get_revendeur_orders(revendeur_id, limit=100):
-    """Commandes passees par les clients rattaches a ce revendeur (mini panel revendeur)."""
     try:
         r = requests.get(_url(f"revendeur_clients?revendeur_id=eq.{revendeur_id}&select=client_id"), headers=_headers(True))
         liens = r.json()
@@ -772,7 +761,6 @@ def update_lien_prix(lien_id, prix_vente):
 
 
 def get_user_liens(user_id):
-    """Liens de l'utilisateur, avec les infos du produit associe."""
     try:
         r = requests.get(_url(f"produits_liens?user_id=eq.{user_id}&order=created_at.desc"), headers=_headers(True))
         liens = r.json()
@@ -837,4 +825,28 @@ def crediter_solde_affilie(user_id, montant):
         return nouveau if r.status_code < 300 else None
     except Exception as e:
         logger.error(f"crediter_solde_affilie: {e}")
+        return None
+
+
+# ==================== NOUVELLES FONCTIONS VENTES ADMIN ====================
+
+def get_all_ventes(limit=200):
+    """Liste toutes les ventes de produits affilies (admin)."""
+    try:
+        r = requests.get(_url(f"produits_ventes?order=created_at.desc&limit={limit}"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_all_ventes: {e}")
+        return []
+
+
+def get_vente_by_id(vente_id):
+    """Recupere une vente par son id."""
+    try:
+        r = requests.get(_url(f"produits_ventes?id=eq.{vente_id}&limit=1"), headers=_headers(True))
+        data = r.json()
+        return data[0] if isinstance(data, list) and data else None
+    except Exception as e:
+        logger.error(f"get_vente_by_id: {e}")
         return None
