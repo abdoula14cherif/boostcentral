@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, redirect, url_for, flash, request
 from app.models.security import admin_required
 from app.models.database import (
     get_all_produits, create_produit, update_produit,
-    get_produit_by_id
+    get_produit_by_id, get_all_users, queue_notification
 )
 from app.models.storage import upload_image
 
@@ -61,41 +61,35 @@ def ajouter_produit():
 
     flash(f"Produit '{nom}' cree !", "success")
 
-    # === NOTIFIER TOUS LES UTILISATEURS ===
+    # === METTRE EN FILE D'ATTENTE LES NOTIFICATIONS POUR TOUS LES UTILISATEURS ===
     try:
-        from app.models.mailer import email_nouveau_produit
-        from app.models.database import get_all_users as _get_users
-        import threading
-
-        def _envoyer_notifications():
-            try:
-                users = _get_users()
-                lien_produit = "https://boostcentral.world/dashboard/affiliation"
-                for u in users:
-                    email = u.get("email")
-                    if not email:
-                        continue
-                    nom_dest = u.get("full_name") or email.split("@")[0]
-                    try:
-                        email_nouveau_produit(
-                            to_email=email,
-                            nom_destinataire=nom_dest,
-                            nom_produit=nom,
-                            description_produit=description,
-                            prix_plateforme=prix,
-                            image_url=image_url,
-                            lien_produit=lien_produit
-                        )
-                    except Exception as ex:
-                        logger.error(f"notif produit -> {email}: {ex}")
-                logger.info(f"Notifications produit '{nom}' envoyees a {len(users)} utilisateurs")
-            except Exception as e:
-                logger.error(f"Erreur notif globale: {e}")
-
-        threading.Thread(target=_envoyer_notifications, daemon=True).start()
-        flash(f"📨 Notification en cours d'envoi a tous les utilisateurs.", "info")
+        users = get_all_users()
+        count = 0
+        for u in users:
+            email = u.get("email")
+            if not email:
+                continue
+            nom_dest = u.get("full_name") or email.split("@")[0]
+            ok = queue_notification(
+                type_notif="nouveau_produit",
+                email=email,
+                nom=nom_dest,
+                sujet=f"🎁 Nouveau produit : {nom}",
+                contenu_html="",
+                payload={
+                    "nom_produit": nom,
+                    "description": description,
+                    "prix": prix,
+                    "image_url": image_url or ""
+                }
+            )
+            if ok:
+                count += 1
+        flash(f"📨 {count} notification(s) en file d'attente. Envoi automatique dans les prochaines minutes.", "info")
+        logger.info(f"Produit '{nom}' : {count} notifications en file d'attente")
     except Exception as e:
-        logger.error(f"Erreur declenchement notification: {e}")
+        logger.error(f"Erreur file notifications: {e}")
+        flash("Produit cree, mais erreur lors de la mise en file des notifications.", "warning")
 
     return redirect(url_for("admin_produits.produits_page"))
 
