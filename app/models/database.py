@@ -23,6 +23,10 @@ def get_supabase_admin():
     return None
 
 
+# ═══════════════════════════════════════════════════════════════
+# PROFILS / UTILISATEURS
+# ═══════════════════════════════════════════════════════════════
+
 def get_profile(user_id):
     try:
         r = requests.get(_url(f"profiles?id=eq.{user_id}&limit=1"), headers=_headers(True))
@@ -75,6 +79,81 @@ def debit_balance(user_id, amount):
         return None
 
 
+def get_all_users():
+    try:
+        r = requests.get(_url("profiles?order=created_at.desc"), headers=_headers(True))
+        data = r.json()
+        if isinstance(data, list):
+            return data
+        return []
+    except Exception as e:
+        logger.error(f"get_all_users: {e}")
+        return []
+
+
+def get_profile_by_api_key(api_key):
+    try:
+        r = requests.get(_url(f"profiles?api_key=eq.{api_key}&limit=1"), headers=_headers(True))
+        data = r.json()
+        if isinstance(data, list) and len(data) > 0:
+            return data[0]
+        return None
+    except Exception as e:
+        logger.error(f"get_profile_by_api_key: {e}")
+        return None
+
+
+def set_api_key(user_id, api_key):
+    try:
+        r = requests.patch(_url(f"profiles?id=eq.{user_id}"), json={"api_key": api_key}, headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"set_api_key: {e}")
+        return False
+
+
+def update_profile(user_id, data):
+    try:
+        r = requests.patch(_url(f"profiles?id=eq.{user_id}"), json=data, headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"update_profile: {e}")
+        return False
+
+
+def get_profile_by_slug(slug):
+    try:
+        r = requests.get(_url(f"profiles?revendeur_slug=eq.{slug}&est_revendeur=eq.true&limit=1"), headers=_headers(True))
+        data = r.json()
+        return data[0] if isinstance(data, list) and data else None
+    except Exception as e:
+        logger.error(f"get_profile_by_slug: {e}")
+        return None
+
+
+def slug_deja_pris(slug):
+    try:
+        r = requests.get(_url(f"profiles?revendeur_slug=eq.{slug}&limit=1"), headers=_headers(True))
+        data = r.json()
+        return isinstance(data, list) and len(data) > 0
+    except Exception as e:
+        logger.error(f"slug_deja_pris: {e}")
+        return True
+
+
+def activer_revendeur(user_id, slug, modele, commission_pct=0.10):
+    return update_profile(user_id, {
+        "est_revendeur": True,
+        "revendeur_slug": slug,
+        "revendeur_modele": modele,
+        "revendeur_commission_pct": commission_pct
+    })
+
+
+# ═══════════════════════════════════════════════════════════════
+# SERVICES
+# ═══════════════════════════════════════════════════════════════
+
 def get_active_services(network=None):
     try:
         if network:
@@ -102,6 +181,10 @@ def get_service_by_id(service_id):
         logger.error(f"get_service_by_id: {e}")
         return None
 
+
+# ═══════════════════════════════════════════════════════════════
+# COMMANDES
+# ═══════════════════════════════════════════════════════════════
 
 def create_order(data):
     try:
@@ -172,6 +255,10 @@ def update_order(order_id, data):
         return False
 
 
+# ═══════════════════════════════════════════════════════════════
+# RECHARGES
+# ═══════════════════════════════════════════════════════════════
+
 def create_recharge(data):
     try:
         r = requests.post(_url("recharges"), json=data, headers=_headers(True))
@@ -241,39 +328,6 @@ def update_recharge(recharge_id, data):
         return False
 
 
-def get_all_users():
-    try:
-        r = requests.get(_url("profiles?order=created_at.desc"), headers=_headers(True))
-        data = r.json()
-        if isinstance(data, list):
-            return data
-        return []
-    except Exception as e:
-        logger.error(f"get_all_users: {e}")
-        return []
-
-
-def get_profile_by_api_key(api_key):
-    try:
-        r = requests.get(_url(f"profiles?api_key=eq.{api_key}&limit=1"), headers=_headers(True))
-        data = r.json()
-        if isinstance(data, list) and len(data) > 0:
-            return data[0]
-        return None
-    except Exception as e:
-        logger.error(f"get_profile_by_api_key: {e}")
-        return None
-
-
-def set_api_key(user_id, api_key):
-    try:
-        r = requests.patch(_url(f"profiles?id=eq.{user_id}"), json={"api_key": api_key}, headers=_headers(True))
-        return r.status_code < 300
-    except Exception as e:
-        logger.error(f"set_api_key: {e}")
-        return False
-
-
 def get_total_recharged(user_id):
     try:
         r = requests.get(_url(f"recharges?user_id=eq.{user_id}&statut=eq.valide&select=montant_fcfa"), headers=_headers(True))
@@ -286,14 +340,9 @@ def get_total_recharged(user_id):
         return 0
 
 
-def update_profile(user_id, data):
-    try:
-        r = requests.patch(_url(f"profiles?id=eq.{user_id}"), json=data, headers=_headers(True))
-        return r.status_code < 300
-    except Exception as e:
-        logger.error(f"update_profile: {e}")
-        return False
-
+# ═══════════════════════════════════════════════════════════════
+# PROMO CODES
+# ═══════════════════════════════════════════════════════════════
 
 def get_promo_code(code):
     try:
@@ -362,6 +411,10 @@ def enregistrer_utilisation_code(code_id, user_id, recharge_id):
         logger.error(f"enregistrer_utilisation_code: {e}")
         return False
 
+
+# ═══════════════════════════════════════════════════════════════
+# TICKETS SUPPORT
+# ═══════════════════════════════════════════════════════════════
 
 def create_ticket(data):
     try:
@@ -452,34 +505,9 @@ def add_ticket_message(ticket_id, auteur, message):
         return None
 
 
-def get_profile_by_slug(slug):
-    try:
-        r = requests.get(_url(f"profiles?revendeur_slug=eq.{slug}&est_revendeur=eq.true&limit=1"), headers=_headers(True))
-        data = r.json()
-        return data[0] if isinstance(data, list) and data else None
-    except Exception as e:
-        logger.error(f"get_profile_by_slug: {e}")
-        return None
-
-
-def slug_deja_pris(slug):
-    try:
-        r = requests.get(_url(f"profiles?revendeur_slug=eq.{slug}&limit=1"), headers=_headers(True))
-        data = r.json()
-        return isinstance(data, list) and len(data) > 0
-    except Exception as e:
-        logger.error(f"slug_deja_pris: {e}")
-        return True
-
-
-def activer_revendeur(user_id, slug, modele, commission_pct=0.10):
-    return update_profile(user_id, {
-        "est_revendeur": True,
-        "revendeur_slug": slug,
-        "revendeur_modele": modele,
-        "revendeur_commission_pct": commission_pct
-    })
-
+# ═══════════════════════════════════════════════════════════════
+# REVENDEURS
+# ═══════════════════════════════════════════════════════════════
 
 def get_revendeur_clients(revendeur_id):
     try:
@@ -594,6 +622,10 @@ def get_revendeur_orders(revendeur_id, limit=100):
         return []
 
 
+# ═══════════════════════════════════════════════════════════════
+# RETRAITS
+# ═══════════════════════════════════════════════════════════════
+
 def create_retrait(data):
     try:
         r = requests.post(_url("retraits"), json=data, headers=_headers(True))
@@ -643,6 +675,10 @@ def update_retrait(retrait_id, data):
         return False
 
 
+# ═══════════════════════════════════════════════════════════════
+# PREUVES
+# ═══════════════════════════════════════════════════════════════
+
 def create_preuve(data):
     try:
         r = requests.post(_url("preuves"), json=data, headers=_headers(True))
@@ -671,6 +707,10 @@ def delete_preuve(preuve_id):
         logger.error(f"delete_preuve: {e}")
         return False
 
+
+# ═══════════════════════════════════════════════════════════════
+# PRODUITS
+# ═══════════════════════════════════════════════════════════════
 
 def get_active_produits():
     try:
@@ -720,6 +760,10 @@ def update_produit(produit_id, data):
         logger.error(f"update_produit: {e}")
         return False
 
+
+# ═══════════════════════════════════════════════════════════════
+# LIENS AFFILIÉS
+# ═══════════════════════════════════════════════════════════════
 
 def get_lien_user_produit(user_id, produit_id):
     try:
@@ -776,6 +820,10 @@ def get_user_liens(user_id):
         return []
 
 
+# ═══════════════════════════════════════════════════════════════
+# VENTES PRODUITS AFFILIÉS
+# ═══════════════════════════════════════════════════════════════
+
 def create_vente(data):
     try:
         r = requests.post(_url("produits_ventes"), json=data, headers=_headers(True))
@@ -815,6 +863,26 @@ def get_user_ventes(user_id, limit=50):
         return []
 
 
+def get_all_ventes(limit=200):
+    try:
+        r = requests.get(_url(f"produits_ventes?order=created_at.desc&limit={limit}"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_all_ventes: {e}")
+        return []
+
+
+def get_vente_by_id(vente_id):
+    try:
+        r = requests.get(_url(f"produits_ventes?id=eq.{vente_id}&limit=1"), headers=_headers(True))
+        data = r.json()
+        return data[0] if isinstance(data, list) and data else None
+    except Exception as e:
+        logger.error(f"get_vente_by_id: {e}")
+        return None
+
+
 def crediter_solde_affilie(user_id, montant):
     try:
         profile = get_profile(user_id)
@@ -828,25 +896,71 @@ def crediter_solde_affilie(user_id, montant):
         return None
 
 
-# ==================== NOUVELLES FONCTIONS VENTES ADMIN ====================
+# ═══════════════════════════════════════════════════════════════
+# NOTIFICATIONS QUEUE (envoi d'emails en masse via cron)
+# ═══════════════════════════════════════════════════════════════
 
-def get_all_ventes(limit=200):
-    """Liste toutes les ventes de produits affilies (admin)."""
+def queue_notification(type_notif, email, nom, sujet, contenu_html, payload=None):
+    """Ajoute une notification dans la file d'attente."""
     try:
-        r = requests.get(_url(f"produits_ventes?order=created_at.desc&limit={limit}"), headers=_headers(True))
+        r = requests.post(_url("notifications_queue"), json={
+            "type": type_notif,
+            "destinataire_email": email,
+            "destinataire_nom": nom,
+            "sujet": sujet,
+            "contenu_html": contenu_html,
+            "payload": payload or {},
+            "statut": "en_attente"
+        }, headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"queue_notification: {e}")
+        return False
+
+
+def get_notifications_en_attente(limit=10):
+    """Recupere les notifications en attente (max 10 par appel pour eviter timeout)."""
+    try:
+        r = requests.get(
+            _url(f"notifications_queue?statut=eq.en_attente&tentatives=lt.3&order=created_at.asc&limit={limit}"),
+            headers=_headers(True)
+        )
         data = r.json()
         return data if isinstance(data, list) else []
     except Exception as e:
-        logger.error(f"get_all_ventes: {e}")
+        logger.error(f"get_notifications_en_attente: {e}")
         return []
 
 
-def get_vente_by_id(vente_id):
-    """Recupere une vente par son id."""
+def marquer_notification_envoyee(notif_id):
+    """Marque une notification comme envoyee."""
     try:
-        r = requests.get(_url(f"produits_ventes?id=eq.{vente_id}&limit=1"), headers=_headers(True))
-        data = r.json()
-        return data[0] if isinstance(data, list) and data else None
+        from datetime import datetime, timezone
+        r = requests.patch(_url(f"notifications_queue?id=eq.{notif_id}"), json={
+            "statut": "envoye",
+            "sent_at": datetime.now(timezone.utc).isoformat()
+        }, headers=_headers(True))
+        return r.status_code < 300
     except Exception as e:
-        logger.error(f"get_vente_by_id: {e}")
-        return None
+        logger.error(f"marquer_notification_envoyee: {e}")
+        return False
+
+
+def marquer_notification_echec(notif_id, erreur):
+    """Marque une notification en echec (avec incrementation des tentatives)."""
+    try:
+        r = requests.get(_url(f"notifications_queue?id=eq.{notif_id}&select=tentatives"), headers=_headers(True))
+        data = r.json()
+        tentatives = (data[0].get("tentatives") or 0) + 1 if data else 1
+
+        new_statut = "echec" if tentatives >= 3 else "en_attente"
+
+        r2 = requests.patch(_url(f"notifications_queue?id=eq.{notif_id}"), json={
+            "statut": new_statut,
+            "tentatives": tentatives,
+            "erreur": str(erreur)[:500]
+        }, headers=_headers(True))
+        return r2.status_code < 300
+    except Exception as e:
+        logger.error(f"marquer_notification_echec: {e}")
+        return False
