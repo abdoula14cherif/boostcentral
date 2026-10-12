@@ -786,3 +786,55 @@ def get_user_liens(user_id):
     except Exception as e:
         logger.error(f"get_user_liens: {e}")
         return []
+
+
+def create_vente(data):
+    try:
+        r = requests.post(_url("produits_ventes"), json=data, headers=_headers(True))
+        result = r.json()
+        return result[0] if isinstance(result, list) and result else None
+    except Exception as e:
+        logger.error(f"create_vente: {e}")
+        return None
+
+
+def get_vente_by_reference(reference):
+    try:
+        r = requests.get(_url(f"produits_ventes?reference=eq.{reference}&limit=1"), headers=_headers(True))
+        data = r.json()
+        return data[0] if isinstance(data, list) and data else None
+    except Exception as e:
+        logger.error(f"get_vente_by_reference: {e}")
+        return None
+
+
+def update_vente(vente_id, data):
+    try:
+        r = requests.patch(_url(f"produits_ventes?id=eq.{vente_id}"), json=data, headers=_headers(True))
+        return r.status_code < 300
+    except Exception as e:
+        logger.error(f"update_vente: {e}")
+        return False
+
+
+def get_user_ventes(user_id, limit=50):
+    try:
+        r = requests.get(_url(f"produits_ventes?user_id=eq.{user_id}&order=created_at.desc&limit={limit}"), headers=_headers(True))
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except Exception as e:
+        logger.error(f"get_user_ventes: {e}")
+        return []
+
+
+def crediter_solde_affilie(user_id, montant):
+    try:
+        profile = get_profile(user_id)
+        if not profile:
+            return None
+        nouveau = (profile.get("solde_affilie") or 0) + montant
+        r = requests.patch(_url(f"profiles?id=eq.{user_id}"), json={"solde_affilie": nouveau}, headers=_headers(True))
+        return nouveau if r.status_code < 300 else None
+    except Exception as e:
+        logger.error(f"crediter_solde_affilie: {e}")
+        return None
