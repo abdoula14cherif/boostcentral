@@ -5,20 +5,34 @@ import io
 import requests
 from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app, Response
 from app.models.security import admin_required
-from app.models.database import get_all_recharges, update_recharge, credit_balance, get_all_orders, update_order, get_all_users, update_balance, set_api_key, get_all_promo_codes, create_promo_code, update_promo_code, get_order_by_id, get_all_tickets, get_ticket_messages, add_ticket_message, update_ticket, get_all_retraits, get_retrait_by_id, update_retrait, get_active_services, get_revendeur_prix_all, set_revendeur_prix, get_profile, create_preuve, get_all_preuves, delete_preuve
+from app.models.database import (
+    get_all_recharges, update_recharge, credit_balance,
+    get_all_orders, update_order, get_order_by_id,
+    get_all_users, update_balance, set_api_key,
+    get_all_promo_codes, create_promo_code, update_promo_code,
+    get_all_tickets, get_ticket_messages, add_ticket_message, update_ticket,
+    get_all_retraits, get_retrait_by_id, update_retrait,
+    get_active_services, get_revendeur_prix_all, set_revendeur_prix,
+    get_profile, create_preuve, get_all_preuves, delete_preuve,
+    get_all_ventes, get_vente_by_id, update_vente,
+    crediter_solde_affilie
+)
 from app.models.storage import upload_image
-from app.models.mailer import email_commande_livree
+from app.models.mailer import email_commande_livree, email_recharge_validee
 
 logger = logging.getLogger(__name__)
 admin_bp = Blueprint("admin", __name__)
+
 
 def _headers():
     url = current_app.config["SUPABASE_URL"]
     key = current_app.config["SUPABASE_SERVICE_KEY"] or current_app.config["SUPABASE_ANON_KEY"]
     return {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json", "Prefer": "return=representation"}
 
+
 def _url(path):
     return current_app.config["SUPABASE_URL"] + "/rest/v1/" + path
+
 
 @admin_bp.route("/")
 @admin_required
@@ -38,7 +52,6 @@ def index():
     pending_orders = sum(1 for o in orders if o.get("statut") == "en_attente")
     total_credited = sum(r.get("montant_fcfa", 0) for r in recharges if r.get("statut") == "valide")
 
-    # Stats API : commandes passees via /api/v1 sont taguees "API..." dans note_admin
     orders_api = [o for o in orders if (o.get("note_admin") or "").startswith("API")]
     users_avec_cle = sum(1 for u in users if u.get("api_key"))
     total_facture_api = sum(o.get("prix_total", 0) for o in orders_api)
@@ -61,6 +74,7 @@ def index():
     stats["retraits_attente"] = sum(1 for r in retraits if r.get("statut") == "en_attente")
 
     return render_template("admin/index.html", recharges=recharges, orders=orders, services=services, users=users, stats=stats, promo_codes=promo_codes, tickets=tickets, retraits=retraits, whatsapp=current_app.config["WHATSAPP_NUMBER"])
+
 
 @admin_bp.route("/recharge/process", methods=["POST"])
 @admin_required
@@ -89,12 +103,13 @@ def process_recharge():
         credit_balance(user_id, amount)
         flash(f"{amount:,.0f} FCFA credites a {recharge.get('user_email')}.", "success")
         try:
-            email_recharge_validee(recharge.get('user_email'), recharge.get('user_email','').split('@')[0], amount)
-        except:
+            email_recharge_validee(recharge.get('user_email'), recharge.get('user_email', '').split('@')[0], amount)
+        except Exception:
             pass
     else:
         flash("Recharge refusee.", "info")
     return redirect(url_for("admin.index"))
+
 
 @admin_bp.route("/order/update", methods=["POST"])
 @admin_required
@@ -104,7 +119,7 @@ def update_order_route():
     admin_note = request.form.get("admin_note", "")
     try:
         progression = int(request.form.get("progression", 0))
-    except:
+    except Exception:
         progression = 0
     if not order_id:
         flash("ID commande manquant.", "error")
@@ -136,6 +151,7 @@ def update_order_route():
         flash("Erreur mise a jour.", "error")
     return redirect(url_for("admin.index") + "#commandes")
 
+
 @admin_bp.route("/service/update", methods=["POST"])
 @admin_required
 def update_service():
@@ -144,7 +160,7 @@ def update_service():
         flash("ID service manquant.", "error")
         return redirect(url_for("admin.index") + "#services")
     try:
-        r = requests.patch(_url(f"services?id=eq.{service_id}"), json={
+        requests.patch(_url(f"services?id=eq.{service_id}"), json={
             "prix_fcfa": float(request.form.get("prix_fcfa", 0)),
             "min_qte": int(request.form.get("min_qte", 1)),
             "max_qte": int(request.form.get("max_qte", 1)),
@@ -156,13 +172,14 @@ def update_service():
         flash(f"Erreur : {e}", "error")
     return redirect(url_for("admin.index") + "#services")
 
+
 @admin_bp.route("/user/balance", methods=["POST"])
 @admin_required
 def update_user_balance():
     user_id = request.form.get("user_id", "")
     try:
         new_balance = float(request.form.get("new_balance", 0))
-    except:
+    except Exception:
         flash("Montant invalide.", "error")
         return redirect(url_for("admin.index") + "#users")
     ok = update_balance(user_id, new_balance)
@@ -172,10 +189,10 @@ def update_user_balance():
         flash("Erreur mise a jour solde.", "error")
     return redirect(url_for("admin.index") + "#users")
 
+
 @admin_bp.route("/user/api-key", methods=["POST"])
 @admin_required
 def manage_api_key():
-    """Genere/regenere ou revoque la cle API d'un utilisateur, depuis l'admin."""
     user_id = request.form.get("user_id", "")
     action = request.form.get("action", "")
     user_email = request.form.get("user_email", "")
@@ -207,13 +224,12 @@ def create_promo():
     code = request.form.get("code", "").strip().upper()
     try:
         bonus_pct = float(request.form.get("bonus_pct", 0)) / 100
-    except:
+    except Exception:
         flash("Pourcentage invalide.", "error")
         return redirect(url_for("admin.index") + "#promo")
 
     max_util = request.form.get("max_utilisations", "").strip()
     max_util = int(max_util) if max_util else None
-
     date_exp = request.form.get("date_expiration", "").strip()
     date_exp = date_exp if date_exp else None
 
@@ -229,10 +245,9 @@ def create_promo():
         "date_expiration": date_exp
     })
     if result:
-        flash(f"Code promo {code} cree ({round(bonus_pct*100)}%).", "success")
+        flash(f"Code promo {code} cree ({round(bonus_pct * 100)}%).", "success")
     else:
         flash("Erreur lors de la creation (code deja existant ?).", "error")
-
     return redirect(url_for("admin.index") + "#promo")
 
 
@@ -294,7 +309,6 @@ def ticket_statut():
 
 
 def _csv_response(rows, headers, filename):
-    """Construit une reponse CSV telechargeable a partir d'une liste de dicts."""
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(headers)
@@ -367,7 +381,6 @@ def traiter_retrait():
         flash(f"Retrait refuse, {retrait['montant']:,.0f} FCFA recredites au client.", "info")
     else:
         flash("Action invalide.", "error")
-
     return redirect(url_for("admin.index") + "#retraits")
 
 
@@ -403,7 +416,7 @@ def modifier_prix_revendeur():
     try:
         service_id = int(service_id)
         prix_fcfa = float(prix_fcfa)
-    except:
+    except Exception:
         flash("Valeurs invalides.", "error")
         return redirect(url_for("admin.index") + "#users")
 
@@ -463,3 +476,55 @@ def supprimer_preuve(preuve_id):
     else:
         flash("Erreur lors de la suppression.", "error")
     return redirect(url_for("admin.preuves_page"))
+
+
+# ==================== VENTES PRODUITS AFFILIES ====================
+
+@admin_bp.route("/ventes")
+@admin_required
+def ventes_page():
+    ventes = get_all_ventes(limit=300)
+    total_montant = sum(v.get("montant_paye", 0) or 0 for v in ventes)
+    total_gains = sum(v.get("gain_affilie", 0) or 0 for v in ventes)
+    en_attente = sum(1 for v in ventes if v.get("statut") == "en_attente")
+    validees = sum(1 for v in ventes if v.get("statut") == "valide")
+    stats = {
+        "total": len(ventes),
+        "total_montant": round(total_montant),
+        "total_gains": round(total_gains),
+        "en_attente": en_attente,
+        "validees": validees,
+    }
+    return render_template("admin/ventes.html", ventes=ventes, stats=stats)
+
+
+@admin_bp.route("/vente/statut", methods=["POST"])
+@admin_required
+def maj_statut_vente():
+    vente_id = request.form.get("vente_id", "")
+    statut = request.form.get("statut", "")
+    if not vente_id or statut not in ("en_attente", "valide", "annule"):
+        flash("Donnees invalides.", "error")
+        return redirect(url_for("admin.ventes_page"))
+
+    vente_avant = get_vente_by_id(vente_id)
+    if not vente_avant:
+        flash("Vente introuvable.", "error")
+        return redirect(url_for("admin.ventes_page"))
+
+    deja_valide = vente_avant.get("statut") == "valide"
+    ok = update_vente(vente_id, {"statut": statut})
+
+    if ok and statut == "valide" and not deja_valide:
+        try:
+            crediter_solde_affilie(vente_avant["user_id"], vente_avant.get("gain_affilie", 0))
+            flash(f"Vente validee. {vente_avant.get('gain_affilie', 0)} FCFA credites a l'affilie.", "success")
+        except Exception as e:
+            logger.error(f"credit gain vente: {e}")
+            flash("Vente validee mais erreur credit gain.", "warning")
+    elif ok:
+        flash("Statut de la vente mis a jour.", "success")
+    else:
+        flash("Erreur lors de la mise a jour.", "error")
+
+    return redirect(url_for("admin.ventes_page"))
