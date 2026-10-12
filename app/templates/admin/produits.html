@@ -11,6 +11,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
 .card-title{font-size:1rem;font-weight:800;color:var(--dark);margin-bottom:16px;display:flex;align-items:center;gap:8px}
 .fg{margin-bottom:14px}
 .fg label{display:block;font-size:.82rem;font-weight:600;color:var(--dark);margin-bottom:6px}
+.fg .hint{font-size:.72rem;color:var(--mid);margin-top:4px;font-weight:400}
 .inp{width:100%;padding:11px 13px;border:2px solid var(--gray);border-radius:11px;font-size:.9rem;color:var(--dark);outline:none;background:var(--white)}
 .inp:focus{border-color:var(--blue)}
 .upload-box{border:2px dashed var(--gray);border-radius:12px;padding:16px;text-align:center;cursor:pointer;position:relative;overflow:hidden}
@@ -22,14 +23,25 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
 .produit-body{padding:14px}
 .produit-titre{font-size:.9rem;font-weight:700;color:var(--dark);margin-bottom:6px}
 .produit-desc{font-size:.78rem;color:var(--mid);margin-bottom:8px;min-height:32px}
-.produit-prix{font-size:.95rem;font-weight:900;color:var(--orange);margin-bottom:10px}
-.actions{display:flex;gap:6px}
-.btn-sm{flex:1;padding:8px;border:none;border-radius:9px;font-size:.75rem;font-weight:700;cursor:pointer}
+.produit-prix{font-size:.95rem;font-weight:900;color:var(--orange);margin-bottom:8px}
+.produit-livraison{font-size:.7rem;color:var(--mid);background:var(--off);border-radius:6px;padding:6px 8px;margin-bottom:10px;word-break:break-all;max-height:48px;overflow:hidden}
+.produit-livraison.ok{color:#047857;background:#EDFFF5}
+.produit-livraison.vide{color:#92400E;background:#FEF3C7}
+.actions{display:flex;gap:6px;flex-wrap:wrap}
+.btn-sm{flex:1;min-width:80px;padding:8px;border:none;border-radius:9px;font-size:.75rem;font-weight:700;cursor:pointer}
 .btn-o{background:#FEF3C7;color:#92400E}
 .btn-r{background:#FEE2E2;color:#991B1B}
 .btn-g{background:#D1FAE5;color:#065F46}
+.btn-b{background:var(--blue-l);color:var(--blue)}
 .badge-actif{display:inline-block;padding:3px 8px;border-radius:10px;font-size:.68rem;font-weight:700;background:#D1FAE5;color:#065F46;margin-bottom:6px}
 .badge-inactif{display:inline-block;padding:3px 8px;border-radius:10px;font-size:.68rem;font-weight:700;background:#FEE2E2;color:#991B1B;margin-bottom:6px}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:800;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-bg.open{display:flex}
+.modal{background:var(--white);border-radius:18px;padding:24px 20px;max-width:480px;width:100%;box-shadow:0 14px 40px rgba(0,0,0,.15);position:relative;max-height:90vh;overflow-y:auto}
+.modal-close{position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--mid)}
+.modal h3{font-size:1rem;font-weight:700;color:var(--dark);margin-bottom:14px}
 {% endblock %}
 
 {% block nav %}
@@ -42,6 +54,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
 {% block content %}
 <div class="main">
 
+  <!-- FORMULAIRE AJOUT -->
   <div class="card">
     <div class="card-title"><i class="fas fa-plus-circle" style="color:var(--green)"></i> Ajouter un produit</div>
     <form method="POST" action="{{ url_for('admin_produits.ajouter_produit') }}" enctype="multipart/form-data">
@@ -49,6 +62,11 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
       <div class="fg"><label>Nom du produit *</label><input class="inp" type="text" name="nom" placeholder="Ex : Pack 1000 followers TikTok" required></div>
       <div class="fg"><label>Description</label><input class="inp" type="text" name="description" placeholder="Details sur le produit"></div>
       <div class="fg"><label>Prix plateforme (FCFA) *</label><input class="inp" type="number" name="prix_plateforme" step="0.1" min="0.1" placeholder="Ex : 5000" required></div>
+      <div class="fg">
+        <label>Lien de livraison (envoye a l'acheteur)</label>
+        <input class="inp" type="url" name="lien_livraison" placeholder="https://drive.google.com/...">
+        <div class="hint">Ce lien sera envoye par email a l'acheteur apres validation de son paiement. Peut etre un lien Drive, Telegram, WhatsApp, etc.</div>
+      </div>
       <div class="fg">
         <label>Image du produit</label>
         <div class="upload-box">
@@ -61,6 +79,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
     </form>
   </div>
 
+  <!-- LISTE PRODUITS -->
   <div class="card">
     <div class="card-title"><i class="fas fa-box" style="color:var(--blue)"></i> Produits existants ({{ produits|length }})</div>
     {% if produits %}
@@ -77,17 +96,27 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
           <div class="produit-titre">{{ p.nom }}</div>
           <div class="produit-desc">{{ p.description or "" }}</div>
           <div class="produit-prix">{{ "{:,.0f}".format(p.prix_plateforme or 0) }} FCFA</div>
+
+          {% if p.lien_livraison %}
+          <div class="produit-livraison ok"><i class="fas fa-link"></i> {{ p.lien_livraison[:50] }}{% if p.lien_livraison|length > 50 %}...{% endif %}</div>
+          {% else %}
+          <div class="produit-livraison vide">⚠️ Aucun lien de livraison</div>
+          {% endif %}
+
           <div class="actions">
+            <button type="button" class="btn-sm btn-b" onclick="openModif('{{ p.id }}','{{ (p.nom or '')|e }}','{{ (p.description or '')|e }}',{{ p.prix_plateforme or 0 }},'{{ (p.lien_livraison or '')|e }}')">
+              <i class="fas fa-edit"></i> Modifier
+            </button>
             <form method="POST" action="{{ url_for('admin_produits.toggle_produit') }}" style="flex:1">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="produit_id" value="{{ p.id }}">
               <input type="hidden" name="actif" value="{{ '1' if p.actif else '0' }}">
-              <button type="submit" class="btn-sm {% if p.actif %}btn-o{% else %}btn-g{% endif %}" style="width:100%">{% if p.actif %}Desactiver{% else %}Activer{% endif %}</button>
+              <button type="submit" class="btn-sm {% if p.actif %}btn-o{% else %}btn-g{% endif %}" style="width:100%">{% if p.actif %}Off{% else %}On{% endif %}</button>
             </form>
-            <form method="POST" action="{{ url_for('admin_produits.supprimer_produit') }}" style="flex:1" onsubmit="return confirm('Supprimer {{ p.nom }} ?')">
+            <form method="POST" action="{{ url_for('admin_produits.supprimer_produit') }}" style="flex:1" onsubmit="return confirm('Desactiver {{ p.nom }} ?')">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="produit_id" value="{{ p.id }}">
-              <button type="submit" class="btn-sm btn-r" style="width:100%">Supprimer</button>
+              <button type="submit" class="btn-sm btn-r" style="width:100%">Suppr</button>
             </form>
           </div>
         </div>
@@ -100,4 +129,52 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
   </div>
 
 </div>
+
+<!-- MODAL MODIFIER PRODUIT -->
+<div class="modal-bg" id="modal-modif">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModif()">✕</button>
+    <h3><i class="fas fa-edit"></i> Modifier le produit</h3>
+    <form method="POST" action="{{ url_for('admin_produits.modifier_produit') }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="produit_id" id="m-id">
+      <div class="fg"><label>Nom</label><input class="inp" type="text" name="nom" id="m-nom" required></div>
+      <div class="fg"><label>Description</label><input class="inp" type="text" name="description" id="m-desc"></div>
+      <div class="fg"><label>Prix plateforme (FCFA)</label><input class="inp" type="number" name="prix_plateforme" id="m-prix" step="0.1" min="0.1" required></div>
+      <div class="fg">
+        <label>Lien de livraison</label>
+        <input class="inp" type="url" name="lien_livraison" id="m-lien" placeholder="https://...">
+        <div class="hint">Lien envoye a l'acheteur apres paiement valide.</div>
+      </div>
+      <div class="fg">
+        <label>Remplacer l'image (optionnel)</label>
+        <div class="upload-box">
+          <input type="file" name="image" accept="image/*">
+          <i class="fas fa-cloud-upload-alt" style="font-size:1.5rem;color:var(--light);display:block;margin-bottom:6px"></i>
+          <span style="font-size:.78rem;color:var(--mid)">Clique pour changer l'image</span>
+        </div>
+      </div>
+      <button type="submit" class="btn-publier"><i class="fas fa-save"></i> Enregistrer</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openModif(id, nom, desc, prix, lien){
+  document.getElementById('m-id').value = id;
+  document.getElementById('m-nom').value = nom;
+  document.getElementById('m-desc').value = desc;
+  document.getElementById('m-prix').value = prix;
+  document.getElementById('m-lien').value = lien;
+  document.getElementById('modal-modif').classList.add('open');
+}
+function closeModif(){
+  document.getElementById('modal-modif').classList.remove('open');
+}
+document.getElementById('modal-modif').addEventListener('click', function(e){
+  if(e.target === this) closeModif();
+});
+</script>
 {% endblock %}
