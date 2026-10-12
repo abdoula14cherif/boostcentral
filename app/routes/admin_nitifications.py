@@ -14,12 +14,15 @@ logger = logging.getLogger(__name__)
 admin_notifications_bp = Blueprint("admin_notifications", __name__)
 
 
-def _traiter_notifications(limit=25):
+def _traiter_notifications(limit=10):
     """
     Traite la file d'attente : envoie jusqu'a `limit` emails.
-    Retourne (envoyes, echecs).
+    Limite par defaut : 10 (pour rester sous les 10s de Vercel).
     """
     from app.models.mailer import email_nouveau_produit, email_newsletter_personnalise
+
+    # Cap a 15 max pour eviter timeout
+    limit = min(limit, 15)
 
     notifs = get_notifications_en_attente(limit=limit)
     envoyes = 0
@@ -75,7 +78,6 @@ def notifications_page():
     from app.models.database import _url, _headers
     import requests
 
-    # Recuperer les stats
     try:
         r = requests.get(_url("notifications_queue?select=statut"), headers=_headers(True))
         toutes = r.json() if r.status_code < 300 else []
@@ -89,7 +91,6 @@ def notifications_page():
         logger.error(f"stats notifs: {e}")
         stats = {"total": 0, "en_attente": 0, "envoye": 0, "echec": 0}
 
-    # Recuperer les 50 dernieres notifications
     try:
         r = requests.get(
             _url("notifications_queue?order=created_at.desc&limit=50"),
@@ -107,8 +108,8 @@ def notifications_page():
 @admin_notifications_bp.route("/notifications/envoyer", methods=["POST"])
 @admin_required
 def envoyer_notifications():
-    """Envoie 25 notifications en attente (appele par le bouton)."""
-    limit = int(request.form.get("limit", 25))
+    """Envoie 10 notifications en attente (limite Vercel)."""
+    limit = int(request.form.get("limit", 10))
     envoyes, echecs = _traiter_notifications(limit=limit)
 
     if envoyes > 0:
@@ -117,15 +118,6 @@ def envoyer_notifications():
         flash(f"Aucun email envoye. {echecs} echec(s).", "warning")
 
     return redirect(url_for("admin_notifications.notifications_page"))
-
-
-@admin_notifications_bp.route("/notifications/envoyer-ajax", methods=["POST"])
-@admin_required
-def envoyer_notifications_ajax():
-    """Envoi AJAX (utilise si on veut enchainer les lots)."""
-    limit = int(request.form.get("limit", 25))
-    envoyes, echecs = _traiter_notifications(limit=limit)
-    return jsonify({"envoyes": envoyes, "echecs": echecs})
 
 
 @admin_notifications_bp.route("/notifications/relancer", methods=["POST"])
