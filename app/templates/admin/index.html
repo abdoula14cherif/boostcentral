@@ -9,6 +9,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:14p
 .nav-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;max-width:100%;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .nav-scroll::-webkit-scrollbar{display:none}
 .nav-scroll a{white-space:nowrap;flex-shrink:0}
+.notif-badge{position:absolute;top:-4px;right:-4px;background:#DC2626;color:#fff;font-size:.65rem;font-weight:900;padding:2px 6px;border-radius:10px;min-width:18px;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.notif-wrap{position:relative;display:inline-block}
 .tabs-bar{background:var(--white);border-bottom:2px solid var(--gray);padding:0 16px;display:flex;gap:2px;overflow-x:auto}
 .tab-btn{display:flex;align-items:center;gap:6px;padding:13px 16px;border:none;background:none;font-size:.86rem;font-weight:600;color:var(--mid);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .22s}
 .tab-btn.active{color:var(--blue);border-bottom-color:var(--blue)}
@@ -72,6 +74,12 @@ tr:hover td{background:var(--off)}
 <a href="{{ url_for('admin.preuves_page') }}" style="display:flex;align-items:center;gap:6px;background:#D97706;border:none;color:#fff;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none"><i class="fas fa-images"></i> Preuves</a>
 <a href="{{ url_for('admin_produits.produits_page') }}" style="display:flex;align-items:center;gap:6px;background:#0891B2;border:none;color:#fff;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none"><i class="fas fa-box"></i> Produits</a>
 <a href="{{ url_for('admin_newsletter.newsletter_page') }}" style="display:flex;align-items:center;gap:6px;background:#DB2777;border:none;color:#fff;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none"><i class="fas fa-envelope"></i> Newsletter</a>
+<span class="notif-wrap">
+<a href="{{ url_for('admin_notifications.notifications_page') }}" style="display:flex;align-items:center;gap:6px;background:#F59E0B;border:none;color:#fff;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none"><i class="fas fa-bell"></i> Notifications</a>
+{% if stats.notifs_attente and stats.notifs_attente > 0 %}
+<span class="notif-badge">{{ stats.notifs_attente }}</span>
+{% endif %}
+</span>
 <a href="/admin/users/" style="display:flex;align-items:center;gap:6px;background:#1E293B;border:none;color:#fff;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none"><i class="fas fa-users"></i> Utilisateurs</a>
 <a href="/admin/sync/" style="display:flex;align-items:center;gap:6px;background:#7C3AED;border:none;color:#fff;padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none"><i class="fas fa-sync"></i> Sync</a>
 <a href="{{ url_for('dashboard.index') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Dashboard</a>
