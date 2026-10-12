@@ -15,18 +15,13 @@ from app.models.database import (
     get_active_services, get_revendeur_prix_all, set_revendeur_prix,
     get_profile, create_preuve, get_all_preuves, delete_preuve,
     get_all_ventes, get_vente_by_id, update_vente,
-    crediter_solde_affilie,
-    get_notifications_en_attente, marquer_notification_envoyee,
-    marquer_notification_echec
+    crediter_solde_affilie
 )
 from app.models.storage import upload_image
 from app.models.mailer import email_commande_livree, email_recharge_validee
 
 logger = logging.getLogger(__name__)
 admin_bp = Blueprint("admin", __name__)
-
-# Variable globale pour stocker la derniere execution des notifications
-_last_notif_run = {"ts": 0}
 
 
 def _headers():
@@ -39,83 +34,9 @@ def _url(path):
     return current_app.config["SUPABASE_URL"] + "/rest/v1/" + path
 
 
-def _traiter_notifications_auto():
-    """
-    Traite automatiquement les notifications en attente (max 20 par visite admin).
-    Ne s'execute que si > 5 minutes depuis le dernier traitement.
-    """
-    import time
-    now = time.time()
-
-    # Ne rien faire si moins de 5 minutes depuis la derniere execution
-    if now - _last_notif_run["ts"] < 300:
-        return
-
-    try:
-        notifs = get_notifications_en_attente(limit=20)
-        if not notifs:
-            _last_notif_run["ts"] = now
-            return
-
-        from app.models.mailer import email_nouveau_produit, email_newsletter_personnalise
-
-        envoyes = 0
-        echecs = 0
-
-        for n in notifs:
-            try:
-                type_notif = n.get("type", "")
-                email_dest = n.get("destinataire_email")
-                nom_dest = n.get("destinataire_nom") or (email_dest or "").split("@")[0]
-                payload = n.get("payload") or {}
-
-                ok = False
-
-                if type_notif == "nouveau_produit":
-                    ok = email_nouveau_produit(
-                        to_email=email_dest,
-                        nom_destinataire=nom_dest,
-                        nom_produit=payload.get("nom_produit", ""),
-                        description_produit=payload.get("description", ""),
-                        prix_plateforme=payload.get("prix", 0),
-                        image_url=payload.get("image_url") or None,
-                        lien_produit="https://boostcentral.world/dashboard/affiliation"
-                    )
-
-                elif type_notif == "newsletter":
-                    ok = email_newsletter_personnalise(
-                        to_email=email_dest,
-                        nom_destinataire=nom_dest,
-                        sujet=n.get("sujet", "Boost Central"),
-                        contenu_html=n.get("contenu_html", "")
-                    )
-
-                if ok:
-                    marquer_notification_envoyee(n["id"])
-                    envoyes += 1
-                else:
-                    marquer_notification_echec(n["id"], "Envoi echoue")
-                    echecs += 1
-            except Exception as e:
-                logger.error(f"auto notif {n.get('id')}: {e}")
-                marquer_notification_echec(n["id"], str(e))
-                echecs += 1
-
-        _last_notif_run["ts"] = now
-        logger.info(f"Auto-notifications: {envoyes} envoyes, {echecs} echecs")
-    except Exception as e:
-        logger.error(f"_traiter_notifications_auto: {e}")
-
-
 @admin_bp.route("/")
 @admin_required
 def index():
-    # === TRAITEMENT AUTO DES NOTIFICATIONS EN ATTENTE ===
-    try:
-        _traiter_notifications_auto()
-    except Exception as e:
-        logger.error(f"traiter notif auto: {e}")
-
     recharges = get_all_recharges(limit=50)
     orders = get_all_orders(limit=100)
     users = get_all_users()
@@ -152,10 +73,11 @@ def index():
     retraits = get_all_retraits()
     stats["retraits_attente"] = sum(1 for r in retraits if r.get("statut") == "en_attente")
 
-    # Compter les notifications en attente pour afficher un badge
+    # Compter les notifs en attente (lecture seule, TRES rapide)
     try:
-        notifs_attente = get_notifications_en_attente(limit=100)
-        stats["notifs_attente"] = len(notifs_attente)
+        r = requests.get(_url("notifications_queue?statut=eq.en_attente&select=id"), headers=_headers())
+        notifs = r.json()
+        stats["notifs_attente"] = len(notifs) if isinstance(notifs, list) else 0
     except Exception:
         stats["notifs_attente"] = 0
 
