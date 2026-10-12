@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Newsletter — Admin{% endblock %}
+
+{% block extra_css %}
+body{background:var(--off)}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:var(--dark);position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:10px}
+.adm-logo{font-size:1rem;font-weight:900;background:linear-gradient(90deg,#60a5fa,#f97316);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn-back{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.1);border:none;color:#fff;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:.82rem;font-weight:600;text-decoration:none}
+.main{padding:16px;max-width:800px;margin:0 auto}
+.card{background:var(--white);border-radius:16px;padding:20px;border:1px solid var(--gray);box-shadow:0 4px 14px rgba(0,0,0,.05);margin-bottom:20px}
+.card-title{font-size:1rem;font-weight:800;color:var(--dark);margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:.82rem;font-weight:600;color:var(--dark);margin-bottom:6px}
+.inp{width:100%;padding:11px 13px;border:2px solid var(--gray);border-radius:11px;font-size:.9rem;color:var(--dark);outline:none;background:var(--white);font-family:inherit}
+.inp:focus{border-color:var(--blue)}
+textarea.inp{min-height:180px;resize:vertical;font-family:monospace;font-size:.82rem;line-height:1.5}
+.radio-row{display:flex;gap:8px;flex-wrap:wrap}
+.radio-item{flex:1;min-width:140px;display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--off);border:2px solid var(--gray);border-radius:11px;cursor:pointer;font-size:.85rem;font-weight:600;color:var(--dark)}
+.radio-item input{accent-color:var(--blue);width:16px;height:16px}
+.radio-item:has(input:checked){border-color:var(--blue);background:var(--blue-l);color:var(--blue)}
+.btn-envoyer{width:100%;padding:14px;border:none;border-radius:12px;background:linear-gradient(90deg,var(--blue),var(--blue-d));color:#fff;font-weight:800;font-size:.95rem;cursor:pointer;margin-top:14px}
+.users-list{max-height:400px;overflow-y:auto;border:1px solid var(--gray);border-radius:11px}
+.user-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--gray);font-size:.85rem}
+.user-item:last-child{border-bottom:none}
+.user-item input{accent-color:var(--blue);width:16px;height:16px}
+.user-item label{flex:1;cursor:pointer}
+.user-email{color:var(--dark);font-weight:600}
+.user-name{color:var(--mid);font-size:.75rem}
+.search-box{margin-bottom:10px}
+.hint{font-size:.74rem;color:var(--mid);margin-top:4px}
+.count-badge{background:var(--blue-l);color:var(--blue);padding:3px 10px;border-radius:10px;font-size:.75rem;font-weight:700}
+{% endblock %}
+
+{% block nav %}
+<header>
+  <div class="adm-logo">⚡ BOOST CENTRAL — Newsletter</div>
+  <a href="{{ url_for('admin.index') }}" class="btn-back"><i class="fas fa-arrow-left"></i> Admin</a>
+</header>
+{% endblock %}
+
+{% block content %}
+<div class="main">
+
+  <!-- FORMULAIRE -->
+  <form method="POST" action="{{ url_for('admin_newsletter.envoyer_newsletter') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <div class="card">
+      <div class="card-title"><i class="fas fa-paper-plane" style="color:var(--blue)"></i> Composer votre email</div>
+
+      <div class="fg">
+        <label>Destinataires</label>
+        <div class="radio-row">
+          <label class="radio-item">
+            <input type="radio" name="cible" value="tous" checked onchange="toggleCible()">
+            <span>👥 Tous ({{ users|length }})</span>
+          </label>
+          <label class="radio-item">
+            <input type="radio" name="cible" value="selection" onchange="toggleCible()">
+            <span>☑️ Selection</span>
+          </label>
+          <label class="radio-item">
+            <input type="radio" name="cible" value="un" onchange="toggleCible()">
+            <span>👤 Un seul</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- SELECTION MULTIPLE -->
+      <div class="fg" id="bloc-selection" style="display:none">
+        <label>Selectionner les utilisateurs <span class="count-badge" id="count-selection">0 selectionne(s)</span></label>
+        <input class="inp search-box" type="text" id="search-users" placeholder="Rechercher par email..." oninput="filtrerUsers()">
+        <div class="users-list" id="users-list">
+          {% for u in users %}
+          <div class="user-item" data-email="{{ (u.email or '')|lower }}">
+            <input type="checkbox" name="user_ids" value="{{ u.id }}" id="u-{{ u.id }}" onchange="updateCount()">
+            <label for="u-{{ u.id }}">
+              <div class="user-email">{{ u.email }}</div>
+              <div class="user-name">{{ u.full_name or '' }} {{ u.country or '' }}</div>
+            </label>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- UN SEUL UTILISATEUR -->
+      <div class="fg" id="bloc-un" style="display:none">
+        <label>Choisir un utilisateur</label>
+        <select class="inp" name="user_id_un">
+          <option value="">-- Choisir --</option>
+          {% for u in users %}
+          <option value="{{ u.id }}">{{ u.email }} {% if u.full_name %}({{ u.full_name }}){% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="fg">
+        <label>Objet de l'email</label>
+        <input class="inp" type="text" name="sujet" placeholder="Ex : 🎁 Nouvelle promo sur Boost Central !" required>
+      </div>
+
+      <div class="fg">
+        <label>Contenu (HTML autorise)</label>
+        <textarea class="inp" name="contenu" placeholder="<p>Bonjour,</p><p>Voici une super nouvelle...</p><p><a href='https://boostcentral.world'>Cliquez ici</a></p>" required></textarea>
+        <div class="hint">
+          💡 Vous pouvez utiliser du HTML simple : &lt;p&gt;, &lt;strong&gt;, &lt;a href=""&gt;, &lt;br&gt;. Le message sera integre dans un design automatique Boost Central.
+        </div>
+      </div>
+
+      <button type="submit" class="btn-envoyer" onclick="return confirm('Envoyer cet email aux destinataires selectionnes ?')">
+        <i class="fas fa-paper-plane"></i> Envoyer l'email
+      </button>
+    </div>
+  </form>
+
+  <!-- APERCU -->
+  <div class="card">
+    <div class="card-title"><i class="fas fa-eye" style="color:var(--green)"></i> Apercu du design</div>
+    <p style="font-size:.85rem;color:var(--mid);line-height:1.6">
+      Chaque email sera automatiquement encapsule dans le <strong>template officiel Boost Central</strong> avec :<br>
+      • Le logo et l'en-tete en degrade bleu/orange<br>
+      • Votre contenu au centre<br>
+      • Le pied de page avec le support WhatsApp<br>
+      • Un design responsive (mobile + PC)
+    </p>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function toggleCible(){
+  var v = document.querySelector('input[name="cible"]:checked').value;
+  document.getElementById('bloc-selection').style.display = (v === 'selection') ? 'block' : 'none';
+  document.getElementById('bloc-un').style.display = (v === 'un') ? 'block' : 'none';
+}
+function updateCount(){
+  var n = document.querySelectorAll('input[name="user_ids"]:checked').length;
+  document.getElementById('count-selection').textContent = n + ' selectionne(s)';
+}
+function filtrerUsers(){
+  var q = document.getElementById('search-users').value.toLowerCase();
+  document.querySelectorAll('#users-list .user-item').forEach(function(el){
+    var e = el.getAttribute('data-email') || '';
+    el.style.display = e.includes(q) ? 'flex' : 'none';
+  });
+}
+</script>
+{% endblock %}
