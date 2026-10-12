@@ -24,6 +24,7 @@ def ajouter_produit():
     nom = request.form.get("nom", "").strip()
     description = request.form.get("description", "").strip()
     prix_str = request.form.get("prix_plateforme", "").strip()
+    lien_livraison = request.form.get("lien_livraison", "").strip()
     image_file = request.files.get("image")
 
     if not nom or not prix_str:
@@ -48,6 +49,7 @@ def ajouter_produit():
         "nom": nom,
         "description": description or None,
         "prix_plateforme": prix,
+        "lien_livraison": lien_livraison or None,
         "image_url": image_url,
         "actif": True,
     }
@@ -57,6 +59,61 @@ def ajouter_produit():
         flash(f"Produit '{nom}' cree !", "success")
     else:
         flash("Erreur lors de la creation du produit.", "error")
+
+    return redirect(url_for("admin_produits.produits_page"))
+
+
+@admin_produits_bp.route("/produits/modifier", methods=["POST"])
+@admin_required
+def modifier_produit():
+    """Modifie un produit existant (nom, description, prix, lien livraison, image, actif)."""
+    produit_id = request.form.get("produit_id", "")
+    if not produit_id:
+        flash("ID produit manquant.", "error")
+        return redirect(url_for("admin_produits.produits_page"))
+
+    produit = get_produit_by_id(produit_id)
+    if not produit:
+        flash("Produit introuvable.", "error")
+        return redirect(url_for("admin_produits.produits_page"))
+
+    data = {}
+
+    # Nom
+    nom = request.form.get("nom", "").strip()
+    if nom:
+        data["nom"] = nom
+
+    # Description
+    description = request.form.get("description", "").strip()
+    data["description"] = description or None
+
+    # Prix plateforme
+    prix_str = request.form.get("prix_plateforme", "").strip()
+    if prix_str:
+        try:
+            prix = float(prix_str)
+            if prix > 0:
+                data["prix_plateforme"] = prix
+        except ValueError:
+            pass
+
+    # Lien de livraison
+    lien_livraison = request.form.get("lien_livraison", "").strip()
+    data["lien_livraison"] = lien_livraison or None
+
+    # Image (upload si nouvelle image fournie)
+    image_file = request.files.get("image")
+    if image_file and image_file.filename:
+        new_url = upload_image(image_file, prefix="produit_")
+        if new_url:
+            data["image_url"] = new_url
+
+    ok = update_produit(produit_id, data)
+    if ok:
+        flash("Produit mis a jour.", "success")
+    else:
+        flash("Erreur lors de la mise a jour.", "error")
 
     return redirect(url_for("admin_produits.produits_page"))
 
