@@ -63,6 +63,7 @@ body{{margin:0;padding:0;background:#EEF2F9;font-family:-apple-system,BlinkMacSy
 .box .row span:last-child{{color:#0F172A;font-weight:700;text-align:right}}
 .btn-wrap{{text-align:center;margin:24px 0 8px}}
 .btn{{display:inline-block;background:linear-gradient(90deg,#FF6600,#E65C00);color:#fff !important;padding:14px 34px;border-radius:12px;text-decoration:none;font-weight:800;font-size:.92rem;box-shadow:0 8px 20px rgba(255,102,0,.28)}}
+.btn-green{{background:linear-gradient(90deg,#059669,#047857);box-shadow:0 8px 20px rgba(5,150,105,.28)}}
 .footer{{background:#0F172A;padding:24px 30px;text-align:center;color:rgba(255,255,255,.45);font-size:.76rem;line-height:1.7}}
 .footer a{{color:rgba(255,255,255,.75);text-decoration:none;font-weight:600}}
 .small-note{{color:#94A3B8;font-size:.8rem;margin-top:22px}}
@@ -157,7 +158,7 @@ def email_solde_insuffisant(to_email, nom, solde, requis):
 
 
 def email_solde_bas(to_email, nom, solde):
-    """Alerte preventive quand le solde passe sous le seuil (avant meme d'etre a court)."""
+    """Alerte preventive quand le solde passe sous le seuil."""
     contenu = f"""
 <p>Bonjour <strong>{nom}</strong>,</p>
 <p>Votre solde Boost Central commence a etre bas. Rechargez maintenant pour continuer a booster vos reseaux sans interruption.</p>
@@ -171,7 +172,7 @@ def email_solde_bas(to_email, nom, solde):
 
 
 def email_inactivite(to_email, nom):
-    """Relance automatique apres 2 semaines sans commande (envoyee par tache planifiee)."""
+    """Relance automatique apres 2 semaines sans commande."""
     contenu = f"""
 <p>Bonjour <strong>{nom}</strong>,</p>
 <p>Ca fait un moment qu on ne vous a pas vu sur Boost Central ! Vos reseaux sociaux n attendent que vous pour grandir.</p>
@@ -220,7 +221,7 @@ def email_admin_nouvelle_commande(user_email, service, quantite, prix_total, lie
 
 
 def email_admin_solde_boostci_bas(solde_usd):
-    """Alerte admin quand le solde BOOSTCI devient bas - pour ne jamais etre pris au depourvu."""
+    """Alerte admin quand le solde BOOSTCI devient bas."""
     contenu = f"""
 <p>Le solde de ton compte fournisseur BOOSTCI est bas. Recharge-le pour eviter des commandes bloquees.</p>
 <div class="box">
@@ -229,3 +230,135 @@ def email_admin_solde_boostci_bas(solde_usd):
 """
     return _send(ADMIN_EMAIL, f"⚠️ Solde BOOSTCI bas ({solde_usd:.2f}$)",
                  _template("Solde fournisseur bas", contenu, "#FF6600", "#E65C00", emoji="⚠️"))
+
+
+# ═══════════════════════════════════════════════════════════════
+# NOUVEAUX EMAILS — PRODUITS AFFILIES (Livraison automatique)
+# ═══════════════════════════════════════════════════════════════
+
+def email_achat_produit_confirme(to_email, nom_acheteur, nom_produit, montant,
+                                  reference, lien_livraison, lien_achat=None):
+    """
+    Envoye a l'ACHETEUR quand sa commande de produit est validee.
+    Contient le lien de livraison pour acceder au produit.
+    """
+    bloc_livraison = ""
+    if lien_livraison:
+        bloc_livraison = f"""
+<p style="background:#EDFFF5;border-left:4px solid #059669;padding:14px 16px;border-radius:8px;margin:18px 0">
+<strong style="color:#047857;display:block;margin-bottom:6px">🎁 Votre acces au produit :</strong>
+<a href="{lien_livraison}" style="color:#0066FF;font-weight:700;word-break:break-all">{lien_livraison}</a>
+</p>
+<div class="btn-wrap"><a href="{lien_livraison}" class="btn btn-green">Acceder a mon produit</a></div>
+"""
+    else:
+        bloc_livraison = """
+<p style="background:#FEF3C7;border-left:4px solid #F59E0B;padding:14px 16px;border-radius:8px;margin:18px 0;color:#92400E">
+⏳ Votre produit sera livre par notre equipe dans les plus brefs delais. Vous recevrez un nouvel email des que ce sera pret.
+</p>
+"""
+
+    contenu = f"""
+<p>Bonjour <strong>{nom_acheteur}</strong>,</p>
+<p>Merci pour votre achat ! Votre paiement a bien ete confirme. 🎉</p>
+
+<div class="box">
+<div class="row"><span>Produit</span><span>{nom_produit}</span></div>
+<div class="row"><span>Montant paye</span><span>{montant:,.0f} FCFA</span></div>
+<div class="row"><span>Reference</span><span style="font-family:monospace;font-size:.75rem">{reference[:12]}...</span></div>
+<div class="row"><span>Statut</span><span style="color:#059669">✅ Valide</span></div>
+</div>
+
+{bloc_livraison}
+
+<p style="margin-top:24px">Une question ? Contactez-nous sur WhatsApp, nous sommes la 24/7.</p>
+"""
+    return _send(
+        to_email,
+        f"🎁 Votre achat est confirme — {nom_produit}",
+        _template("Votre achat est confirme !", contenu, "#059669", "#047857", emoji="🎁")
+    )
+
+
+def email_admin_nouvelle_vente(nom_produit, montant, acheteur_email, vendeur_email,
+                                reference, gain_affilie):
+    """
+    Envoye a l'ADMIN quand une nouvelle vente est initiee (avant validation).
+    Permet de suivre les ventes en temps reel.
+    """
+    contenu = f"""
+<p>Une nouvelle vente vient d'etre initiee sur la plateforme !</p>
+
+<div class="box">
+<div class="row"><span>Produit</span><span>{nom_produit}</span></div>
+<div class="row"><span>Montant</span><span>{montant:,.0f} FCFA</span></div>
+<div class="row"><span>Acheteur</span><span>{acheteur_email}</span></div>
+<div class="row"><span>Vendeur (affilie)</span><span>{vendeur_email}</span></div>
+<div class="row"><span>Gain affilie</span><span>{gain_affilie:,.0f} FCFA</span></div>
+<div class="row"><span>Reference</span><span style="font-family:monospace;font-size:.75rem">{reference[:12]}...</span></div>
+<div class="row"><span>Statut</span><span style="color:#D97706">⏳ En attente de paiement</span></div>
+</div>
+
+<div class="btn-wrap"><a href="https://boostcentral-eta.vercel.app/admin/ventes" class="btn">Voir les ventes</a></div>
+"""
+    return _send(
+        ADMIN_EMAIL,
+        f"🚀 Nouvelle vente : {nom_produit} ({montant:,.0f} F)",
+        _template("Nouvelle vente initiee !", contenu, "#FF6600", "#E65C00", emoji="🚀")
+    )
+
+
+def email_admin_vente_validee(nom_produit, montant, acheteur_email, vendeur_email,
+                               gain_affilie, reference):
+    """
+    Envoye a l'ADMIN quand une vente est validee (paiement confirme).
+    """
+    contenu = f"""
+<p>Excellente nouvelle ! Une vente a ete validee et le gain affilie credite.</p>
+
+<div class="box">
+<div class="row"><span>Produit</span><span>{nom_produit}</span></div>
+<div class="row"><span>Montant encaisse</span><span style="color:#059669">{montant:,.0f} FCFA</span></div>
+<div class="row"><span>Acheteur</span><span>{acheteur_email}</span></div>
+<div class="row"><span>Vendeur</span><span>{vendeur_email}</span></div>
+<div class="row"><span>Gain verse</span><span>{gain_affilie:,.0f} FCFA</span></div>
+<div class="row"><span>Reference</span><span style="font-family:monospace;font-size:.75rem">{reference[:12]}...</span></div>
+<div class="row"><span>Statut</span><span style="color:#059669">✅ Validee</span></div>
+</div>
+
+<div class="btn-wrap"><a href="https://boostcentral-eta.vercel.app/admin/ventes" class="btn btn-green">Voir toutes les ventes</a></div>
+"""
+    return _send(
+        ADMIN_EMAIL,
+        f"💰 Vente validee : {nom_produit} (+{gain_affilie:,.0f} F)",
+        _template("Vente validee avec succes !", contenu, "#059669", "#047857", emoji="💰")
+    )
+
+
+def email_relance_achat_non_finalise(to_email, nom_acheteur, nom_produit,
+                                      montant, lien_achat):
+    """
+    Envoye a l'ACHETEUR s'il a initie un achat mais n'a pas finalise (1h apres).
+    Relance douce pour le pousser a terminer.
+    """
+    contenu = f"""
+<p>Bonjour <strong>{nom_acheteur}</strong>,</p>
+<p>Vous avez commence un achat sur Boost Central, mais votre paiement n a pas ete finalise.</p>
+<p>Ca arrive souvent (une erreur de reseau, un clic ailleurs...) mais ne passez pas a cote !</p>
+
+<div class="box">
+<div class="row"><span>Produit en attente</span><span>{nom_produit}</span></div>
+<div class="row"><span>Montant</span><span>{montant:,.0f} FCFA</span></div>
+</div>
+
+<p style="text-align:center;font-weight:700;color:#0066FF">Votre produit vous attend toujours 👇</p>
+
+<div class="btn-wrap"><a href="{lien_achat}" class="btn">Finaliser mon achat</a></div>
+
+<p style="margin-top:24px;font-size:.82rem;color:#94A3B8">Si vous avez change d avis, ignorez simplement cet email.</p>
+"""
+    return _send(
+        to_email,
+        f"⏳ Vous avez oublie de finaliser votre achat — {nom_produit}",
+        _template("N'oubliez pas votre achat !", contenu, "#FF6600", "#E65C00", emoji="⏳")
+    )
