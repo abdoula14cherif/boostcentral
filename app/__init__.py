@@ -41,6 +41,7 @@ def create_app(config_name="production"):
     from app.routes.affiliation import affiliation_bp
     from app.routes.vente import vente_bp
     from app.routes.admin_produits import admin_produits_bp
+    from app.routes.admin_newsletter import admin_newsletter_bp
 
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(dashboard_bp, url_prefix="/dashboard")
@@ -62,6 +63,7 @@ def create_app(config_name="production"):
     app.register_blueprint(affiliation_bp, url_prefix="/affiliation")
     app.register_blueprint(vente_bp)
     app.register_blueprint(admin_produits_bp, url_prefix="/admin")
+    app.register_blueprint(admin_newsletter_bp, url_prefix="/admin")
 
     csrf.exempt(webhook_bp)
     csrf.exempt(api_bp)
@@ -75,12 +77,6 @@ def create_app(config_name="production"):
 
     @app.before_request
     def _detecter_sous_domaine_revendeur():
-        """
-        Si l'app tourne sur un vrai domaine (ROOT_DOMAIN configure) et que la
-        requete arrive sur un sous-domaine (monboost.tondomaine.com), on
-        affiche directement la boutique de ce revendeur sur la page d'accueil
-        du sous-domaine - sans changer l'URL.
-        """
         if not ROOT_DOMAIN or request.path != "/":
             return None
         host = request.host.split(":")[0].lower()
