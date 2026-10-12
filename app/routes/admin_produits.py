@@ -55,10 +55,47 @@ def ajouter_produit():
     }
 
     result = create_produit(data)
-    if result:
-        flash(f"Produit '{nom}' cree !", "success")
-    else:
+    if not result:
         flash("Erreur lors de la creation du produit.", "error")
+        return redirect(url_for("admin_produits.produits_page"))
+
+    flash(f"Produit '{nom}' cree !", "success")
+
+    # === NOTIFIER TOUS LES UTILISATEURS ===
+    try:
+        from app.models.mailer import email_nouveau_produit
+        from app.models.database import get_all_users as _get_users
+        import threading
+
+        def _envoyer_notifications():
+            try:
+                users = _get_users()
+                lien_produit = "https://boostcentral.world/dashboard/affiliation"
+                for u in users:
+                    email = u.get("email")
+                    if not email:
+                        continue
+                    nom_dest = u.get("full_name") or email.split("@")[0]
+                    try:
+                        email_nouveau_produit(
+                            to_email=email,
+                            nom_destinataire=nom_dest,
+                            nom_produit=nom,
+                            description_produit=description,
+                            prix_plateforme=prix,
+                            image_url=image_url,
+                            lien_produit=lien_produit
+                        )
+                    except Exception as ex:
+                        logger.error(f"notif produit -> {email}: {ex}")
+                logger.info(f"Notifications produit '{nom}' envoyees a {len(users)} utilisateurs")
+            except Exception as e:
+                logger.error(f"Erreur notif globale: {e}")
+
+        threading.Thread(target=_envoyer_notifications, daemon=True).start()
+        flash(f"📨 Notification en cours d'envoi a tous les utilisateurs.", "info")
+    except Exception as e:
+        logger.error(f"Erreur declenchement notification: {e}")
 
     return redirect(url_for("admin_produits.produits_page"))
 
@@ -66,7 +103,6 @@ def ajouter_produit():
 @admin_produits_bp.route("/produits/modifier", methods=["POST"])
 @admin_required
 def modifier_produit():
-    """Modifie un produit existant (nom, description, prix, lien livraison, image, actif)."""
     produit_id = request.form.get("produit_id", "")
     if not produit_id:
         flash("ID produit manquant.", "error")
@@ -79,16 +115,13 @@ def modifier_produit():
 
     data = {}
 
-    # Nom
     nom = request.form.get("nom", "").strip()
     if nom:
         data["nom"] = nom
 
-    # Description
     description = request.form.get("description", "").strip()
     data["description"] = description or None
 
-    # Prix plateforme
     prix_str = request.form.get("prix_plateforme", "").strip()
     if prix_str:
         try:
@@ -98,11 +131,9 @@ def modifier_produit():
         except ValueError:
             pass
 
-    # Lien de livraison
     lien_livraison = request.form.get("lien_livraison", "").strip()
     data["lien_livraison"] = lien_livraison or None
 
-    # Image (upload si nouvelle image fournie)
     image_file = request.files.get("image")
     if image_file and image_file.filename:
         new_url = upload_image(image_file, prefix="produit_")
@@ -143,7 +174,6 @@ def supprimer_produit():
         flash("ID produit manquant.", "error")
         return redirect(url_for("admin_produits.produits_page"))
 
-    # On ne supprime pas vraiment : on desactive (pour garder l'historique des ventes)
     ok = update_produit(produit_id, {"actif": False})
     if ok:
         flash("Produit desactive.", "success")
