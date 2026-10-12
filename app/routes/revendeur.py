@@ -3,12 +3,25 @@ import os
 import logging
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from app.models.security import login_required, get_current_user
-from app.models.database import get_profile, debit_balance, slug_deja_pris, activer_revendeur
+from app.models.database import (
+    get_profile, debit_balance, slug_deja_pris, activer_revendeur,
+    update_profile
+)
+from app.models.storage import upload_image
 
 logger = logging.getLogger(__name__)
 revendeur_bp = Blueprint("revendeur", __name__)
 
 PRIX_ACTIVATION = 3600
+
+THEMES = {
+    "bleu":   ("#0066FF", "#0047CC"),
+    "violet": ("#7C3AED", "#4C1D95"),
+    "vert":   ("#059669", "#047857"),
+    "orange": ("#F97316", "#EA580C"),
+    "noir":   ("#0F172A", "#1E293B"),
+    "rouge":  ("#DC2626", "#991B1B"),
+}
 
 
 def _slug_valide(slug):
@@ -23,7 +36,8 @@ def index():
     base_url = request.host_url.rstrip("/")
     root_domain = os.environ.get("ROOT_DOMAIN", "").strip()
     return render_template("dashboard/revendeur.html",
-        user=user, profile=profile, prix_activation=PRIX_ACTIVATION, base_url=base_url, root_domain=root_domain)
+        user=user, profile=profile, prix_activation=PRIX_ACTIVATION,
+        base_url=base_url, root_domain=root_domain)
 
 
 @revendeur_bp.route("/activer", methods=["POST"])
@@ -111,7 +125,7 @@ def prix_enregistrer():
     try:
         service_id = int(service_id)
         prix_fcfa = float(prix_fcfa)
-    except:
+    except Exception:
         flash("Valeurs invalides.", "error")
         return redirect(url_for("revendeur.prix"))
 
@@ -128,7 +142,7 @@ def prix_enregistrer():
     if ok:
         flash("Prix enregistre.", "success")
     else:
-        flash("Erreur lors de l'enregistrement du prix (verifie que la table revendeur_prix existe bien dans Supabase).", "error")
+        flash("Erreur lors de l'enregistrement du prix.", "error")
     return redirect(url_for("revendeur.prix"))
 
 
@@ -148,7 +162,8 @@ def clients():
     base_url = request.host_url.rstrip("/")
 
     return render_template("dashboard/revendeur_clients.html",
-        user=user, profile=profile, mes_clients=mes_clients, gains_total=gains_total, base_url=base_url)
+        user=user, profile=profile, mes_clients=mes_clients,
+        gains_total=gains_total, base_url=base_url)
 
 
 @revendeur_bp.route("/commandes")
@@ -167,3 +182,108 @@ def commandes():
 
     return render_template("dashboard/revendeur_commandes.html",
         user=user, profile=profile, orders=orders, gains_total=gains_total)
+
+
+# ==================== PERSONNALISATION BOUTIQUE ====================
+
+@revendeur_bp.route("/personnaliser")
+@login_required
+def personnaliser():
+    """Page de personnalisation de la boutique."""
+    user = get_current_user()
+    profile = get_profile(user["id"])
+
+    if not profile or not profile.get("est_revendeur"):
+        flash("Vous devez d'abord activer le mode revendeur.", "error")
+        return redirect(url_for("revendeur.index"))
+
+    base_url = request.host_url.rstrip("/")
+    return render_template("dashboard/revendeur_personnaliser.html",
+        user=user, profile=profile, themes=THEMES, base_url=base_url)
+
+
+@revendeur_bp.route("/personnaliser/enregistrer", methods=["POST"])
+@login_required
+def personnaliser_enregistrer():
+    """Enregistre les personnalisations de la boutique."""
+    user = get_current_user()
+    profile = get_profile(user["id"])
+
+    if not profile or not profile.get("est_revendeur"):
+        flash("Action non autorisee.", "error")
+        return redirect(url_for("revendeur.index"))
+
+    data = {}
+
+    # Champs texte
+    data["boutique_nom"] = request.form.get("boutique_nom", "").strip() or None
+    data["boutique_slogan"] = request.form.get("boutique_slogan", "").strip() or None
+    data["boutique_message_accueil"] = request.form.get("boutique_message_accueil", "").strip() or None
+    data["boutique_a_propos"] = request.form.get("boutique_a_propos", "").strip() or None
+
+    # Contact
+    data["boutique_whatsapp"] = request.form.get("boutique_whatsapp", "").strip() or None
+    data["boutique_email"] = request.form.get("boutique_email", "").strip() or None
+    data["boutique_facebook"] = request.form.get("boutique_facebook", "").strip() or None
+    data["boutique_instagram"] = request.form.get("boutique_instagram", "").strip() or None
+    data["boutique_tiktok"] = request.form.get("boutique_tiktok", "").strip() or None
+    data["boutique_telegram"] = request.form.get("boutique_telegram", "").strip() or None
+
+    # Theme
+    theme = request.form.get("boutique_theme", "bleu")
+    if theme in THEMES:
+        data["boutique_theme"] = theme
+        data["boutique_couleur_principale"] = THEMES[theme][0]
+        data["boutique_couleur_secondaire"] = THEMES[theme][1]
+
+    # Options (checkbox)
+    data["boutique_afficher_prix"] = request.form.get("boutique_afficher_prix") == "on"
+    data["boutique_whatsapp_flottant"] = request.form.get("boutique_whatsapp_flottant") == "on"
+
+    # Upload logo
+    logo_file = request.files.get("boutique_logo")
+    if logo_file and logo_file.filename:
+        logo_url = upload_image(logo_file, prefix="logo_")
+        if logo_url:
+            data["boutique_logo_url"] = logo_url
+        else:
+            flash("Erreur lors de l'upload du logo.", "warning")
+
+    # Upload banniere
+    banniere_file = request.files.get("boutique_banniere")
+    if banniere_file and banniere_file.filename:
+        ban_url = upload_image(banniere_file, prefix="banniere_")
+        if ban_url:
+            data["boutique_banniere_url"] = ban_url
+        else:
+            flash("Erreur lors de l'upload de la banniere.", "warning")
+
+    ok = update_profile(user["id"], data)
+    if ok:
+        flash("✅ Boutique mise a jour !", "success")
+    else:
+        flash("Erreur lors de la sauvegarde.", "error")
+
+    return redirect(url_for("revendeur.personnaliser"))
+
+
+@revendeur_bp.route("/personnaliser/supprimer-image", methods=["POST"])
+@login_required
+def supprimer_image_boutique():
+    """Supprime le logo ou la banniere."""
+    user = get_current_user()
+    profile = get_profile(user["id"])
+
+    if not profile or not profile.get("est_revendeur"):
+        flash("Action non autorisee.", "error")
+        return redirect(url_for("revendeur.index"))
+
+    type_img = request.form.get("type", "")
+    if type_img == "logo":
+        update_profile(user["id"], {"boutique_logo_url": None})
+        flash("Logo supprime.", "success")
+    elif type_img == "banniere":
+        update_profile(user["id"], {"boutique_banniere_url": None})
+        flash("Banniere supprimee.", "success")
+
+    return redirect(url_for("revendeur.personnaliser"))
