@@ -1,5 +1,8 @@
 import logging
 import requests
+import jwt
+import secrets
+from datetime import datetime, timedelta
 from flask import Blueprint, render_template, redirect, url_for, flash, session, request, current_app
 from app.models.forms import LoginForm, RegisterForm, ForgotPasswordForm
 from app.models.security import set_session, clear_session
@@ -222,3 +225,65 @@ def forgot_password():
         except Exception as e:
             flash("Erreur.", "error")
     return render_template("auth/forgot_password.html", form=form)
+
+
+# ═══════════════════════════════════════════════════════════════
+# SSO VERS RESELLER — Bouton "Devenir revendeur"
+# ═══════════════════════════════════════════════════════════════
+
+@auth_bp.route("/sso-login")
+def sso_login():
+    """
+    Genere un JWT signe et redirige vers reseller.boostcentral.world.
+    L'utilisateur doit etre connecte sur Boost Central.
+
+    Utilisation : bouton "Devenir revendeur" dans le dashboard Boost Central.
+    Securite :
+      - JWT signe HS256 avec la meme SECRET_KEY que reseller
+      - Expire en 5 minutes
+      - Contient un nonce (jti) anti-replay
+      - Audience + issuer verifies cote reseller
+    """
+    # Si non connecte : rediriger vers login puis revenir
+    if "user_id" not in session:
+        session["next_url"] = request.url
+        flash("Connectez-vous pour devenir revendeur.", "info")
+        return redirect(url_for("auth.login"))
+
+    # URL de retour (fournie par reseller dans le query param "redirect")
+    return_url = request.args.get("redirect", "").strip()
+    if not return_url:
+        return_url = "https://reseller.boostcentral.world/auth/sso"
+
+    # Securite : n'autoriser que les URL qui pointent vers reseller.boostcentral.world
+    if not return_url.startswith("https://reseller.boostcentral.world/"):
+        logger.warning(f"Tentative SSO vers URL non autorisee : {return_url}")
+        flash("Lien de redirection invalide.", "error")
+        return redirect(url_for("dashboard.index"))
+
+    # Generer un JWT signe valide 5 minutes
+    now = datetime.utcnow()
+    payload = {
+        "user_id": session["user_id"],
+        "email": session.get("user_email", ""),
+        "iat": now,
+        "exp": now + timedelta(minutes=5),
+        "jti": secrets.token_hex(16),  # Anti-replay
+        "iss": "boostcentral.world",
+        "aud": "reseller.boostcentral.world",
+    }
+
+    secret = current_app.config.get("SECRET_KEY")
+    if not secret:
+        logger.error("SECRET_KEY manquante sur boostcentral")
+        flash("Erreur de configuration. Contactez le support.", "error")
+        return redirect(url_for("dashboard.index"))
+
+    token = jwt.encode(payload, secret, algorithm="HS256")
+
+    # Rediriger vers reseller avec le token en query param
+    sep = "&" if "?" in return_url else "?"
+    final_url = f"{return_url}{sep}token={token}"
+
+    logger.info(f"SSO login initie pour user {session.get('user_email')}")
+    return redirect(final_url)
