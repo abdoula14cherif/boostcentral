@@ -14,7 +14,7 @@ webhook_bp = Blueprint("webhook", __name__)
 
 @webhook_bp.route("/webhook", methods=["POST"])
 def soina_webhook():
-    """Ancien webhook (LeekPay / SoinaPay) - conserve pour compatibilite, plus utilise activement."""
+    """Ancien webhook (LeekPay / SoinaPay) - conserve pour compatibilite."""
     try:
         data = request.get_json()
         logger.info(f"Webhook recu: {data}")
@@ -53,9 +53,8 @@ def soina_webhook():
 def soleaspay_webhook():
     """
     Webhook serveur-a-serveur SoleasPay. C'est LUI qui credite reellement le
-    solde - jamais la confirmation cote client (recharge.success). URL a
-    configurer sur le dashboard marchand SoleasPay :
-    https://<ton-domaine>/recharge/webhook-soleaspay
+    solde - jamais la confirmation cote client.
+    URL : https://<ton-domaine>/recharge/webhook-soleaspay
     """
     try:
         data = request.get_json(force=True, silent=True) or {}
@@ -67,11 +66,10 @@ def soleaspay_webhook():
 
         try:
             amount = float(data.get("amount", 0))
-        except:
+        except Exception:
             amount = 0
 
-        # Toujours repondre 200 rapidement, meme si on ignore l'evenement -
-        # SoleasPay rejoue les webhooks non confirmes.
+        # Toujours repondre 200 rapidement
         if status not in ("COMPLETED", "SUCCESS") or not invoice_reference or amount <= 0:
             return jsonify({"received": True}), 200
 
@@ -81,21 +79,60 @@ def soleaspay_webhook():
             # Ce n'est peut-etre pas une recharge mais une vente de produit affilie
             vente = get_vente_by_reference(invoice_reference)
             if not vente:
-                logger.warning(f"Webhook SoleasPay: aucune recharge ni vente trouvee pour la reference {invoice_reference}")
+                logger.warning(f"Webhook SoleasPay: aucune recharge ni vente trouvee pour {invoice_reference}")
                 return jsonify({"received": True}), 200
 
             if vente.get("statut") == "valide":
-                return jsonify({"received": True}), 200  # deja traitee (webhook rejoue)
+                return jsonify({"received": True}), 200  # deja traitee
 
+            # === 1. Valider la vente ===
             update_vente(vente["id"], {"statut": "valide"})
+
+            # === 2. Crediter le gain affilie au vendeur ===
             nouveau_solde = crediter_solde_affilie(vente["user_id"], vente["gain_affilie"])
             if nouveau_solde is None:
                 logger.error(f"Echec credit solde_affilie pour vente {vente['id']}")
             else:
-                logger.info(f"Vente {vente['id']} validee: +{vente['gain_affilie']} FCFA solde_affilie pour user {vente['user_id']}")
+                logger.info(f"Vente {vente['id']} validee: +{vente['gain_affilie']} FCFA pour user {vente['user_id']}")
+
+            # === 3. Envoyer les emails (livraison client + notification admin) ===
+            try:
+                from app.models.mailer import (
+                    email_achat_produit_confirme,
+                    email_admin_vente_validee
+                )
+                from app.models.database import get_produit_by_id as _get_prod, get_profile as _get_prof
+
+                produit = _get_prod(vente.get("produit_id"))
+                vendeur = _get_prof(vente.get("user_id"))
+                nom_produit = produit.get("nom") if produit else "Produit Boost Central"
+                lien_livraison = produit.get("lien_livraison") if produit else None
+
+                # Email a l'acheteur avec le lien de livraison
+                email_achat_produit_confirme(
+                    to_email=vente.get("acheteur_email"),
+                    nom_acheteur=(vente.get("acheteur_email") or "").split("@")[0],
+                    nom_produit=nom_produit,
+                    montant=vente.get("montant_paye", 0),
+                    reference=vente.get("reference", ""),
+                    lien_livraison=lien_livraison
+                )
+
+                # Email a l'admin
+                email_admin_vente_validee(
+                    nom_produit=nom_produit,
+                    montant=vente.get("montant_paye", 0),
+                    acheteur_email=vente.get("acheteur_email"),
+                    vendeur_email=vendeur.get("email") if vendeur else "?",
+                    gain_affilie=vente.get("gain_affilie", 0),
+                    reference=vente.get("reference", "")
+                )
+            except Exception as e:
+                logger.error(f"Email vente validee: {e}")
+
             return jsonify({"received": True}), 200
 
-        # Idempotence : si deja validee (webhook rejoue), on ne credite pas deux fois
+        # === CAS RECHARGE ===
         if recharge.get("statut") == "valide":
             return jsonify({"received": True}), 200
 
@@ -112,7 +149,7 @@ def soleaspay_webhook():
                 enregistrer_utilisation_code(promo["id"], user_id, recharge["id"])
                 logger.info(f"Bonus promo {promo_code} applique: +{bonus} FCFA pour user {user_id}")
             else:
-                logger.warning(f"Code promo {promo_code} devenu invalide au moment du credit: {message}")
+                logger.warning(f"Code promo {promo_code} invalide au moment du credit: {message}")
 
         credit_balance(user_id, montant_credite)
         reinitialiser_alerte_solde(user_id)
@@ -130,6 +167,4 @@ def soleaspay_webhook():
         return jsonify({"received": True}), 200
     except Exception as e:
         logger.error(f"Webhook SoleasPay erreur: {e}")
-        # On repond quand meme 200 pour eviter un rejeu en boucle sur une erreur
-        # de notre cote ; l'erreur est loggee pour investigation manuelle.
         return jsonify({"received": True}), 200
