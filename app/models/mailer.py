@@ -209,6 +209,56 @@ def email_inactivite(to_email, nom):
                  _template("Vous nous manquez !", contenu, "#7C3AED", "#6D28D9", emoji="👋"))
 
 
+# ─── NOUVEAUX EMAILS PRODUITS & NEWSLETTER ─────────────────────
+
+def email_nouveau_produit(to_email, nom_destinataire, nom_produit, description_produit,
+                          prix_plateforme, image_url=None, lien_produit=None):
+    """Notifie un utilisateur qu'un nouveau produit est disponible."""
+    bloc_image = ""
+    if image_url:
+        bloc_image = f'<div style="text-align:center;margin:18px 0"><img src="{image_url}" alt="{nom_produit}" style="max-width:100%;border-radius:14px;box-shadow:0 8px 24px rgba(0,0,0,.15)"></div>'
+
+    bloc_bouton = ""
+    if lien_produit:
+        bloc_bouton = f'<div class="btn-wrap"><a href="{lien_produit}" class="btn">Voir le produit</a></div>'
+
+    contenu = f"""
+<p>Bonjour <strong>{nom_destinataire}</strong>,</p>
+<p>Un <strong>nouveau produit</strong> vient d'etre ajoute sur Boost Central ! Ne passez pas a cote.</p>
+
+{bloc_image}
+
+<div class="box">
+<div class="row"><span>Produit</span><span>{nom_produit}</span></div>
+<div class="row"><span>Prix</span><span style="color:#059669">{prix_plateforme:,.0f} FCFA</span></div>
+</div>
+
+<p>{description_produit or 'Decouvrez ce nouveau produit exclusif.'}</p>
+
+{bloc_bouton}
+
+<p style="margin-top:24px">Vendez ce produit et gagnez une commission sur chaque vente en le partageant avec votre lien d'affiliation !</p>
+"""
+    return _send(
+        to_email,
+        f"🎁 Nouveau produit disponible : {nom_produit}",
+        _template("Nouveau produit disponible !", contenu, "#059669", "#047857", emoji="🎁")
+    )
+
+
+def email_newsletter_personnalise(to_email, nom_destinataire, sujet, contenu_html):
+    """Envoie un email newsletter personnalise (redige par l'admin)."""
+    contenu_complet = f"""
+<p>Bonjour <strong>{nom_destinataire}</strong>,</p>
+{contenu_html}
+"""
+    return _send(
+        to_email,
+        sujet,
+        _template(sujet, contenu_complet, emoji="📢")
+    )
+
+
 # ─── EMAILS ADMIN ────────────────────────────────────────────────
 
 def email_admin_nouvelle_inscription(user_email, nom, pays):
