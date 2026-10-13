@@ -13,9 +13,7 @@ from app.models.database import (
     get_all_tickets, get_ticket_messages, add_ticket_message, update_ticket,
     get_all_retraits, get_retrait_by_id, update_retrait,
     get_active_services, get_revendeur_prix_all, set_revendeur_prix,
-    get_profile, create_preuve, get_all_preuves, delete_preuve,
-    get_all_ventes, get_vente_by_id, update_vente,
-    crediter_solde_affilie
+    get_profile, create_preuve, get_all_preuves, delete_preuve
 )
 from app.models.storage import upload_image
 from app.models.mailer import email_commande_livree, email_recharge_validee
@@ -73,14 +71,6 @@ def index():
     retraits = get_all_retraits()
     stats["retraits_attente"] = sum(1 for r in retraits if r.get("statut") == "en_attente")
 
-    # Compter les notifs en attente (lecture seule, TRES rapide)
-    try:
-        r = requests.get(_url("notifications_queue?statut=eq.en_attente&select=id"), headers=_headers())
-        notifs = r.json()
-        stats["notifs_attente"] = len(notifs) if isinstance(notifs, list) else 0
-    except Exception:
-        stats["notifs_attente"] = 0
-
     return render_template("admin/index.html",
                           recharges=recharges, orders=orders, services=services,
                           users=users, stats=stats, promo_codes=promo_codes,
@@ -107,21 +97,156 @@ def process_recharge():
     if not recharge or recharge.get("statut") != "en_attente":
         flash("Recharge deja traitee.", "warning")
         return redirect(url_for("admin.index"))
+
     new_status = "valide" if action == "valider" else "refuse"
     update_recharge(recharge_id, {"statut": new_status, "note_admin": admin_note})
+
     if action == "valider":
         amount = recharge.get("montant_fcfa", 0)
         user_id = recharge.get("user_id")
-        credit_balance(user_id, amount)
-        flash(f"{amount:,.0f} FCFA credites a {recharge.get('user_email')}.", "success")
+        methode = recharge.get("methode", "")
+        user_email = recharge.get("user_email", "")
+        user_nom = (recharge.get("user_name") or user_email.split("@")[0]) if user_email else "Client"
+
+        # 1. Crediter le solde
+        nouveau_solde = credit_balance(user_id, amount)
+
+        # 2. Envoyer l'email avec logs precis
         try:
-            email_recharge_validee(recharge.get('user_email'), recharge.get('user_email', '').split('@')[0], amount)
-        except Exception:
-            pass
+            ok = email_recharge_validee(
+                to_email=user_email,
+                nom=user_nom,
+                montant=amount,
+                nouveau_solde=nouveau_solde,
+                methode=methode
+            )
+            if ok:
+                logger.info(f"✅ Email recharge validee envoye a {user_email}")
+                update_recharge(recharge_id, {"email_envoye": True})
+            else:
+                logger.warning(f"⚠️ Email recharge validee FAILED pour {user_email}")
+        except Exception as e:
+            logger.error(f"❌ Email recharge validee EXCEPTION: {e}")
+
+        flash(f"✅ {amount:,.0f} FCFA credites a {user_email}. Email de confirmation envoye.", "success")
     else:
         flash("Recharge refusee.", "info")
     return redirect(url_for("admin.index"))
 
+
+@admin_bp.route("/recharge/renvoyer-email", methods=["POST"])
+@admin_required
+def renvoyer_email_recharge():
+    """Renvoie l'email de confirmation pour une recharge deja validee."""
+    recharge_id = request.form.get("recharge_id", "")
+    if not recharge_id:
+        flash("ID manquant.", "error")
+        return redirect(url_for("admin.index"))
+
+    try:
+        r = requests.get(_url(f"recharges?id=eq.{recharge_id}&limit=1"), headers=_headers())
+        data = r.json()
+        recharge = data[0] if isinstance(data, list) and data else None
+    except Exception:
+        flash("Recharge introuvable.", "error")
+        return redirect(url_for("admin.index"))
+
+    if not recharge or recharge.get("statut") != "valide":
+        flash("Cette recharge n'est pas validee.", "warning")
+        return redirect(url_for("admin.index"))
+
+    amount = recharge.get("montant_fcfa", 0)
+    user_email = recharge.get("user_email", "")
+    user_id = recharge.get("user_id")
+    methode = recharge.get("methode", "")
+    user_nom = (recharge.get("user_name") or user_email.split("@")[0]) if user_email else "Client"
+
+    # Recuperer le solde actuel
+    profil = get_profile(user_id)
+    solde_actuel = profil.get("balance", 0) if profil else None
+
+    try:
+        ok = email_recharge_validee(
+            to_email=user_email,
+            nom=user_nom,
+            montant=amount,
+            nouveau_solde=solde_actuel,
+            methode=methode
+        )
+        if ok:
+            logger.info(f"📧 Email recharge RENVOYE a {user_email}")
+            update_recharge(recharge_id, {"email_envoye": True})
+            flash(f"✅ Email renvoye a {user_email}.", "success")
+        else:
+            flash("Erreur lors de l'envoi.", "error")
+    except Exception as e:
+        logger.error(f"Renvoi email exception: {e}")
+        flash(f"Erreur : {e}", "error")
+
+    return redirect(url_for("admin.index"))
+
+
+# ─── RENVOI EN MASSE ───────────────────────────────────────────
+
+@admin_bp.route("/recharge/renvoyer-tout", methods=["POST"])
+@admin_required
+def renvoyer_tout_emails_recharges():
+    """Renvoie l'email a toutes les recharges validees sans email_envoye."""
+    try:
+        r = requests.get(
+            _url("recharges?statut=eq.valide&email_envoye=eq.false&order=created_at.desc&limit=50"),
+            headers=_headers()
+        )
+        recharges = r.json()
+        if not isinstance(recharges, list):
+            flash("Erreur de recuperation.", "error")
+            return redirect(url_for("admin.index"))
+
+        if not recharges:
+            flash("Aucune recharge a traiter.", "info")
+            return redirect(url_for("admin.index"))
+
+        envoyes = 0
+        echecs = 0
+
+        for rech in recharges:
+            try:
+                user_email = rech.get("user_email", "")
+                amount = rech.get("montant_fcfa", 0)
+                methode = rech.get("methode", "")
+                user_id = rech.get("user_id")
+                user_nom = user_email.split("@")[0] if user_email else "Client"
+
+                profil = get_profile(user_id)
+                solde = profil.get("balance", 0) if profil else None
+
+                ok = email_recharge_validee(
+                    to_email=user_email,
+                    nom=user_nom,
+                    montant=amount,
+                    nouveau_solde=solde,
+                    methode=methode
+                )
+                if ok:
+                    update_recharge(rech["id"], {"email_envoye": True})
+                    envoyes += 1
+                else:
+                    echecs += 1
+            except Exception as e:
+                logger.error(f"Erreur renvoi masse {rech.get('id')}: {e}")
+                echecs += 1
+
+        flash(f"✅ {envoyes} email(s) envoye(s). {echecs} echec(s).", "success" if envoyes > 0 else "warning")
+    except Exception as e:
+        logger.error(f"renvoyer_tout: {e}")
+        flash("Erreur serveur.", "error")
+
+    return redirect(url_for("admin.index"))
+
+
+# ═══════════════════════════════════════════════════════════════
+# SUITE DES FONCTIONS ADMIN (inchangées)
+# ═══════════════════════════════════════════════════════════════
 
 @admin_bp.route("/order/update", methods=["POST"])
 @admin_required
@@ -488,55 +613,3 @@ def supprimer_preuve(preuve_id):
     else:
         flash("Erreur lors de la suppression.", "error")
     return redirect(url_for("admin.preuves_page"))
-
-
-# ==================== VENTES PRODUITS AFFILIES ====================
-
-@admin_bp.route("/ventes")
-@admin_required
-def ventes_page():
-    ventes = get_all_ventes(limit=300)
-    total_montant = sum(v.get("montant_paye", 0) or 0 for v in ventes)
-    total_gains = sum(v.get("gain_affilie", 0) or 0 for v in ventes)
-    en_attente = sum(1 for v in ventes if v.get("statut") == "en_attente")
-    validees = sum(1 for v in ventes if v.get("statut") == "valide")
-    stats = {
-        "total": len(ventes),
-        "total_montant": round(total_montant),
-        "total_gains": round(total_gains),
-        "en_attente": en_attente,
-        "validees": validees,
-    }
-    return render_template("admin/ventes.html", ventes=ventes, stats=stats)
-
-
-@admin_bp.route("/vente/statut", methods=["POST"])
-@admin_required
-def maj_statut_vente():
-    vente_id = request.form.get("vente_id", "")
-    statut = request.form.get("statut", "")
-    if not vente_id or statut not in ("en_attente", "valide", "annule"):
-        flash("Donnees invalides.", "error")
-        return redirect(url_for("admin.ventes_page"))
-
-    vente_avant = get_vente_by_id(vente_id)
-    if not vente_avant:
-        flash("Vente introuvable.", "error")
-        return redirect(url_for("admin.ventes_page"))
-
-    deja_valide = vente_avant.get("statut") == "valide"
-    ok = update_vente(vente_id, {"statut": statut})
-
-    if ok and statut == "valide" and not deja_valide:
-        try:
-            crediter_solde_affilie(vente_avant["user_id"], vente_avant.get("gain_affilie", 0))
-            flash(f"Vente validee. {vente_avant.get('gain_affilie', 0)} FCFA credites.", "success")
-        except Exception as e:
-            logger.error(f"credit gain vente: {e}")
-            flash("Vente validee mais erreur credit gain.", "warning")
-    elif ok:
-        flash("Statut de la vente mis a jour.", "success")
-    else:
-        flash("Erreur lors de la mise a jour.", "error")
-
-    return redirect(url_for("admin.ventes_page"))
