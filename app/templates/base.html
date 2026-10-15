@@ -88,6 +88,9 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--off);color:var
 {% endif %}
 {% block extra_js %}{% endblock %}
 <script>
+// ═══════════════════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════════════════
 function applyThemeIcon(t){
   var icon=document.getElementById('themeIcon');
   if(icon){ icon.className = t === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; }
@@ -101,6 +104,9 @@ function toggleTheme(){
 }
 applyThemeIcon(document.documentElement.getAttribute('data-theme') || 'light');
 
+// ═══════════════════════════════════════════════════════════════
+// PWA
+// ═══════════════════════════════════════════════════════════════
 var deferredPrompt=null;
 var installBtn=document.getElementById("installBtn");
 
@@ -129,8 +135,9 @@ window.addEventListener("appinstalled",function(){
   if(installBtn) installBtn.style.display="none";
   localStorage.setItem("pwa-installed","true");
 });
+
 var banner=document.getElementById('pwa-banner');
-var installBtn=document.getElementById('pwa-install-btn');
+var pwaInstallBtn=document.getElementById('pwa-install-btn');
 var closeBtn=document.getElementById('pwa-close-btn');
 
 window.addEventListener('beforeinstallprompt',function(e){
@@ -141,7 +148,7 @@ window.addEventListener('beforeinstallprompt',function(e){
   }
 });
 
-installBtn.addEventListener('click',function(){
+pwaInstallBtn.addEventListener('click',function(){
   banner.style.display='none';
   if(deferredPrompt){
     deferredPrompt.prompt();
@@ -165,6 +172,23 @@ window.addEventListener('appinstalled',function(){
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/sw.js');
 }
+
+// ═══════════════════════════════════════════════════════════════
+// 🆕 CSRF : injection automatique du token dans TOUS les formulaires POST
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function(){
+  var token = '{{ csrf_token() }}';
+  document.querySelectorAll('form').forEach(function(f){
+    var method = (f.getAttribute('method') || 'GET').toUpperCase();
+    if(method === 'POST' && !f.querySelector('input[name="csrf_token"]')){
+      var inp = document.createElement('input');
+      inp.type = 'hidden';
+      inp.name = 'csrf_token';
+      inp.value = token;
+      f.appendChild(inp);
+    }
+  });
+});
 </script>
 </body>
 </html>
