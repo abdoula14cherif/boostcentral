@@ -1,12 +1,19 @@
+"""
+Factory Flask pour Boost Central.
+SÉCURITÉ SÉVÈRE : headers, handler global, CSRF, limiter configurable.
+"""
 import os
 import logging
 from flask import Flask, render_template, send_from_directory, request, redirect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, CSRFError
+from werkzeug.exceptions import HTTPException
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per hour"])
 csrf = CSRFProtect()
@@ -18,9 +25,13 @@ def create_app(config_name="production"):
     from app.config import config_map
     app.config.from_object(config_map[config_name])
 
+    # ⚠️ SÉCURITÉ : storage du rate limiter configurable
+    if app.config.get("RATELIMIT_STORAGE_URI"):
+        limiter.storage_uri = app.config["RATELIMIT_STORAGE_URI"]
     limiter.init_app(app)
     csrf.init_app(app)
 
+    # ─── Enregistrement des blueprints ────────────────────────
     from app.routes.auth import auth_bp
     from app.routes.dashboard import dashboard_bp
     from app.routes.admin import admin_bp
@@ -67,11 +78,12 @@ def create_app(config_name="production"):
     app.register_blueprint(admin_newsletter_bp, url_prefix="/admin")
     app.register_blueprint(admin_notifications_bp, url_prefix="/admin")
 
+    # ⚠️ SÉCURITÉ : CSRF exempt pour webhooks/API/cron
     csrf.exempt(webhook_bp)
     csrf.exempt(api_bp)
     csrf.exempt(relance_bp)
 
-    # === HELPER WHATSAPP CONTEXTUEL ===
+    # ─── Helper WhatsApp ──────────────────────────────────────
     from app.models.whatsapp import wa_link
     app.jinja_env.globals['wa_link'] = wa_link
 
@@ -106,18 +118,93 @@ def create_app(config_name="production"):
     def manifest():
         return send_from_directory("static", "manifest.json", mimetype="application/manifest+json")
 
+    # ═══════════════════════════════════════════════════════════
+    # SÉCURITÉ : headers HTTP renforces
+    # ═══════════════════════════════════════════════════════════
+    @app.after_request
+    def add_security_headers(response):
+        # Anti-sniffing MIME
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        # Anti-clickjacking
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        # Referrer
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        # Permissions API
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+        )
+        # Isolation cross-origin
+        response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+        response.headers["Cross-Origin-Resource-Policy"] = "same-site"
+        # HSTS (production uniquement)
+        if not app.debug:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains; preload"
+            )
+        # Cache-Control pour pages sensibles
+        if request.path.startswith(("/dashboard", "/auth", "/admin", "/api/")):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+            response.headers["Pragma"] = "no-cache"
+        return response
+
+    # ═══════════════════════════════════════════════════════════
+    # GESTION DES ERREURS
+    # ═══════════════════════════════════════════════════════════
     @app.errorhandler(404)
     def not_found(e):
+        if request.path.startswith("/api/"):
+            from flask import jsonify
+            return jsonify({"error": "Not found"}), 404
         return render_template("errors/404.html"), 404
 
     @app.errorhandler(403)
     def forbidden(e):
+        if request.path.startswith("/api/"):
+            from flask import jsonify
+            return jsonify({"error": "Forbidden"}), 403
         return render_template("errors/403.html"), 403
 
     @app.errorhandler(500)
     def internal_error(e):
+        logger.exception("Erreur 500")
+        if request.path.startswith("/api/"):
+            from flask import jsonify
+            return jsonify({"error": "Internal server error"}), 500
         return render_template("errors/500.html"), 500
 
-    logging.basicConfig(level=logging.INFO)
+    @app.errorhandler(429)
+    def ratelimit_handler(e):
+        if request.path.startswith("/api/"):
+            from flask import jsonify
+            return jsonify({
+                "error": "Trop de requetes. Reessayez plus tard.",
+                "retry_after": getattr(e, "description", None)
+            }), 429
+        return render_template("errors/429.html"), 429
+
+    @app.errorhandler(CSRFError)
+    def csrf_error(e):
+        ip = (request.headers.get("X-Forwarded-For", request.remote_addr or "")).split(",")[0].strip()
+        logger.warning(f"[SECURITE] CSRF echec : {e.description} | IP={ip} | path={request.path}")
+        return render_template("errors/400.html",
+                              message="Session expiree, rechargez la page."), 400
+
+    # ⚠️ SÉCURITÉ : handler global pour toute exception non geree
+    # Empeche la fuite de traceback en production
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        if isinstance(e, HTTPException):
+            return e
+        logger.exception(f"Exception non geree : {type(e).__name__}")
+        if request.path.startswith("/api/"):
+            from flask import jsonify
+            return jsonify({"error": "Erreur interne du serveur"}), 500
+        return render_template("errors/500.html"), 500
+
+    # ─── Logging ──────────────────────────────────────────────
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    )
 
     return app
