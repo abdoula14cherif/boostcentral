@@ -29,12 +29,12 @@ class BaseConfig:
     # ─── CSRF (ACTIF) ─────────────────────────────────────────
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = 3600
-    WTF_CSRF_SSL_STRICT = False  # True si tout en HTTPS
+    WTF_CSRF_SSL_STRICT = False
 
     # ─── Sessions securisees ──────────────────────────────────
-    SESSION_COOKIE_SECURE = True          # HTTPS uniquement
-    SESSION_COOKIE_HTTPONLY = True        # Inaccessible en JS
-    SESSION_COOKIE_SAMESITE = "Lax"       # Anti-CSRF
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
     SESSION_REFRESH_EACH_REQUEST = True
 
@@ -76,7 +76,7 @@ class BaseConfig:
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
-    WTF_CSRF_ENABLED = False   # ⚠️ Uniquement en dev
+    WTF_CSRF_ENABLED = False
     SESSION_COOKIE_SECURE = False
 
 
