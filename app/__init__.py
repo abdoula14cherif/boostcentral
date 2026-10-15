@@ -1,10 +1,12 @@
 """
 Factory Flask pour Boost Central.
 SÉCURITÉ SÉVÈRE : headers, handler global, CSRF, limiter configurable.
+MODE DEBUG TEMPORAIRE : affiche le traceback sur erreur 500.
 """
 import os
 import logging
-from flask import Flask, render_template, send_from_directory, request, redirect
+import traceback
+from flask import Flask, render_template, send_from_directory, request, redirect, jsonify
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect, CSRFError
@@ -123,25 +125,18 @@ def create_app(config_name="production"):
     # ═══════════════════════════════════════════════════════════
     @app.after_request
     def add_security_headers(response):
-        # Anti-sniffing MIME
         response.headers["X-Content-Type-Options"] = "nosniff"
-        # Anti-clickjacking
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
-        # Referrer
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        # Permissions API
         response.headers["Permissions-Policy"] = (
             "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
         )
-        # Isolation cross-origin
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
         response.headers["Cross-Origin-Resource-Policy"] = "same-site"
-        # HSTS (production uniquement)
         if not app.debug:
             response.headers["Strict-Transport-Security"] = (
                 "max-age=31536000; includeSubDomains; preload"
             )
-        # Cache-Control pour pages sensibles
         if request.path.startswith(("/dashboard", "/auth", "/admin", "/api/")):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
             response.headers["Pragma"] = "no-cache"
@@ -153,14 +148,12 @@ def create_app(config_name="production"):
     @app.errorhandler(404)
     def not_found(e):
         if request.path.startswith("/api/"):
-            from flask import jsonify
             return jsonify({"error": "Not found"}), 404
         return render_template("errors/404.html"), 404
 
     @app.errorhandler(403)
     def forbidden(e):
         if request.path.startswith("/api/"):
-            from flask import jsonify
             return jsonify({"error": "Forbidden"}), 403
         return render_template("errors/403.html"), 403
 
@@ -168,14 +161,12 @@ def create_app(config_name="production"):
     def internal_error(e):
         logger.exception("Erreur 500")
         if request.path.startswith("/api/"):
-            from flask import jsonify
             return jsonify({"error": "Internal server error"}), 500
         return render_template("errors/500.html"), 500
 
     @app.errorhandler(429)
     def ratelimit_handler(e):
         if request.path.startswith("/api/"):
-            from flask import jsonify
             return jsonify({
                 "error": "Trop de requetes. Reessayez plus tard.",
                 "retry_after": getattr(e, "description", None)
@@ -186,20 +177,33 @@ def create_app(config_name="production"):
     def csrf_error(e):
         ip = (request.headers.get("X-Forwarded-For", request.remote_addr or "")).split(",")[0].strip()
         logger.warning(f"[SECURITE] CSRF echec : {e.description} | IP={ip} | path={request.path}")
-        return render_template("errors/400.html",
-                              message="Session expiree, rechargez la page."), 400
+        # ⚠️ DEBUG : affiche l'erreur CSRF en JSON pour diagnostic
+        return jsonify({
+            "error": "CSRFError",
+            "message": str(e.description),
+            "path": request.path,
+            "method": request.method
+        }), 400
 
-    # ⚠️ SÉCURITÉ : handler global pour toute exception non geree
-    # Empeche la fuite de traceback en production
+    # ⚠️ DEBUG TEMPORAIRE : affiche le traceback complet
     @app.errorhandler(Exception)
     def handle_exception(e):
         if isinstance(e, HTTPException):
             return e
+
+        # Log dans Vercel
+        traceback.print_exc()
         logger.exception(f"Exception non geree : {type(e).__name__}")
-        if request.path.startswith("/api/"):
-            from flask import jsonify
-            return jsonify({"error": "Erreur interne du serveur"}), 500
-        return render_template("errors/500.html"), 500
+
+        # ⚠️ TEMPORAIRE : renvoie le traceback en JSON pour diagnostic
+        tb = traceback.format_exc()
+        return jsonify({
+            "error": str(e),
+            "type": type(e).__name__,
+            "path": request.path,
+            "method": request.method,
+            "traceback": tb[-3000:]
+        }), 500
 
     # ─── Logging ──────────────────────────────────────────────
     logging.basicConfig(
