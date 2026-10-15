@@ -1,8 +1,10 @@
+"""
+Authentification Boost Central + génération de codes SSO temporaires.
+SÉCURITÉ SÉVÈRE : rate limit, honeypot, logs.
+"""
 import logging
-import requests
-import jwt
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, session, request, current_app
 from app.models.forms import LoginForm, RegisterForm, ForgotPasswordForm
 from app.models.security import set_session, clear_session
@@ -10,7 +12,6 @@ from app.models.database import get_profile_by_slug, rattacher_client_revendeur
 from app import limiter
 
 logger = logging.getLogger(__name__)
-
 auth_bp = Blueprint("auth", __name__)
 
 SUPABASE_URL = "https://yyecncgrmtbmvvwitwmf.supabase.co"
@@ -33,14 +34,14 @@ def _admin_headers():
 from app.models.mailer import email_admin_nouvelle_inscription
 
 
+def _log_securite(message, niveau="warning"):
+    ip = (request.headers.get("X-Forwarded-For", request.remote_addr or "")).split(",")[0].strip()
+    ua = (request.headers.get("User-Agent", "") or "")[:100]
+    getattr(logger, niveau)(f"[SECURITE-CENTRAL] {message} | IP={ip} | UA={ua}")
+
+
 def _crediter_parrain(ref_code, new_user_id):
-    """
-    Enregistre la relation de parrainage (filleul -> parrain) SANS credit
-    immediat. Le parrain ne gagnera une commission que plus tard, quand le
-    filleul recharge REELLEMENT (voir crediter_commission_recharge dans
-    parrainage.py, appelee depuis webhook.py) - ainsi Cherif ne verse jamais
-    d'argent qu'il n'a pas deja encaisse.
-    """
+    """Enregistre la relation parrain/filleul."""
     if not ref_code:
         return
     try:
@@ -49,27 +50,24 @@ def _crediter_parrain(ref_code, new_user_id):
         SERVICE_KEY_P = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZWNuY2dybXRibXZ2d2l0d21mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTgyODIzNSwiZXhwIjoyMDk1NDA0MjM1fQ.4x5GwPi2pjU6kuBOvKdsL3GzMFFzyBlvL5ot8dkgc2g"
         headers = {"apikey": SERVICE_KEY_P, "Authorization": f"Bearer {SERVICE_KEY_P}", "Content-Type": "application/json"}
 
-        # Trouver le parrain
         r = req.get(f"{SUPABASE_URL_P}/rest/v1/profiles?referral_code=eq.{ref_code}&limit=1", headers=headers)
         data = r.json()
         if not data:
-            logger.warning(f"crediter_parrain: aucun parrain trouve pour le code {ref_code}")
+            logger.warning(f"crediter_parrain: aucun parrain pour {ref_code}")
             return False
         parrain = data[0]
         parrain_id = parrain["id"]
         referral_count = parrain.get("referral_count", 0) or 0
 
-        # Incrementer le compteur de filleuls du parrain (stats uniquement, pas de credit)
         req.patch(f"{SUPABASE_URL_P}/rest/v1/profiles?id=eq.{parrain_id}",
                   json={"referral_count": referral_count + 1},
                   headers=headers)
 
-        # Enregistrer le parrain chez le filleul (sert de base a la commission future)
         req.patch(f"{SUPABASE_URL_P}/rest/v1/profiles?id=eq.{new_user_id}",
                   json={"referred_by": ref_code},
                   headers=headers)
 
-        logger.info(f"Filleul enregistre pour le parrain {parrain.get('email')} (code {ref_code}) - commission a venir sur recharge")
+        logger.info(f"Filleul enregistre pour {parrain.get('email')} (code {ref_code})")
         return True
     except Exception as e:
         logger.error(f"crediter_parrain: {e}")
@@ -91,9 +89,6 @@ def _ensure_profile(user_id, email, full_name, country):
 @auth_bp.route("/login", methods=["GET", "POST"])
 @limiter.limit("20 per minute")
 def login():
-    # On capture le code de parrainage AVANT toute redirection, y compris
-    # si le visiteur est deja connecte (son propre compte) - sinon le code
-    # est perdu silencieusement pour tous les visiteurs deja connectes.
     ref_code = request.args.get("ref", "").strip().upper()
     if ref_code:
         session["ref_code"] = ref_code
@@ -143,9 +138,6 @@ def register():
         password = reg_form.password.data
         full_name = reg_form.full_name.data.strip()
         country = reg_form.country.data.strip() if reg_form.country.data else "CM"
-        # On NE retire PAS le code de la session ici : si l'inscription
-        # echoue (email deja utilise, erreur serveur...), l'utilisateur doit
-        # pouvoir reessayer sans perdre son code de parrainage.
         ref_code = session.get("ref_code")
         revendeur_slug = session.get("revendeur_slug")
 
@@ -229,61 +221,70 @@ def forgot_password():
 
 # ═══════════════════════════════════════════════════════════════
 # SSO VERS RESELLER — Bouton "Devenir revendeur"
+# Génère un CODE TEMPORAIRE (pas un JWT)
 # ═══════════════════════════════════════════════════════════════
 
 @auth_bp.route("/sso-login")
+@limiter.limit("20 per hour")
 def sso_login():
     """
-    Genere un JWT signe et redirige vers reseller.boostcentral.world.
+    Genere un code SSO temporaire et redirige vers Boost Reseller.
     L'utilisateur doit etre connecte sur Boost Central.
-
-    Utilisation : bouton "Devenir revendeur" dans le dashboard Boost Central.
-    Securite :
-      - JWT signe HS256 avec la meme SECRET_KEY que reseller
-      - Expire en 5 minutes
-      - Contient un nonce (jti) anti-replay
-      - Audience + issuer verifies cote reseller
+    
+    SÉCURITÉ :
+      - Code usage unique
+      - Expire en 2 minutes
+      - Code de 40 caracteres aleatoires
+      - Anti-replay (marque comme utilise cote Reseller)
     """
-    # Si non connecte : rediriger vers login puis revenir
     if "user_id" not in session:
         session["next_url"] = request.url
         flash("Connectez-vous pour devenir revendeur.", "info")
         return redirect(url_for("auth.login"))
 
-    # URL de retour (fournie par reseller dans le query param "redirect")
+    # URL de retour fournie par Reseller
     return_url = request.args.get("redirect", "").strip()
     if not return_url:
         return_url = "https://reseller.boostcentral.world/auth/sso"
 
-    # Securite : n'autoriser que les URL qui pointent vers reseller.boostcentral.world
+    # SÉCURITÉ : whitelist des URLs autorisees
     if not return_url.startswith("https://reseller.boostcentral.world/"):
-        logger.warning(f"Tentative SSO vers URL non autorisee : {return_url}")
+        _log_securite(f"SSO vers URL non autorisee : {return_url}", "warning")
         flash("Lien de redirection invalide.", "error")
         return redirect(url_for("dashboard.index"))
 
-    # Generer un JWT signe valide 5 minutes
-    now = datetime.utcnow()
-    payload = {
-        "user_id": session["user_id"],
-        "email": session.get("user_email", ""),
-        "iat": now,
-        "exp": now + timedelta(minutes=5),
-        "jti": secrets.token_hex(16),  # Anti-replay
-        "iss": "boostcentral.world",
-        "aud": "reseller.boostcentral.world",
-    }
+    # Genere un code temporaire via Supabase
+    code = secrets.token_urlsafe(32)[:40]
+    expires = (datetime.now(timezone.utc) + timedelta(seconds=120)).isoformat()
 
-    secret = current_app.config.get("SECRET_KEY")
-    if not secret:
-        logger.error("SECRET_KEY manquante sur boostcentral")
-        flash("Erreur de configuration. Contactez le support.", "error")
+    try:
+        r = requests.post(
+            f"{SUPABASE_URL}/rest/v1/sso_tokens",
+            json={
+                "code": code,
+                "user_id": session["user_id"],
+                "email": session.get("user_email", ""),
+                "full_name": session.get("user_name", ""),
+                "expires_at": expires,
+            },
+            headers=_admin_headers(),
+            timeout=10
+        )
+
+        if r.status_code not in (200, 201):
+            _log_securite(f"Erreur creation code SSO : {r.status_code}", "error")
+            flash("Erreur lors de la connexion SSO. Reessayez.", "error")
+            return redirect(url_for("dashboard.index"))
+
+        # Log succes
+        _log_securite(f"Code SSO genere pour {session.get('user_email')}", "info")
+
+        # Redirige vers Reseller avec le code
+        sep = "&" if "?" in return_url else "?"
+        final_url = f"{return_url}{sep}code={code}"
+        return redirect(final_url)
+
+    except Exception as e:
+        _log_securite(f"SSO exception : {type(e).__name__}", "error")
+        flash("Erreur lors de la generation du lien SSO.", "error")
         return redirect(url_for("dashboard.index"))
-
-    token = jwt.encode(payload, secret, algorithm="HS256")
-
-    # Rediriger vers reseller avec le token en query param
-    sep = "&" if "?" in return_url else "?"
-    final_url = f"{return_url}{sep}token={token}"
-
-    logger.info(f"SSO login initie pour user {session.get('user_email')}")
-    return redirect(final_url)
