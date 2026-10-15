@@ -4,6 +4,7 @@ SÉCURITÉ SÉVÈRE : sessions, bannissement, detection bots.
 """
 import logging
 import time
+import requests  # ⚠️ Ajoute cet import
 from functools import wraps
 
 from flask import (
@@ -15,8 +16,8 @@ logger = logging.getLogger(__name__)
 ADMIN_EMAIL = "abdoula13cherif@gmail.com"
 
 # Duree de session
-SESSION_MAX_AGE = 24 * 3600  # 24h
-SESSION_INACTIVITY = 8 * 3600  # 8h
+SESSION_MAX_AGE = 24 * 3600
+SESSION_INACTIVITY = 8 * 3600
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -66,10 +67,7 @@ def est_bot_fort():
 
 
 def verifier_honeypot():
-    """
-    Verifie que le champ cache 'website' n'a pas ete rempli.
-    Retourne True si OK (pas de bot), False si bot.
-    """
+    """Verifie que le champ cache 'website' n'a pas ete rempli."""
     honeypot = request.form.get("website", "").strip()
     return not honeypot
 
@@ -126,7 +124,6 @@ def _session_valide():
 def _verifier_banni(user_id):
     """Verifie si l'utilisateur est banni via Supabase."""
     try:
-        import requests
         url = current_app.config.get("SUPABASE_URL", "https://yyecncgrmtbmvvwitwmf.supabase.co")
         key = current_app.config.get("SUPABASE_SERVICE_KEY", "")
         if not key:
@@ -162,7 +159,6 @@ def login_required(f):
             flash("Votre session a expire. Reconnectez-vous.", "warning")
             return redirect(url_for("auth.login"))
 
-        # Verifie le bannissement (1 fois par minute max)
         last_check = session.get("_ban_check", 0)
         now = time.time()
         if now - last_check > 60:
