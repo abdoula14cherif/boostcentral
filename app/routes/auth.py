@@ -1,9 +1,9 @@
 """
-Authentification Boost Central + génération de codes SSO temporaires.
-SÉCURITÉ : rate limit, honeypot, logs.
+Authentification Boost Central.
+Version simplifiee.
 """
 import logging
-import requests  # ⚠️ Ajoute cet import
+import requests
 import secrets
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, render_template, redirect, url_for, flash, session, request, current_app
@@ -35,16 +35,9 @@ def _admin_headers():
 from app.models.mailer import email_admin_nouvelle_inscription
 
 
-def _log_securite(message, niveau="warning"):
-    ip = (request.headers.get("X-Forwarded-For", request.remote_addr or "")).split(",")[0].strip()
-    ua = (request.headers.get("User-Agent", "") or "")[:100]
-    getattr(logger, niveau)(f"[SECURITE-CENTRAL] {message} | IP={ip} | UA={ua}")
-
-
 def _crediter_parrain(ref_code, new_user_id):
-    """Enregistre la relation parrain/filleul."""
     if not ref_code:
-        return
+        return False
     try:
         SERVICE_KEY_P = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5ZWNuY2dybXRibXZ2d2l0d21mIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3OTgyODIzNSwiZXhwIjoyMDk1NDA0MjM1fQ.4x5GwPi2pjU6kuBOvKdsL3GzMFFzyBlvL5ot8dkgc2g"
         headers = {"apikey": SERVICE_KEY_P, "Authorization": f"Bearer {SERVICE_KEY_P}", "Content-Type": "application/json"}
@@ -52,21 +45,15 @@ def _crediter_parrain(ref_code, new_user_id):
         r = requests.get(f"{SUPABASE_URL}/rest/v1/profiles?referral_code=eq.{ref_code}&limit=1", headers=headers)
         data = r.json()
         if not data:
-            logger.warning(f"crediter_parrain: aucun parrain pour {ref_code}")
             return False
         parrain = data[0]
         parrain_id = parrain["id"]
         referral_count = parrain.get("referral_count", 0) or 0
 
         requests.patch(f"{SUPABASE_URL}/rest/v1/profiles?id=eq.{parrain_id}",
-                  json={"referral_count": referral_count + 1},
-                  headers=headers)
-
+                  json={"referral_count": referral_count + 1}, headers=headers)
         requests.patch(f"{SUPABASE_URL}/rest/v1/profiles?id=eq.{new_user_id}",
-                  json={"referred_by": ref_code},
-                  headers=headers)
-
-        logger.info(f"Filleul enregistre pour {parrain.get('email')} (code {ref_code})")
+                  json={"referred_by": ref_code}, headers=headers)
         return True
     except Exception as e:
         logger.error(f"crediter_parrain: {e}")
@@ -170,10 +157,6 @@ def register():
                         _ensure_profile(data["id"], email, full_name, country)
                         if _crediter_parrain(ref_code, data["id"]):
                             session.pop("ref_code", None)
-                        if revendeur_slug:
-                            rev = get_profile_by_slug(revendeur_slug)
-                            if rev and rattacher_client_revendeur(rev["id"], data["id"]):
-                                session.pop("revendeur_slug", None)
                     flash("Compte cree ! Connectez-vous.", "info")
                     return redirect(url_for("auth.login"))
             else:
@@ -219,16 +202,12 @@ def forgot_password():
 
 
 # ═══════════════════════════════════════════════════════════════
-# SSO VERS RESELLER — Génère un CODE TEMPORAIRE
+# SSO VERS RESELLER — Génère un code temporaire
 # ═══════════════════════════════════════════════════════════════
 
 @auth_bp.route("/sso-login")
 @limiter.limit("20 per hour")
 def sso_login():
-    """
-    Genere un code SSO temporaire et redirige vers Boost Reseller.
-    SÉCURITÉ : code usage unique, expire en 2 minutes.
-    """
     if "user_id" not in session:
         session["next_url"] = request.url
         flash("Connectez-vous pour devenir revendeur.", "info")
@@ -238,13 +217,10 @@ def sso_login():
     if not return_url:
         return_url = "https://reseller.boostcentral.world/auth/sso"
 
-    # SÉCURITÉ : whitelist
     if not return_url.startswith("https://reseller.boostcentral.world/"):
-        _log_securite(f"SSO vers URL non autorisee : {return_url}", "warning")
         flash("Lien de redirection invalide.", "error")
         return redirect(url_for("dashboard.index"))
 
-    # Genere un code temporaire
     code = secrets.token_urlsafe(32)[:40]
     expires = (datetime.now(timezone.utc) + timedelta(seconds=120)).isoformat()
 
@@ -263,17 +239,14 @@ def sso_login():
         )
 
         if r.status_code not in (200, 201):
-            _log_securite(f"Erreur creation code SSO : {r.status_code}", "error")
             flash("Erreur lors de la connexion SSO. Reessayez.", "error")
             return redirect(url_for("dashboard.index"))
-
-        _log_securite(f"Code SSO genere pour {session.get('user_email')}", "info")
 
         sep = "&" if "?" in return_url else "?"
         final_url = f"{return_url}{sep}code={code}"
         return redirect(final_url)
 
     except Exception as e:
-        _log_securite(f"SSO exception : {type(e).__name__}", "error")
+        logger.error(f"SSO exception : {type(e).__name__}")
         flash("Erreur lors de la generation du lien SSO.", "error")
         return redirect(url_for("dashboard.index"))
