@@ -1,6 +1,6 @@
 """
 Authentification Boost Central.
-Version simplifiee - SECRETS EXTERNALISES.
+Version simplifiee - CSRF exempte sur login/register pour compatibilite.
 """
 import logging
 import requests
@@ -10,14 +10,14 @@ from flask import Blueprint, render_template, redirect, url_for, flash, session,
 from app.models.forms import LoginForm, RegisterForm, ForgotPasswordForm
 from app.models.security import set_session, clear_session
 from app.models.database import get_profile_by_slug, rattacher_client_revendeur
-from app import limiter
+from app import limiter, csrf  # <-- Import de csrf ajouté
 
 logger = logging.getLogger(__name__)
 auth_bp = Blueprint("auth", __name__)
 
 
 # ═══════════════════════════════════════════════════════════════
-# CONFIGURATION (via variables d'environnement)
+# CONFIGURATION
 # ═══════════════════════════════════════════════════════════════
 
 def _supabase_url():
@@ -37,7 +37,6 @@ def _auth_url():
 
 
 def _headers():
-    """Headers pour les requetes publiques (anon key)."""
     return {
         "apikey": _supabase_anon_key(),
         "Content-Type": "application/json",
@@ -45,7 +44,6 @@ def _headers():
 
 
 def _admin_headers():
-    """Headers pour les requetes admin (service key)."""
     key = _supabase_service_key()
     return {
         "apikey": key,
@@ -63,7 +61,6 @@ from app.models.mailer import email_admin_nouvelle_inscription
 
 
 def _crediter_parrain(ref_code, new_user_id):
-    """Enregistre la relation parrain/filleul."""
     if not ref_code:
         return False
     try:
@@ -102,7 +99,6 @@ def _crediter_parrain(ref_code, new_user_id):
 
 
 def _ensure_profile(user_id, email, full_name, country):
-    """Cree le profil s'il n'existe pas."""
     try:
         supabase_url = _supabase_url()
         headers = _admin_headers()
@@ -135,6 +131,7 @@ def _ensure_profile(user_id, email, full_name, country):
 # ═══════════════════════════════════════════════════════════════
 
 @auth_bp.route("/login", methods=["GET", "POST"])
+@csrf.exempt  # <-- AJOUT ICI
 @limiter.limit("20 per minute")
 def login():
     ref_code = request.args.get("ref", "").strip().upper()
@@ -179,6 +176,7 @@ def login():
 
 
 @auth_bp.route("/register", methods=["POST"])
+@csrf.exempt  # <-- AJOUT ICI
 @limiter.limit("10 per hour")
 def register():
     if "user_id" in session:
@@ -279,14 +277,9 @@ def forgot_password():
     return render_template("auth/forgot_password.html", form=form)
 
 
-# ═══════════════════════════════════════════════════════════════
-# SSO VERS RESELLER — Génère un code temporaire
-# ═══════════════════════════════════════════════════════════════
-
 @auth_bp.route("/sso-login")
 @limiter.limit("20 per hour")
 def sso_login():
-    """Genere un code SSO temporaire et redirige vers Boost Reseller."""
     if "user_id" not in session:
         session["next_url"] = request.url
         flash("Connectez-vous pour devenir revendeur.", "info")
@@ -296,12 +289,10 @@ def sso_login():
     if not return_url:
         return_url = "https://reseller.boostcentral.world/auth/sso"
 
-    # Whitelist
     if not return_url.startswith("https://reseller.boostcentral.world/"):
         flash("Lien de redirection invalide.", "error")
         return redirect(url_for("dashboard.index"))
 
-    # Genere un code temporaire
     code = secrets.token_urlsafe(32)[:40]
     expires = (datetime.now(timezone.utc) + timedelta(seconds=120)).isoformat()
 
