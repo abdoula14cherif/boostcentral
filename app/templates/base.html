@@ -140,28 +140,32 @@ var banner=document.getElementById('pwa-banner');
 var pwaInstallBtn=document.getElementById('pwa-install-btn');
 var closeBtn=document.getElementById('pwa-close-btn');
 
+if(pwaInstallBtn){
+  pwaInstallBtn.addEventListener('click',function(){
+    banner.style.display='none';
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(r){
+        if(r.outcome==='accepted'){localStorage.setItem('pwa-installed','true');}
+        deferredPrompt=null;
+      });
+    }
+  });
+}
+
+if(closeBtn){
+  closeBtn.addEventListener('click',function(){
+    banner.style.display='none';
+    localStorage.setItem('pwa-dismissed','true');
+  });
+}
+
 window.addEventListener('beforeinstallprompt',function(e){
   e.preventDefault();
   deferredPrompt=e;
   if(!localStorage.getItem('pwa-installed')&&!localStorage.getItem('pwa-dismissed')){
     setTimeout(function(){banner.style.display='block';},2000);
   }
-});
-
-pwaInstallBtn.addEventListener('click',function(){
-  banner.style.display='none';
-  if(deferredPrompt){
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(function(r){
-      if(r.outcome==='accepted'){localStorage.setItem('pwa-installed','true');}
-      deferredPrompt=null;
-    });
-  }
-});
-
-closeBtn.addEventListener('click',function(){
-  banner.style.display='none';
-  localStorage.setItem('pwa-dismissed','true');
 });
 
 window.addEventListener('appinstalled',function(){
@@ -174,10 +178,14 @@ if('serviceWorker' in navigator){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 🆕 CSRF : injection automatique du token dans TOUS les formulaires POST
+// 🆕 INJECTION CSRF (Robuste)
 // ═══════════════════════════════════════════════════════════════
+window.CSRF_TOKEN = "{{ csrf_token() }}";
+
 document.addEventListener('DOMContentLoaded', function(){
-  var token = '{{ csrf_token() }}';
+  var token = window.CSRF_TOKEN;
+  if(!token) return;
+  
   document.querySelectorAll('form').forEach(function(f){
     var method = (f.getAttribute('method') || 'GET').toUpperCase();
     if(method === 'POST' && !f.querySelector('input[name="csrf_token"]')){
