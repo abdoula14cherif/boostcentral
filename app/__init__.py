@@ -1,6 +1,6 @@
 """
 Factory Flask pour Boost Central.
-Version assouplie.
+Version securisee avec CSRF actif.
 """
 import os
 import logging
@@ -28,6 +28,8 @@ def create_app(config_name="production"):
     if app.config.get("RATELIMIT_STORAGE_URI"):
         limiter.storage_uri = app.config["RATELIMIT_STORAGE_URI"]
     limiter.init_app(app)
+    
+    # Active la protection CSRF
     csrf.init_app(app)
 
     # ─── Enregistrement des blueprints ────────────────────────
@@ -77,12 +79,20 @@ def create_app(config_name="production"):
     app.register_blueprint(admin_newsletter_bp, url_prefix="/admin")
     app.register_blueprint(admin_notifications_bp, url_prefix="/admin")
 
+    # ─── Exemptions CSRF (Uniquement API et Webhooks) ─────────
     csrf.exempt(webhook_bp)
     csrf.exempt(api_bp)
     csrf.exempt(relance_bp)
+    # ⚠️ On NE désactive PAS le CSRF sur auth_bp (sécurité)
 
     from app.models.whatsapp import wa_link
     app.jinja_env.globals['wa_link'] = wa_link
+
+    # ─── Gestion des erreurs CSRF (Pour afficher un message clair) ───
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(e):
+        logger.warning(f"CSRF Error: {e.description} sur {request.path}")
+        return render_template("errors/400.html", message="Session expirée, rechargez la page."), 400
 
     ROOT_DOMAIN = os.environ.get("ROOT_DOMAIN", "").lower().strip()
 
@@ -115,7 +125,7 @@ def create_app(config_name="production"):
     def manifest():
         return send_from_directory("static", "manifest.json", mimetype="application/manifest+json")
 
-    # ─── Gestion des erreurs (simple, sans debug) ─────────────
+    # ─── Gestion des erreurs ──────────────────────────────────
     @app.errorhandler(404)
     def not_found(e):
         return render_template("errors/404.html"), 404
