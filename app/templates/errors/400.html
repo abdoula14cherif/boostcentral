@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Erreur 400 — Boost Central{% endblock %}
+{% block content %}
+<div style="min-height:80vh;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center">
+  <div>
+    <div style="font-size:5rem;font-weight:900;color:var(--blue);line-height:1">400</div>
+    <h1 style="font-size:1.4rem;font-weight:800;margin:15px 0 10px;color:var(--dark)">Session expirée</h1>
+    <p style="color:var(--mid);margin-bottom:25px;font-size:.95rem;max-width:400px">
+      {{ message or "Votre session a expiré ou le formulaire est invalide. Veuillez rafraîchir la page et réessayer." }}
+    </p>
+    <a href="{{ request.referrer or '/' }}" style="display:inline-block;padding:12px 24px;background:var(--blue);color:#fff;border-radius:10px;text-decoration:none;font-weight:700">
+      Recharger la page
+    </a>
+  </div>
+</div>
+{% endblock %}
