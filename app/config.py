@@ -1,22 +1,24 @@
 """
 Configuration Boost Central.
-Version assouplie pour compatibilite.
+Version securisee pour production (Vercel).
 """
 import os
 from datetime import timedelta
 
 
 class BaseConfig:
-    # ─── SECRET_KEY (fallback pour eviter plantage) ────────────
-    SECRET_KEY = os.environ.get("SECRET_KEY", "boostcentral-fallback-2026-change-me-later")
+    # ─── SECRET_KEY ──────────────────────────────────────────
+    # En prod, doit etre absolument defini sur Vercel
+    SECRET_KEY = os.environ.get("SECRET_KEY", "boostcentral-dev-secret-key-change-in-prod")
 
-    # ─── CSRF (desactive pour compatibilite) ──────────────────
-    WTF_CSRF_ENABLED = False
-    WTF_CSRF_TIME_LIMIT = 3600
-    WTF_CSRF_SSL_STRICT = False
+    # ─── CSRF (Securite active) ──────────────────────────────
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_TIME_LIMIT = 3600  # 1 heure
+    WTF_CSRF_SSL_STRICT = False  # Garder False car Vercel fait le proxy SSL
 
-    # ─── Sessions ─────────────────────────────────────────────
-    SESSION_COOKIE_SECURE = False  # ⚠️ Desactive pour eviter les problemes
+    # ─── Sessions (Optimisé pour Vercel/HTTPS) ───────────────
+    # IMPORTANT : Doit être True en production (HTTPS)
+    SESSION_COOKIE_SECURE = True 
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
@@ -60,11 +62,17 @@ class BaseConfig:
 
 class DevelopmentConfig(BaseConfig):
     DEBUG = True
+    # En local (HTTP), on doit désactiver le cookie sécurisé sinon on ne peut pas se connecter
+    SESSION_COOKIE_SECURE = False
+    # On peut se permettre d'être un peu plus souple en dev
+    WTF_CSRF_SSL_STRICT = False
 
 
 class ProductionConfig(BaseConfig):
     DEBUG = False
-
+    # En prod (HTTPS), sécurisé à 100%
+    SESSION_COOKIE_SECURE = True
+    
 
 config_map = {
     "development": DevelopmentConfig,
